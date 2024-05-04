@@ -12,6 +12,7 @@ import torch.utils.data.dataset
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from dlfp.tokens import Tokenage
+from dlfp.tokens import SpecialSymbols
 import dlfp.utils
 
 multi30k.URL["train"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/training.tar.gz"
@@ -48,7 +49,7 @@ def init_multi30k(dataset: PhrasePairDataset = None) -> Tokenage:
     t = Tokenage({
         SRC_LANGUAGE: get_tokenizer('spacy', language='de_core_news_sm'),
         TGT_LANGUAGE: get_tokenizer('spacy', language='en_core_web_sm'),
-    }, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE))
+    }, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE), specials=SpecialSymbols())
     t.init_vocab_transform(train_iter)
     return t
 
@@ -117,3 +118,24 @@ class TokenageTest(TestCase):
         actual_p0_de = [de_vocab.lookup_token(t_id) for t_id in t0_de]
         print(actual_p0_de)
         np.testing.assert_array_equal(de_tokens, actual_p0_de[1:len(de_indices)+1])
+
+    def test_specials(self):
+        train_iter = multi30k_pipe(split='train')
+        tokenage = init_multi30k(train_iter)
+        for language in tokenage.language_pair:
+            vocab = tokenage.vocab_transform[language]
+            for token, idx in zip(tokenage.specials, tokenage.specials_idx):
+                actual_token = vocab.lookup_token(idx)
+                self.assertEqual(token, actual_token)
+                actual_index = vocab(token)
+                self.assertEqual(idx, actual_index)
+
+
+
+
+class SpecialSymbolsTest(TestCase):
+
+    def test_as_tuple(self):
+        special_symbols = ['<unk>', '<pad>', '<box>', '<eos>']
+        self.assertListEqual(special_symbols, SpecialSymbols().as_list())
+

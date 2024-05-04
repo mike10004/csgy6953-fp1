@@ -1,4 +1,5 @@
 from typing import Iterable
+from typing import NamedTuple
 from typing import Iterator
 from typing import Sequence
 from typing import Callable
@@ -12,14 +13,43 @@ from torchtext.vocab import build_vocab_from_iterator
 
 Tokenizer = Callable[[str], Sequence[str]]
 UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0,1,2,3
-special_symbols = ['<unk>', '<pad>', '<box>', '<eos>']
 
 
 IterablePhrasePair = Iterable[Sequence[str]]
 
+
+class SpecialIndexes(NamedTuple):
+
+    unk: int = 0
+    pad: int = 1
+    box: int = 2
+    eos: int = 3
+
+
+class SpecialSymbols(NamedTuple):
+
+    unk: str = '<unk>'
+    pad: str = '<pad>'
+    box: str = '<box>'
+    eos: str = '<eos>'
+
+    def as_list(self) -> list[str]:
+        # noinspection PyTypeChecker
+        return list(self)
+
+
+class Specials(NamedTuple):
+
+    indexes: SpecialIndexes
+    tokens: SpecialSymbols
+
+
 class Tokenage:
 
-    def __init__(self, token_transform: dict[str, Tokenizer], language_pair: Tuple[str, str]):
+    def __init__(self,
+                 token_transform: dict[str, Tokenizer],
+                 language_pair: Tuple[str, str],
+                 specials: Specials):
         self.token_transform: dict[str, Tokenizer] = token_transform
         self.language_pair = language_pair
         assert len(token_transform) == 2, "expect exactly 2 tokenizers"
@@ -28,6 +58,7 @@ class Tokenage:
         assert sorted(token_transform.keys()) == sorted(language_pair), "expect language pair to match tokenizer keys"
         self.vocab_transform: dict[str, Vocab] = {}
         self.text_transform: dict[str, Callable[[str], Tensor]] = {}
+        self.specials = specials
 
     def yield_tokens(self, data_iter: IterablePhrasePair, language_index: int, language: str) -> Iterator[str]:
         for data_sample in data_iter:
@@ -35,7 +66,8 @@ class Tokenage:
 
     def init_vocab_transform(self, train_iter: IterablePhrasePair):
         for language_index, language in enumerate(self.language_pair):
-            self.vocab_transform[language] = build_vocab_from_iterator(self.yield_tokens(train_iter, language_index, language), specials=special_symbols)
+            vocab = build_vocab_from_iterator(self.yield_tokens(train_iter, language_index, language), specials=self.specials.tokens.as_list())
+            self.vocab_transform[language] = vocab
             self.vocab_transform[language].set_default_index(UNK_IDX)
             # src and tgt language text transforms to convert raw strings into tensors indices
             self.text_transform[language] = self.sequential_transforms(
