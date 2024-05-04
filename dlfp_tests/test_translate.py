@@ -7,6 +7,8 @@ from dlfp.train import create_model
 from dlfp.translate import Translator
 import dlfp_tests.tools
 
+dlfp_tests.tools.suppress_cuda_warning()
+
 
 class TranslatorTest(TestCase):
 

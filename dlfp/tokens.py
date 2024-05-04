@@ -12,6 +12,7 @@ from torchtext.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
 
 Tokenizer = Callable[[str], Sequence[str]]
+TextTransform = Callable[[str], Tensor]
 UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0,1,2,3
 
 
@@ -22,7 +23,7 @@ class SpecialIndexes(NamedTuple):
 
     unk: int = 0
     pad: int = 1
-    box: int = 2
+    bos: int = 2
     eos: int = 3
 
 
@@ -30,7 +31,7 @@ class SpecialSymbols(NamedTuple):
 
     unk: str = '<unk>'
     pad: str = '<pad>'
-    box: str = '<box>'
+    bos: str = '<bos>'
     eos: str = '<eos>'
 
     def as_list(self) -> list[str]:
@@ -61,7 +62,7 @@ class Tokenage:
         assert len(set(language_pair)) == 2, "expect exactly 2 languages"
         assert sorted(token_transform.keys()) == sorted(language_pair), "expect language pair to match tokenizer keys"
         self.vocab_transform: dict[str, Vocab] = {}
-        self.text_transform: dict[str, Callable[[str], Tensor]] = {}
+        self.text_transform: dict[str, TextTransform] = {}
         self.specials = specials
 
     def yield_tokens(self, data_iter: IterablePhrasePair, language_index: int, language: str) -> Iterator[str]:

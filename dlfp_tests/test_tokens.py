@@ -6,8 +6,12 @@ from unittest import TestCase
 from torch.utils.data import DataLoader
 from dlfp.tokens import Tokenage
 from dlfp.tokens import SpecialSymbols
+import dlfp_tests.tools
 from dlfp_tests.tools import load_multi30k_dataset
 from dlfp_tests.tools import init_multi30k_de_en_tokenage
+
+
+dlfp_tests.tools.suppress_cuda_warning()
 
 
 def show_examples1(batch_size: int = 4, max_batch: int = 10):
@@ -37,9 +41,7 @@ def show_examples2(tokenage: Tokenage, batch_size: int = 4, max_batch: int = 10)
 class TokenageTest(TestCase):
 
     def test_init(self):
-        print("loading")
         tokenage = init_multi30k_de_en_tokenage()
-        print("loaded")
         train_iter = load_multi30k_dataset(split='train')
         SRC_LANGUAGE = train_iter.language_pair[0]
         for i, (src_phrase, dst_phrase) in enumerate(train_iter):
@@ -59,7 +61,7 @@ class TokenageTest(TestCase):
         train_iter = load_multi30k_dataset(split='train')
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
-        tokenage = init_multi30k_de_en_tokenage(train_iter)
+        tokenage = init_multi30k_de_en_tokenage()
         de_tokens = tokenage.token_transform["de"](p0_de)
         de_vocab = tokenage.vocab_transform["de"]
         de_indices = np.array(de_vocab(de_tokens))
@@ -76,8 +78,7 @@ class TokenageTest(TestCase):
         np.testing.assert_array_equal(de_tokens, actual_p0_de[1:len(de_indices)+1])
 
     def test_specials(self):
-        train_iter = load_multi30k_dataset(split='train')
-        tokenage = init_multi30k_de_en_tokenage(train_iter)
+        tokenage = init_multi30k_de_en_tokenage()
         for language in tokenage.language_pair:
             vocab = tokenage.vocab_transform[language]
             for token, idx in zip(tokenage.specials.tokens, tokenage.specials.indexes):
@@ -94,6 +95,6 @@ class TokenageTest(TestCase):
 class SpecialSymbolsTest(TestCase):
 
     def test_as_tuple(self):
-        special_symbols = ['<unk>', '<pad>', '<box>', '<eos>']
+        special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
         self.assertListEqual(special_symbols, SpecialSymbols().as_list())
 

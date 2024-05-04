@@ -14,6 +14,8 @@ from dlfp.train import TrainLoaders
 from dlfp.utils import noop
 import dlfp_tests.tools
 
+dlfp_tests.tools.suppress_cuda_warning()
+
 
 class TrainerTest(TestCase):
 
@@ -27,7 +29,6 @@ class TrainerTest(TestCase):
         tgt_input = tgt[:-1, :]
         masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=tokenage.specials.indexes.pad)
         self.assertSetEqual({torch.bool}, set(mask.dtype for mask in masks))
-        src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = masks
 
 
     def test_train(self):

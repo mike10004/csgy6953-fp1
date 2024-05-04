@@ -16,7 +16,7 @@ class Translator:
 
     def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int):
         model = self.model
-        start_symbol: int = self.tokenage.specials.indexes.box
+        start_symbol: int = self.tokenage.specials.indexes.bos
         src = src.to(self.device)
         src_mask = src_mask.to(self.device)
 
@@ -45,4 +45,4 @@ class Translator:
         tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5).flatten()
         tgt_vocab = self.tokenage.vocab_transform[TGT_LANGUAGE]
         tgt_tokens = tgt_vocab.lookup_tokens(list(tgt_tokens.cpu().numpy()))
-        return " ".join(tgt_tokens).replace("<box>",      "").replace("<eos>", "")
+        return " ".join(tgt_tokens).replace("<bos>",      "").replace("<eos>", "")
