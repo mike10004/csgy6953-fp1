@@ -31,7 +31,7 @@ def print_translations(model: Seq2SeqTransformer, tokenage: Tokenage, dataset: P
             print()
         print(f"{index: 2d} de: {de_phrase}")
         print(f"{index: 2d} en: {en_phrase}")
-        translation = translator.translate("Ein Mann in grün hält eine Gitarre, während der andere Mann sein Hemd ansieht.").strip()
+        translation = translator.translate(de_phrase).strip()
         print(f"{index: 2d} mx: {translation}")
 
 def main() -> int:
