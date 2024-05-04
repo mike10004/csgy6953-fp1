@@ -17,21 +17,6 @@ def create_tokenage(dataset: Dataset) -> Tokenage:
 def main() -> int:
     seed = 0
     torch.manual_seed(seed)
-    dataset = Multi30k(split=runtype, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE))
-    tokenage = create_tokenage(dataset)
-    SRC_LANGUAGE, TGT_LANGUAGE = tokenage.language_pair
-    SRC_VOCAB_SIZE = len(tokenage.vocab_transform[SRC_LANGUAGE])
-    TGT_VOCAB_SIZE = len(tokenage.vocab_transform[TGT_LANGUAGE])
-    BATCH_SIZE = 128
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    src_lang, tgt_lang = tokenage.language_pair
-    transformer = create_model(
-        src_vocab_size=len(tokenage.vocab_transform[src_lang]),
-        tgt_vocab_size=len(tokenage.vocab_transform[tgt_lang]),
-        DEVICE=device,
-    )
-    dataloader = DataLoader(data_iter, batch_size=BATCH_SIZE, collate_fn=collate_fn)
-
     return 0
 
 

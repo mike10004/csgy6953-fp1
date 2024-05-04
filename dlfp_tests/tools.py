@@ -10,7 +10,6 @@ from random import Random
 from typing import Tuple
 
 import torch
-from torchtext.datasets import Multi30k
 from torchtext.data.utils import get_tokenizer
 from dlfp.tokens import Specials
 from dlfp.tokens import Tokenage
@@ -69,21 +68,10 @@ def suppress_cuda_warning():
     _CUDA_WARNINGS_SUPPRESSED = True
 
 
-def multi30k_de_en(split: str) -> PhrasePairDataset:
-    SRC_LANGUAGE = 'de'
-    TGT_LANGUAGE = 'en'
-    data_dir = str(dlfp.utils.get_repo_root() / "data")
-    language_pair = (SRC_LANGUAGE, TGT_LANGUAGE)
-    # noinspection PyTypeChecker
-    items: list[Tuple[str, str]] = list(Multi30k(root=data_dir, split=split, language_pair=language_pair))
-    return PhrasePairDataset(items, language_pair)
-
-
-
 def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
     dataset = MULTI30K_DE_EN_DATASETS.get(split, None)
     if dataset is None:
-        dataset = multi30k_de_en(split=split)
+        dataset = dlfp.utils.multi30k_de_en(split=split)
         MULTI30K_DE_EN_DATASETS[split] = dataset
     return dataset
 

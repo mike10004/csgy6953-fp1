@@ -16,7 +16,7 @@ TextTransform = Callable[[str], Tensor]
 UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0,1,2,3
 
 
-IterablePhrasePair = Iterable[Sequence[str]]
+IterablePhrasePair = Iterable[Tuple[str, str]]
 
 
 class SpecialIndexes(NamedTuple):
