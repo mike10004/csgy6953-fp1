@@ -14,6 +14,7 @@ from dlfp.models import Seq2SeqTransformer
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import equal_scalar
+from dlfp.utils import EpochResult
 
 LossFunction = Callable[[Tensor, Tensor], Tensor]
 
@@ -41,15 +42,10 @@ def create_optimizer(model: nn.Module, lr=0.0001, betas=(0.9, 0.98), eps=1e-9):
     return torch.optim.Adam(model.parameters(), lr=lr, betas=betas, eps=eps)
 
 
-class EpochResult(NamedTuple):
-
-    epoch_index: int
-    train_loss: float
-    valid_loss: float
-
-
 def _print_result(epoch_result: EpochResult):
     print(f"Epoch {epoch_result.epoch_index + 1:2d}: Train loss {epoch_result.train_loss:.3f}; Valid loss {epoch_result.valid_loss:.3f}")
+
+
 
 
 class TrainLoaders(NamedTuple):
@@ -133,7 +129,8 @@ class Trainer:
             logits = model(src, tgt_input, src_mask, tgt_mask, src_padding_mask,
                            tgt_padding_mask, src_padding_mask)
 
-            if runtype == 'train': optimizer.zero_grad()
+            if runtype == 'train':
+                optimizer.zero_grad()
 
             tgt_out = tgt[1:, :]
             loss = self.loss_fn(logits.reshape(-1, logits.shape[-1]), tgt_out.reshape(-1))

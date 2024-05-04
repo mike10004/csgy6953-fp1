@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 
 import torch
-from torch import nn
 from torch import Tensor
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.tokens import Tokenage
+from dlfp.models import Seq2SeqTransformer
 
 
 class Translator:
 
-    def __init__(self, model: nn.Module, tokenage: Tokenage, device):
+    def __init__(self, model: Seq2SeqTransformer, tokenage: Tokenage, device):
         self.device = device
         self.model = model
         self.tokenage = tokenage
@@ -34,7 +34,6 @@ class Translator:
             if next_word == self.tokenage.specials.indexes.eos:
                 break
         return ys
-
 
     def translate(self, src_sentence: str) -> str:
         self.model.eval()
