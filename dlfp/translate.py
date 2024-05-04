@@ -36,8 +36,8 @@ class Translator:
         return ys
 
 
-    def translate(self, model: torch.nn.Module, src_sentence: str) -> str:
-        model.eval()
+    def translate(self, src_sentence: str) -> str:
+        self.model.eval()
         SRC_LANGUAGE, TGT_LANGUAGE = self.tokenage.language_pair
         src = self.tokenage.text_transform[SRC_LANGUAGE](src_sentence).view(-1, 1)
         num_tokens = src.shape[0]

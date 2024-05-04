@@ -2,38 +2,12 @@
 
 import numpy as np
 from torch import Tensor
-from torchtext.data.utils import get_tokenizer
 from unittest import TestCase
 from torch.utils.data import DataLoader
 from dlfp.tokens import Tokenage
-from dlfp.tokens import Specials
 from dlfp.tokens import SpecialSymbols
-import dlfp_tests.tools
-from dlfp_tests.tools import PhrasePairDataset
-
-
-MULTI30K_DE_EN_DATASETS: dict[str, PhrasePairDataset] = {}  # split -> dataset
-
-
-def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
-    dataset = MULTI30K_DE_EN_DATASETS.get(split, None)
-    if dataset is None:
-        dataset = dlfp_tests.tools.multi30k_de_en(split=split)
-        MULTI30K_DE_EN_DATASETS[split] = dataset
-    return dataset
-
-
-def init_multi30k(dataset: PhrasePairDataset = None) -> Tokenage:
-    train_iter = dataset or load_multi30k_dataset(split='train')
-    SRC_LANGUAGE, TGT_LANGUAGE = "de", "en"
-    assert (SRC_LANGUAGE, TGT_LANGUAGE) == train_iter.language_pair
-    t = Tokenage({
-        SRC_LANGUAGE: get_tokenizer('spacy', language='de_core_news_sm'),
-        TGT_LANGUAGE: get_tokenizer('spacy', language='en_core_web_sm'),
-    }, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE), specials=Specials.create())
-    t.init_vocab_transform(train_iter)
-    return t
-
+from dlfp_tests.tools import load_multi30k_dataset
+from dlfp_tests.tools import init_multi30k_de_en_tokenage
 
 
 def show_examples1(batch_size: int = 4, max_batch: int = 10):
@@ -64,7 +38,7 @@ class TokenageTest(TestCase):
 
     def test_init(self):
         print("loading")
-        tokenage = init_multi30k()
+        tokenage = init_multi30k_de_en_tokenage()
         print("loaded")
         train_iter = load_multi30k_dataset(split='train')
         SRC_LANGUAGE = train_iter.language_pair[0]
@@ -85,7 +59,7 @@ class TokenageTest(TestCase):
         train_iter = load_multi30k_dataset(split='train')
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
-        tokenage = init_multi30k(train_iter)
+        tokenage = init_multi30k_de_en_tokenage(train_iter)
         de_tokens = tokenage.token_transform["de"](p0_de)
         de_vocab = tokenage.vocab_transform["de"]
         de_indices = np.array(de_vocab(de_tokens))
@@ -103,7 +77,7 @@ class TokenageTest(TestCase):
 
     def test_specials(self):
         train_iter = load_multi30k_dataset(split='train')
-        tokenage = init_multi30k(train_iter)
+        tokenage = init_multi30k_de_en_tokenage(train_iter)
         for language in tokenage.language_pair:
             vocab = tokenage.vocab_transform[language]
             for token, idx in zip(tokenage.specials.tokens, tokenage.specials.indexes):
