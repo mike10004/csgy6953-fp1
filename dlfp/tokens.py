@@ -52,34 +52,48 @@ class Specials(NamedTuple):
 class Tokenage:
 
     def __init__(self,
-                 token_transform: dict[str, Tokenizer],
                  language_pair: Tuple[str, str],
+                 token_transform: dict[str, Tokenizer],
+                 vocab_transform: dict[str, Vocab],
+                 text_transform: dict[str, TextTransform],
                  specials: Specials):
-        self.token_transform: dict[str, Tokenizer] = token_transform
         self.language_pair = language_pair
+        self.token_transform = token_transform
+        self.vocab_transform = vocab_transform
+        self.text_transform = text_transform
+        self.specials = specials
+
+    @staticmethod
+    def from_token_transform(language_pair: Tuple[str, str],
+                             token_transform: dict[str, Tokenizer],
+                             data_iter: IterablePhrasePair) -> 'Tokenage':
         assert len(token_transform) == 2, "expect exactly 2 tokenizers"
         assert len(language_pair) == 2, "expect exactly 2 languages"
         assert len(set(language_pair)) == 2, "expect exactly 2 languages"
         assert sorted(token_transform.keys()) == sorted(language_pair), "expect language pair to match tokenizer keys"
-        self.vocab_transform: dict[str, Vocab] = {}
-        self.text_transform: dict[str, TextTransform] = {}
-        self.specials = specials
-
-    def yield_tokens(self, data_iter: IterablePhrasePair, language_index: int, language: str) -> Iterator[str]:
-        for data_sample in data_iter:
-            yield self.token_transform[language](data_sample[language_index])
-
-    def init_vocab_transform(self, train_iter: IterablePhrasePair):
-        for language_index, language in enumerate(self.language_pair):
-            vocab = build_vocab_from_iterator(self.yield_tokens(train_iter, language_index, language), specials=self.specials.tokens.as_list())
-            self.vocab_transform[language] = vocab
-            self.vocab_transform[language].set_default_index(UNK_IDX)
+        vocab_transform: dict[str, Vocab] = {}
+        text_transform: dict[str, TextTransform] = {}
+        specials = Specials.create()
+        for language_index, language in enumerate(language_pair):
+            vocab = build_vocab_from_iterator(Tokenage._yield_tokens(token_transform, data_iter, language_index, language), specials=specials.tokens.as_list())
+            vocab_transform[language] = vocab
+            vocab_transform[language].set_default_index(UNK_IDX)
             # src and tgt language text transforms to convert raw strings into tensors indices
-            self.text_transform[language] = self.sequential_transforms(
-                self.token_transform[language], #Tokenization
-               self.vocab_transform[language], #Numericalization
+            text_transform[language] = Tokenage.sequential_transforms(
+                token_transform[language], #Tokenization
+               vocab_transform[language], #Numericalization
                Tokenage.tensor_transform, # Add BOS/EOS and create tensor
             )
+        return Tokenage(language_pair, token_transform, vocab_transform, text_transform, specials)
+
+    @staticmethod
+    def _yield_tokens(token_transform: dict[str, Tokenizer],
+                      data_iter: IterablePhrasePair,
+                      language_index: int,
+                      language: str) -> Iterator[str]:
+        for data_sample in data_iter:
+            yield token_transform[language](data_sample[language_index])
+
 
     @staticmethod
     def sequential_transforms(*transforms):

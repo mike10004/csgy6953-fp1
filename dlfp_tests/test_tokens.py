@@ -40,6 +40,8 @@ def show_examples2(tokenage: Tokenage, batch_size: int = 4, max_batch: int = 10)
 
 class TokenageTest(TestCase):
 
+    verbose = False
+
     def test_init(self):
         tokenage = init_multi30k_de_en_tokenage()
         train_iter = load_multi30k_dataset(split='train')
@@ -65,16 +67,16 @@ class TokenageTest(TestCase):
         de_tokens = tokenage.token_transform["de"](p0_de)
         de_vocab = tokenage.vocab_transform["de"]
         de_indices = np.array(de_vocab(de_tokens))
-        print(de_indices)
+        if self.verbose: print(de_indices)
         cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate_fn)
         de_batch, en_batch = next(iter(cooked_dataloader))
         self.assertIsInstance(de_batch, Tensor)
         self.assertIsInstance(en_batch, Tensor)
-        print(de_batch.shape)
-        print(en_batch.shape)
+        if self.verbose: print(de_batch.shape)
+        if self.verbose: print(en_batch.shape)
         t0_de = de_batch[:,0].detach().cpu().numpy()
         actual_p0_de = [de_vocab.lookup_token(t_id) for t_id in t0_de]
-        print(actual_p0_de)
+        if self.verbose: print(actual_p0_de)
         np.testing.assert_array_equal(de_tokens, actual_p0_de[1:len(de_indices)+1])
 
     def test_specials(self):
@@ -85,7 +87,7 @@ class TokenageTest(TestCase):
                 with self.subTest((language, token, idx)):
                     actual_token = vocab.lookup_token(idx)
                     self.assertEqual(token, actual_token)
-                    print(f"trying vocab({token}) with token of type {type(token)}")
+                    # print(f"trying vocab({token}) with token of type {type(token)}")
                     actual_indexes = vocab([token])
                     self.assertListEqual([idx], actual_indexes)
 
