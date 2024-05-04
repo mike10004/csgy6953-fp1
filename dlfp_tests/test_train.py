@@ -54,7 +54,7 @@ class TrainerTest(TestCase):
             results = trainer.train(loaders, epoch_count, callback=callback)
             self.assertEqual(epoch_count, len(results))
             weights = get_weight_sample(model, trainer, next(iter(loaders.valid)))
-            print(weights.shape)
+            # print(weights.shape)
             expected = [
                 0.0951, 0.1064, 0.1283, 0.1175, 0.0844, 0.0741, 0.0697, 0.0753, 0.0837, 0.0854, 0.0801, 0.0000, 0.0000,
                 0.0961, 0.1084, 0.1252, 0.1174, 0.0904, 0.0783, 0.0719, 0.0744, 0.0799, 0.0791, 0.0789, 0.0000, 0.0000,

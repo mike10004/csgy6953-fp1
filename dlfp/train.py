@@ -13,6 +13,7 @@ from tqdm import tqdm
 from dlfp.models import Seq2SeqTransformer
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import generate_square_subsequent_mask
+from dlfp.utils import equal_scalar
 
 LossFunction = Callable[[Tensor, Tensor], Tensor]
 
@@ -92,8 +93,8 @@ class Trainer:
         tgt_mask = generate_square_subsequent_mask(tgt_seq_len, device=device).type(torch.bool)
         src_mask = torch.zeros((src_seq_len, src_seq_len),device=device).type(torch.bool)
 
-        src_padding_mask = (src == pad_idx).transpose(0, 1)
-        tgt_padding_mask = (tgt == pad_idx).transpose(0, 1)
+        src_padding_mask = equal_scalar(src, pad_idx).transpose(0, 1)
+        tgt_padding_mask = equal_scalar(tgt, pad_idx).transpose(0, 1)
         return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
     def train(self, loaders: TrainLoaders, epoch_count: int, callback: Callable[[EpochResult], None] = None) -> list[EpochResult]:
