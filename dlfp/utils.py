@@ -3,6 +3,7 @@
 import os
 from datetime import datetime
 from typing import Iterable
+from typing import Any
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
@@ -58,7 +59,7 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
 
 
 def timestamp() -> str:
-    return datetime.now().strftime("%y%m%d-%H%M")
+    return datetime.now().strftime("%Y%m%d-%H%M")
 
 
 class EpochResult(NamedTuple):
@@ -66,6 +67,25 @@ class EpochResult(NamedTuple):
     epoch_index: int
     train_loss: float
     valid_loss: float
+
+
+class Restored(NamedTuple):
+
+    epoch_results: list[EpochResult]
+    model_state_dict: dict[str, Any]
+    optimizer_state_dict: Optional[dict[str, Any]] = None
+
+    @staticmethod
+    def from_checkpoint(checkpoint: dict[str, Any]) -> 'Restored':
+        epoch_results = [EpochResult(**d) for d in checkpoint['epoch_results']]
+        model_state_dict = checkpoint['model_state_dict']
+        optimizer_state_dict = checkpoint.get('optimizer_state_dict', None)
+        return Restored(epoch_results, model_state_dict, optimizer_state_dict)
+
+    @staticmethod
+    def from_file(checkpoint_file: Path, device=None) -> 'Restored':
+        checkpoint = torch.load(str(checkpoint_file), map_location=device)
+        return Restored.from_checkpoint(checkpoint)
 
 
 class Checkpointer:
