@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.random
 from torch import Tensor
+from torch.utils.data import DataLoader
 
 from dlfp.models import Seq2SeqTransformer
 from dlfp.train import create_model
@@ -17,6 +18,17 @@ import dlfp_tests.tools
 class TrainerTest(TestCase):
 
     verbose: bool = False
+
+    def test_create_mask(self):
+        train_dataset = dlfp_tests.tools.load_multi30k_dataset(split='train')
+        tokenage = dlfp_tests.tools.init_multi30k_de_en_tokenage()
+        dataloader = DataLoader(train_dataset, batch_size=16, collate_fn=tokenage.collate_fn)
+        src, tgt = next(iter(dataloader))
+        tgt_input = tgt[:-1, :]
+        masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=tokenage.specials.indexes.pad)
+        self.assertSetEqual({torch.bool}, set(mask.dtype for mask in masks))
+        src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = masks
+
 
     def test_train(self):
         with torch.random.fork_rng():
