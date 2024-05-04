@@ -43,6 +43,10 @@ class Specials(NamedTuple):
     indexes: SpecialIndexes
     tokens: SpecialSymbols
 
+    @staticmethod
+    def create() -> 'Specials':
+        return Specials(SpecialIndexes(), SpecialSymbols())
+
 
 class Tokenage:
 

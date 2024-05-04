@@ -1,62 +1,43 @@
-
-from typing import Iterable
-from typing import Sequence
-from typing import Tuple
+#!/usr/bin/env python3
 
 import numpy as np
 from torch import Tensor
 from torchtext.data.utils import get_tokenizer
 from unittest import TestCase
-from torchtext.datasets import multi30k, Multi30k
-import torch.utils.data.dataset
-from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
 from dlfp.tokens import Tokenage
+from dlfp.tokens import Specials
 from dlfp.tokens import SpecialSymbols
-import dlfp.utils
-
-multi30k.URL["train"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/training.tar.gz"
-multi30k.URL["valid"] = "https://raw.githubusercontent.com/neychev/small_DL_repo/master/datasets/Multi30k/validation.tar.gz"
-
-SRC_LANGUAGE = 'de'
-TGT_LANGUAGE = 'en'
+import dlfp_tests.tools
+from dlfp_tests.tools import PhrasePairDataset
 
 
-class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
-
-    def __init__(self, phrase_pairs: list[Tuple[str, str]]):
-        super().__init__()
-        self.phrase_pairs = phrase_pairs
-
-    def __getitem__(self, index) -> Tuple[str, str]:
-        return self.phrase_pairs[index]
-
-    def __len__(self) -> int:
-        return len(self.phrase_pairs)
-
-    def __iter__(self):
-        return iter(self.phrase_pairs)
+MULTI30K_DE_EN_DATASETS: dict[str, PhrasePairDataset] = {}  # split -> dataset
 
 
-def multi30k_pipe(split: str) -> PhrasePairDataset:
-    data_dir = str(dlfp.utils.get_repo_root() / "data")
-    # noinspection PyTypeChecker
-    items: list[Tuple[str, str]] = list(Multi30k(root=data_dir, split=split, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE)))
-    return PhrasePairDataset(items)
+def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
+    dataset = MULTI30K_DE_EN_DATASETS.get(split, None)
+    if dataset is None:
+        dataset = dlfp_tests.tools.multi30k_de_en(split=split)
+        MULTI30K_DE_EN_DATASETS[split] = dataset
+    return dataset
+
 
 def init_multi30k(dataset: PhrasePairDataset = None) -> Tokenage:
-    train_iter = dataset or multi30k_pipe(split='train')
+    train_iter = dataset or load_multi30k_dataset(split='train')
+    SRC_LANGUAGE, TGT_LANGUAGE = "de", "en"
+    assert (SRC_LANGUAGE, TGT_LANGUAGE) == train_iter.language_pair
     t = Tokenage({
         SRC_LANGUAGE: get_tokenizer('spacy', language='de_core_news_sm'),
         TGT_LANGUAGE: get_tokenizer('spacy', language='en_core_web_sm'),
-    }, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE), specials=SpecialSymbols())
+    }, language_pair=(SRC_LANGUAGE, TGT_LANGUAGE), specials=Specials.create())
     t.init_vocab_transform(train_iter)
     return t
 
 
 
 def show_examples1(batch_size: int = 4, max_batch: int = 10):
-    train_iter = multi30k_pipe(split='train')
+    train_iter = load_multi30k_dataset(split='train')
     raw_dataloader = DataLoader(train_iter, batch_size=batch_size)
     for b_idx, raw_batch in enumerate(raw_dataloader):
         if b_idx >= max_batch:
@@ -67,7 +48,7 @@ def show_examples1(batch_size: int = 4, max_batch: int = 10):
 
 
 def show_examples2(tokenage: Tokenage, batch_size: int = 4, max_batch: int = 10):
-    train_iter = multi30k_pipe(split='train')
+    train_iter = load_multi30k_dataset(split='train')
     cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate_fn)
     for b_idx, cooked_batch in enumerate(cooked_dataloader):
         if b_idx >= max_batch:
@@ -85,7 +66,8 @@ class TokenageTest(TestCase):
         print("loading")
         tokenage = init_multi30k()
         print("loaded")
-        train_iter = multi30k_pipe(split='train')
+        train_iter = load_multi30k_dataset(split='train')
+        SRC_LANGUAGE = train_iter.language_pair[0]
         for i, (src_phrase, dst_phrase) in enumerate(train_iter):
             if i >= 10:
                 break
@@ -100,7 +82,7 @@ class TokenageTest(TestCase):
             self.assertEqual(some_word, word)
 
     def test_show_examples(self):
-        train_iter = multi30k_pipe(split='train')
+        train_iter = load_multi30k_dataset(split='train')
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
         tokenage = init_multi30k(train_iter)
@@ -120,15 +102,17 @@ class TokenageTest(TestCase):
         np.testing.assert_array_equal(de_tokens, actual_p0_de[1:len(de_indices)+1])
 
     def test_specials(self):
-        train_iter = multi30k_pipe(split='train')
+        train_iter = load_multi30k_dataset(split='train')
         tokenage = init_multi30k(train_iter)
         for language in tokenage.language_pair:
             vocab = tokenage.vocab_transform[language]
-            for token, idx in zip(tokenage.specials, tokenage.specials_idx):
-                actual_token = vocab.lookup_token(idx)
-                self.assertEqual(token, actual_token)
-                actual_index = vocab(token)
-                self.assertEqual(idx, actual_index)
+            for token, idx in zip(tokenage.specials.tokens, tokenage.specials.indexes):
+                with self.subTest((language, token, idx)):
+                    actual_token = vocab.lookup_token(idx)
+                    self.assertEqual(token, actual_token)
+                    print(f"trying vocab({token}) with token of type {type(token)}")
+                    actual_indexes = vocab([token])
+                    self.assertListEqual([idx], actual_indexes)
 
 
 
