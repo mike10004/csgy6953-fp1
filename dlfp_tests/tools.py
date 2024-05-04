@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
-from unittest import TestCase
+from typing import Optional
+from random import Random
 from typing import Tuple
 
 import torch
@@ -53,3 +54,11 @@ def get_device() -> str:
         DEVICE = "cuda:0" if torch.cuda.is_available() else "cpu"
     return DEVICE
 
+
+def truncate_dataset(dataset: PhrasePairDataset, size: int, shuffle_seed: Optional[int] = ...) -> PhrasePairDataset:
+    phrase_pairs = dataset.phrase_pairs
+    if not shuffle_seed is ...:
+        rng = Random(shuffle_seed)
+        phrase_pairs = list(phrase_pairs)
+        rng.shuffle(phrase_pairs)
+    return PhrasePairDataset(phrase_pairs[:size], language_pair=dataset.language_pair)

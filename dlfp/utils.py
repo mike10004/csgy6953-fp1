@@ -7,6 +7,11 @@ from pathlib import Path
 import torch
 from torch.utils.data.dataset import Dataset
 
+
+# noinspection PyUnusedLocal
+def noop(*args, **kwargs):
+    pass
+
 def get_repo_root() -> Path:
     return Path(__file__).absolute().parent.parent
 
