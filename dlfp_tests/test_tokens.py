@@ -4,7 +4,6 @@ import numpy as np
 from torch import Tensor
 from unittest import TestCase
 from torch.utils.data import DataLoader
-from dlfp.tokens import Tokenage
 import dlfp_tests.tools
 from dlfp_tests.tools import load_multi30k_dataset
 from dlfp_tests.tools import init_multi30k_de_en_tokenage
@@ -24,34 +23,21 @@ def show_examples1(batch_size: int = 4, max_batch: int = 10):
             print(f"{b_idx}:{i_idx}: {raw_item}")
 
 
-def show_examples2(tokenage: Tokenage, batch_size: int = 4, max_batch: int = 10):
-    train_iter = load_multi30k_dataset(split='train')
-    cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate_fn)
-    for b_idx, cooked_batch in enumerate(cooked_dataloader):
-        if b_idx >= max_batch:
-            break
-        for i_idx, cooked_item in enumerate(cooked_batch):
-            print(f"{b_idx}:{i_idx}: {cooked_item.shape}")
 
-
-
-
-
-class TokenageTest(TestCase):
+class BiglotTest(TestCase):
 
     verbose = False
 
     def test_init(self):
         tokenage = init_multi30k_de_en_tokenage()
         train_iter = load_multi30k_dataset(split='train')
-        SRC_LANGUAGE = train_iter.language_pair[0]
         for i, (src_phrase, dst_phrase) in enumerate(train_iter):
             if i >= 10:
                 break
-            tokenized = tokenage.token_transform[SRC_LANGUAGE](src_phrase)
+            tokenized = tokenage.source.language.tokenizer(src_phrase)
             self.assertSetEqual({str}, set([type(x) for x in tokenized]))
             some_word = tokenized[len(tokenized) // 2]
-            vocab = tokenage.vocab_transform[SRC_LANGUAGE]
+            vocab = tokenage.source.language.vocab
             some_token = vocab[some_word]
             word = vocab.lookup_token(some_token)
             token = vocab[word]
@@ -63,11 +49,11 @@ class TokenageTest(TestCase):
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
         tokenage = init_multi30k_de_en_tokenage()
-        de_tokens = tokenage.token_transform["de"](p0_de)
-        de_vocab = tokenage.vocab_transform["de"]
+        de_tokens = tokenage.source.language.tokenizer(p0_de)
+        de_vocab = tokenage.source.language.vocab
         de_indices = np.array(de_vocab(de_tokens))
         if self.verbose: print(de_indices)
-        cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate_fn)
+        cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate)
         de_batch, en_batch = next(iter(cooked_dataloader))
         self.assertIsInstance(de_batch, Tensor)
         self.assertIsInstance(en_batch, Tensor)
@@ -80,12 +66,14 @@ class TokenageTest(TestCase):
 
     def test_specials(self):
         tokenage = init_multi30k_de_en_tokenage()
-        for language in tokenage.language_pair:
-            vocab = tokenage.vocab_transform[language]
-            for token, idx in zip(tokenage.specials.tokens, tokenage.specials.indexes):
+        languages = tokenage.languages()
+        src, tgt = languages
+        self.assertIs(src.specials, tgt.specials)
+        for language in languages:
+            for token, idx in zip(language.specials.tokens, language.specials.indexes):
                 with self.subTest((language, token, idx)):
-                    actual_token = vocab.lookup_token(idx)
+                    actual_token = language.vocab.lookup_token(idx)
                     self.assertEqual(token, actual_token)
                     # print(f"trying vocab({token}) with token of type {type(token)}")
-                    actual_indexes = vocab([token])
+                    actual_indexes = language.vocab([token])
                     self.assertListEqual([idx], actual_indexes)

@@ -17,10 +17,9 @@ class TranslatorTest(TestCase):
             torch.random.manual_seed(0)
             tokenage = dlfp_tests.tools.init_multi30k_de_en_tokenage()
             device = dlfp_tests.tools.get_device()
-            src_lang, tgt_lang = tokenage.language_pair
             model = create_model(
-                src_vocab_size=len(tokenage.vocab_transform[src_lang]),
-                tgt_vocab_size=len(tokenage.vocab_transform[tgt_lang]),
+                src_vocab_size=len(tokenage.source.language.vocab),
+                tgt_vocab_size=len(tokenage.target.language.vocab),
                 DEVICE=device,
             )
             translator = Translator(model, tokenage, device)

@@ -24,10 +24,10 @@ class TrainerTest(TestCase):
     def test_create_mask(self):
         train_dataset = dlfp_tests.tools.load_multi30k_dataset(split='train')
         tokenage = dlfp_tests.tools.init_multi30k_de_en_tokenage()
-        dataloader = DataLoader(train_dataset, batch_size=16, collate_fn=tokenage.collate_fn)
+        dataloader = DataLoader(train_dataset, batch_size=16, collate_fn=tokenage.collate)
         src, tgt = next(iter(dataloader))
         tgt_input = tgt[:-1, :]
-        masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=tokenage.specials.indexes.pad)
+        masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=tokenage.source.language.specials.indexes.pad)
         self.assertSetEqual({torch.bool}, set(mask.dtype for mask in masks))
 
 
@@ -41,16 +41,15 @@ class TrainerTest(TestCase):
             train_dataset = dlfp_tests.tools.truncate_dataset(train_dataset, size=batch_size * 100)
             valid_dataset = dlfp_tests.tools.truncate_dataset(valid_dataset, size=batch_size * 2)
             device = dlfp_tests.tools.get_device()
-            src_lang, tgt_lang = tokenage.language_pair
             model = create_model(
-                src_vocab_size=len(tokenage.vocab_transform[src_lang]),
-                tgt_vocab_size=len(tokenage.vocab_transform[tgt_lang]),
+                src_vocab_size=len(tokenage.source.language.vocab),
+                tgt_vocab_size=len(tokenage.target.language.vocab),
                 DEVICE=device,
             )
-            trainer = Trainer(model, pad_idx=tokenage.specials.indexes.pad, device=device)
+            trainer = Trainer(model, pad_idx=tokenage.source.language.specials.indexes.pad, device=device)
             trainer.hide_progress = not self.verbose
             callback = noop if not self.verbose else None
-            loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=tokenage.collate_fn)
+            loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=tokenage.collate)
             epoch_count = 1
             results = trainer.train(loaders, epoch_count, callback=callback)
             self.assertEqual(epoch_count, len(results))

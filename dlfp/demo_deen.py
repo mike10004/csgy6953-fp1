@@ -6,13 +6,14 @@ from pathlib import Path
 
 import tabulate
 import torch
-from torchtext.data.utils import get_tokenizer
-from dlfp.tokens import Tokenage
+from dlfp.tokens import Biglot
+from dlfp.tokens import Linguist
 from dlfp.models import Seq2SeqTransformer
 from dlfp.train import TrainLoaders
 from dlfp.train import create_model
 from dlfp.train import Trainer
 from dlfp.utils import Checkpointer
+from dlfp.utils import VocabCache
 from dlfp.utils import Restored
 from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
@@ -21,7 +22,7 @@ import dlfp.utils
 
 
 
-def print_translations(model: Seq2SeqTransformer, tokenage: Tokenage, dataset: PhrasePairDataset, device, limit: int = 5):
+def print_translations(model: Seq2SeqTransformer, tokenage: Biglot, dataset: PhrasePairDataset, device, limit: int = 5):
     limit = limit or 5
     translator = Translator(model, tokenage, device)
     for index, (de_phrase, en_phrase) in enumerate(dataset):
@@ -43,21 +44,17 @@ def main() -> int:
     args = parser.parse_args()
     seed = 0
     torch.manual_seed(seed)
-    language_pair = "de", "en"
-    tokenizers = {
-        "de": get_tokenizer('spacy', language='de_core_news_sm'),
-        "en": get_tokenizer('spacy', language='en_core_web_sm'),
-    }
     train_dataset = dlfp.utils.multi30k_de_en(split='train')
     valid_dataset = dlfp.utils.multi30k_de_en(split='valid')
-    print("loading vocab")
-    tokenage = Tokenage.from_token_transform(language_pair, tokenizers, train_dataset)
+    cache = VocabCache()
+    src_ling = Linguist.from_language(cache.get(train_dataset, "de", "spacy", "de_core_news_sm"))
+    tgt_ling = Linguist.from_language(cache.get(train_dataset, "en", "spacy", "en_core_web_sm"))
+    biglot = Biglot(src_ling, tgt_ling)
     batch_size = 128
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
-    src_lang, tgt_lang = tokenage.language_pair
     model = create_model(
-        src_vocab_size=len(tokenage.vocab_transform[src_lang]),
-        tgt_vocab_size=len(tokenage.vocab_transform[tgt_lang]),
+        src_vocab_size=len(biglot.source.language.vocab),
+        tgt_vocab_size=len(biglot.target.language.vocab),
         DEVICE=device,
     )
     if args.mode == "eval":
@@ -67,11 +64,11 @@ def main() -> int:
             return 1
         restored = Restored.from_file(checkpoint_file, device=device)
         model.load_state_dict(restored.model_state_dict)
-        print_translations(model, tokenage, valid_dataset, device, limit=args.limit)
+        print_translations(model, biglot, valid_dataset, device, limit=args.limit)
         return 0
     elif args.mode == "train":
-        trainer = Trainer(model, pad_idx=tokenage.specials.indexes.pad, device=device)
-        loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=tokenage.collate_fn, batch_size=batch_size)
+        trainer = Trainer(model, pad_idx=biglot.source.language.specials.indexes.pad, device=device)
+        loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=biglot.collate, batch_size=batch_size)
         epoch_count = 10
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
         print(f"writing checkpoints to {checkpoints_dir}")

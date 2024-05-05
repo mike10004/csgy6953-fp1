@@ -7,18 +7,22 @@ from typing import Any
 from typing import Literal
 from typing import NamedTuple
 from typing import Optional
+from typing import Sequence
+from typing import Callable
 from typing import Tuple
 from pathlib import Path
 
 import torch
 import torchtext.vocab
 import torchtext.data.utils
+from torchtext.vocab import Vocab
 from torch import nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
 
 Split = Literal["train", "valid", "test"]
+Tokenizer = Callable[[str], Sequence[str]]
 
 
 # noinspection PyUnusedLocal
@@ -190,13 +194,26 @@ def multi30k_de_en(split: str) -> PhrasePairDataset:
     return PhrasePairDataset("multi30k_de_en", items, language_pair)
 
 
+class Language(NamedTuple):
+
+    name: str
+    tokenizer: Tokenizer
+    vocab: Vocab
+    specials: Specials
+
+    def to_tensor(self, token_ids: list[int]):
+        """Add BOS/EOS and create tensor for input sequence indices."""
+        return torch.cat((torch.tensor([self.specials.indexes.bos]),
+                          torch.tensor(token_ids),
+                          torch.tensor([self.specials.indexes.eos])))
 class VocabCache:
 
     def __init__(self, cache_dir: Optional[Path] = None):
         self.cache_dir = cache_dir or (get_repo_root() / "data" / "cache" / "vocab")
         self.specials = Specials.create()
 
-    def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str):
+    def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str) -> Language:
+        tokenizer = torchtext.data.utils.get_tokenizer(tokenizer=tokenizer_name, language=tokenizer_language)
         directory = self.cache_dir / tokenizer_name / tokenizer_language
         language_index = dataset.language_pair.index(dataset_language)
         vocab_file = directory / f"{dataset.name}-{dataset_language}.vocab.pt"
@@ -205,16 +222,23 @@ class VocabCache:
         except FileNotFoundError:
             vocab = None
         if vocab is not None:
-            return vocab
+            return self.to_language(dataset_language, vocab, tokenizer)
         phrases = [phrase_pair[language_index] for phrase_pair in dataset]
-        vocab = self.build_vocab(phrases, tokenizer_name, tokenizer_language)
+        vocab = self.build_vocab(phrases, tokenizer)
         vocab.set_default_index(self.specials.indexes.unk)
         vocab_file.parent.mkdir(exist_ok=True, parents=True)
         torch.save(vocab, str(vocab_file))
-        return vocab
+        return self.to_language(dataset_language, vocab, tokenizer)
 
-    def build_vocab(self, phrases: Iterable[str], tokenizer_name: str, tokenizer_language: str):
-        tokenizer = torchtext.data.utils.get_tokenizer(tokenizer=tokenizer_name, language=tokenizer_language)
+    def to_language(self, name: str, vocab: Vocab, tokenizer: Tokenizer) -> Language:
+        return Language(
+            name=name,
+            tokenizer=tokenizer,
+            vocab=vocab,
+            specials=self.specials,
+        )
+
+    def build_vocab(self, phrases: Iterable[str], tokenizer: Tokenizer) -> Vocab:
         def _yield_tokens():
             for phrase in phrases:
                 yield tokenizer(phrase)

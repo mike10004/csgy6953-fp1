@@ -7,14 +7,12 @@ from typing import Optional
 from typing import Callable
 from typing import TypeVar
 from random import Random
-from typing import Tuple
 
 import torch
-from torchtext.data.utils import get_tokenizer
 from dlfp.utils import Specials
-from dlfp.tokens import Tokenage
+from dlfp.tokens import Biglot
+from dlfp.tokens import Linguist
 import dlfp.utils
-from dlfp.tokens import Tokenizer
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import VocabCache
 
@@ -77,46 +75,17 @@ def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
     return dataset
 
 
-def init_multi30k_de_en_tokenage() -> Tokenage:
+def init_multi30k_de_en_tokenage() -> Biglot:
     global _TEST_TOKENAGE
     if _TEST_TOKENAGE is None:
         dataset = load_multi30k_dataset(split='train')
-        vocab_cache = VocabCache()
-        tokenizers = _get_tokenizers()
-        vocab_transform = {
-            "de": vocab_cache.get(dataset, "de", "spacy", "de_core_news_sm"),
-            "en": vocab_cache.get(dataset, "en", "spacy", "en_core_web_sm"),
-        }
-        text_transform = {
-            "de": Tokenage.sequential_transforms(
-                tokenizers["de"], vocab_transform["de"], Tokenage.tensor_transform,
-            ),
-            "en": Tokenage.sequential_transforms(
-                tokenizers["en"], vocab_transform["en"], Tokenage.tensor_transform,
-            ),
-        }
-        _TEST_TOKENAGE = Tokenage(
-            language_pair=("de", "en"),
-            token_transform=_get_tokenizers(),
-            vocab_transform=vocab_transform,
-            text_transform=text_transform,
-            specials=Specials.create())
+        cache = VocabCache()
+        src_lang = cache.get(dataset, "de", "spacy", "de_core_news_sm")
+        tgt_lang = cache.get(dataset, "en", "spacy", "en_core_web_sm")
+        src_ling = Linguist.from_language(src_lang)
+        tgt_ling = Linguist.from_language(tgt_lang)
+        _TEST_TOKENAGE = Biglot(src_ling, tgt_ling)
     return _TEST_TOKENAGE
-
-
-def _get_tokenizers() -> dict[str, Tokenizer]:
-    SRC_LANGUAGE, TGT_LANGUAGE = "de", "en"
-    return {
-        SRC_LANGUAGE: get_tokenizer('spacy', language='de_core_news_sm'),
-        TGT_LANGUAGE: get_tokenizer('spacy', language='en_core_web_sm'),
-    }
-
-def _first_init_multi30k_de_en_tokenage(train_iter: PhrasePairDataset) -> Tokenage:
-    SRC_LANGUAGE, TGT_LANGUAGE = "de", "en"
-    language_pair = SRC_LANGUAGE, TGT_LANGUAGE
-    assert (SRC_LANGUAGE, TGT_LANGUAGE) == train_iter.language_pair
-    t = Tokenage.from_token_transform(language_pair, _get_tokenizers(), train_iter)
-    return t
 
 
 def get_device() -> str:
