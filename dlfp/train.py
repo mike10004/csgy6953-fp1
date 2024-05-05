@@ -76,7 +76,8 @@ class Trainer:
         self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss(ignore_index=pad_idx)
         self.pad_idx = pad_idx
         self.optimizer_factory = create_optimizer
-        self.hide_progress = False
+        self.hide_progress_train = False
+        self.hide_progress_other = True
 
     def create_mask(self, src, tgt):
         return self.create_mask_static(src, tgt, device=self.device, pad_idx=self.pad_idx)
@@ -98,26 +99,29 @@ class Trainer:
         optimizer = self.optimizer_factory(self.model)
         epoch_results = []
         for epoch in range(epoch_count):
-            train_loss = self.run(loaders.train, runtype='train', optimizer=optimizer)
+            progress_desc = f"Epoch {epoch:2d}"
+            train_loss = self.run(loaders.train, runtype='train', optimizer=optimizer, progress_desc=progress_desc)
             val_loss = self.run(loaders.valid, runtype='valid')
             result = EpochResult(epoch, train_loss, val_loss)
             callback(result)
             epoch_results.append(result)
         return epoch_results
 
-    def run(self, dataloader: DataLoader, runtype: str, optimizer: Optimizer = None) -> float:
+    def run(self, dataloader: DataLoader, runtype: str, optimizer: Optimizer = None, progress_desc: Optional[str] = None) -> float:
         assert runtype in {'train', 'valid', 'test'}
         model = self.model
         if runtype == 'train':
             model.train()
+            hide_progress = self.hide_progress_train
         else:
             model.eval()
+            hide_progress = self.hide_progress_other
 
         losses = 0
 
         num_points = 0
 
-        for src, tgt in tqdm(dataloader, total=len(dataloader), disable=self.hide_progress):
+        for src, tgt in tqdm(dataloader, total=len(dataloader), desc=progress_desc, disable=hide_progress):
             num_points += src.shape[1]
             src = src.to(self.device)
             tgt = tgt.to(self.device)
