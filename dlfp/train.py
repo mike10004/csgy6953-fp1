@@ -101,7 +101,7 @@ class Trainer:
         optimizer = self.optimizer_factory(self.model)
         epoch_results = []
         for epoch in range(epoch_count):
-            progress_desc = f"Epoch {epoch:2d}"
+            progress_desc = f"epoch {epoch:2d}"
             train_loss = self.run(loaders.train, runtype='train', optimizer=optimizer, progress_desc=progress_desc)
             val_loss = self.run(loaders.valid, runtype='valid')
             result = EpochResult(epoch, train_loss, val_loss)
