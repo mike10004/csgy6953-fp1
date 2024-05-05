@@ -1,10 +1,23 @@
 #!/usr/bin/env python3
 
+from typing import Callable
+from typing import Iterator
+from typing import NamedTuple
+
 import torch
 from torch import Tensor
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.tokens import Biglot
 from dlfp.models import Seq2SeqTransformer
+
+
+class PhraseEncoding(NamedTuple):
+
+    indexes: Tensor
+    mask: Tensor
+
+    def num_tokens(self) -> int:
+        return self.mask.shape[0]
 
 
 class Translator:
@@ -13,8 +26,15 @@ class Translator:
         self.device = device
         self.model = model
         self.tokenage = tokenage
+        self.target_length_margin: int = 5
 
-    def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int):
+    # def greedy_decode(self, src: Tensor, src_mask: Tensor, max_len: int):
+    #     return list(self.greedy_suggest(src, src_mask, max_len, lambda _: 1))[0]
+    #
+    # def greedy_suggest(self, src: Tensor, src_mask: Tensor, max_len: int, max_rank: Callable[[int], int]) -> Iterator[Tensor]:
+    def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
+        max_len = src_phrase.num_tokens() + self.target_length_margin
+        src, src_mask = src_phrase
         model = self.model
         start_symbol: int = self.tokenage.source.language.specials.indexes.bos
         src = src.to(self.device)
@@ -35,14 +55,27 @@ class Translator:
                 break
         return ys
 
-    def translate(self, src_sentence: str) -> str:
-        self.model.eval()
-        # SRC_LANGUAGE, TGT_LANGUAGE = self.tokenage.language_pair
-        src = self.tokenage.source.text_transform(src_sentence).view(-1, 1)
-        num_tokens = src.shape[0]
-        src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
-        tgt_tokens = self.greedy_decode(src, src_mask, max_len=num_tokens + 5).flatten()
-        tgt_tokens = self.tokenage.target.language.vocab.lookup_tokens(list(tgt_tokens.cpu().numpy()))
-        return (" ".join(tgt_tokens)
+    def indexes_to_phrase(self, indexes: Tensor) -> str:
+        indexes = indexes.flatten()
+        tokens = self.tokenage.target.language.vocab.lookup_tokens(list(indexes.cpu().numpy()))
+        return (" ".join(tokens)
                 .replace(self.tokenage.target.language.specials.tokens.bos,      "")
                 .replace(self.tokenage.target.language.specials.tokens.eos, ""))
+
+    # def translate(self, src_sentence: str) -> str:
+    #     return self.suggest(src_sentence, 1)[0]
+    #
+    # def suggest(self, src_sentence: str, count: int) -> list[str]:
+    def translate(self, src_sentence: str) -> str:
+        self.model.eval()
+        src_encoding = self.encode_source(src_sentence)
+
+        tgt_indexes = self.greedy_decode(src_encoding).flatten()
+        return self.indexes_to_phrase(tgt_indexes)
+
+    def encode_source(self, phrase: str) -> PhraseEncoding:
+        src = self.tokenage.source.text_transform(phrase).view(-1, 1)
+        num_tokens = src.shape[0]
+        src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
+        return PhraseEncoding(src, src_mask)
+
