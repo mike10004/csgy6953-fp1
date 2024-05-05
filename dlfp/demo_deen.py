@@ -13,7 +13,7 @@ from dlfp.train import TrainLoaders
 from dlfp.train import create_model
 from dlfp.train import Trainer
 from dlfp.utils import Checkpointer
-from dlfp.utils import VocabCache
+from dlfp.utils import LanguageCache
 from dlfp.utils import Restored
 from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
@@ -46,7 +46,7 @@ def main() -> int:
     torch.manual_seed(seed)
     train_dataset = dlfp.utils.multi30k_de_en(split='train')
     valid_dataset = dlfp.utils.multi30k_de_en(split='valid')
-    cache = VocabCache()
+    cache = LanguageCache()
     src_ling = Linguist.from_language(cache.get(train_dataset, "de", "spacy", "de_core_news_sm"))
     tgt_ling = Linguist.from_language(cache.get(train_dataset, "en", "spacy", "en_core_web_sm"))
     biglot = Biglot(src_ling, tgt_ling)

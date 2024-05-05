@@ -206,7 +206,7 @@ class Language(NamedTuple):
         return torch.cat((torch.tensor([self.specials.indexes.bos]),
                           torch.tensor(token_ids),
                           torch.tensor([self.specials.indexes.eos])))
-class VocabCache:
+class LanguageCache:
 
     def __init__(self, cache_dir: Optional[Path] = None):
         self.cache_dir = cache_dir or (get_repo_root() / "data" / "cache" / "vocab")

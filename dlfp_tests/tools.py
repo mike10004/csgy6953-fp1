@@ -14,7 +14,7 @@ from dlfp.tokens import Biglot
 from dlfp.tokens import Linguist
 import dlfp.utils
 from dlfp.utils import PhrasePairDataset
-from dlfp.utils import VocabCache
+from dlfp.utils import LanguageCache
 
 
 MULTI30K_DE_EN_DATASETS: dict[str, PhrasePairDataset] = {}  # split -> dataset
@@ -79,7 +79,7 @@ def init_multi30k_de_en_tokenage() -> Biglot:
     global _TEST_TOKENAGE
     if _TEST_TOKENAGE is None:
         dataset = load_multi30k_dataset(split='train')
-        cache = VocabCache()
+        cache = LanguageCache()
         src_lang = cache.get(dataset, "de", "spacy", "de_core_news_sm")
         tgt_lang = cache.get(dataset, "en", "spacy", "en_core_web_sm")
         src_ling = Linguist.from_language(src_lang)
