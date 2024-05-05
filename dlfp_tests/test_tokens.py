@@ -5,7 +5,6 @@ from torch import Tensor
 from unittest import TestCase
 from torch.utils.data import DataLoader
 from dlfp.tokens import Tokenage
-from dlfp.tokens import SpecialSymbols
 import dlfp_tests.tools
 from dlfp_tests.tools import load_multi30k_dataset
 from dlfp_tests.tools import init_multi30k_de_en_tokenage
@@ -90,13 +89,3 @@ class TokenageTest(TestCase):
                     # print(f"trying vocab({token}) with token of type {type(token)}")
                     actual_indexes = vocab([token])
                     self.assertListEqual([idx], actual_indexes)
-
-
-
-
-class SpecialSymbolsTest(TestCase):
-
-    def test_as_tuple(self):
-        special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
-        self.assertListEqual(special_symbols, SpecialSymbols().as_list())
-

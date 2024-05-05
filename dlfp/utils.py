@@ -11,11 +11,12 @@ from typing import Tuple
 from pathlib import Path
 
 import torch
+import torchtext.vocab
+import torchtext.data.utils
 from torch import nn
 from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
-
 
 Split = Literal["train", "valid", "test"]
 
@@ -45,10 +46,42 @@ def generate_square_subsequent_mask(sz, device):
     mask = mask.float().masked_fill(equal_scalar(mask, 0), float('-inf')).masked_fill(equal_scalar(mask, 1), float(0.0))
     return mask
 
+
+class SpecialIndexes(NamedTuple):
+
+    unk: int = 0
+    pad: int = 1
+    bos: int = 2
+    eos: int = 3
+
+
+class SpecialSymbols(NamedTuple):
+
+    unk: str = '<unk>'
+    pad: str = '<pad>'
+    bos: str = '<bos>'
+    eos: str = '<eos>'
+
+    def as_list(self) -> list[str]:
+        # noinspection PyTypeChecker
+        return list(self)
+
+
+class Specials(NamedTuple):
+
+    indexes: SpecialIndexes
+    tokens: SpecialSymbols
+
+    @staticmethod
+    def create() -> 'Specials':
+        return Specials(SpecialIndexes(), SpecialSymbols())
+
+
 class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
 
-    def __init__(self, phrase_pairs: list[Tuple[str, str]], language_pair: Tuple[str, str]):
+    def __init__(self, name: str, phrase_pairs: list[Tuple[str, str]], language_pair: Tuple[str, str]):
         super().__init__()
+        self.name = name
         self.phrase_pairs = tuple(phrase_pairs)
         self.language_pair = language_pair
 
@@ -154,4 +187,36 @@ def multi30k_de_en(split: str) -> PhrasePairDataset:
     language_pair = (SRC_LANGUAGE, TGT_LANGUAGE)
     # noinspection PyTypeChecker
     items: list[Tuple[str, str]] = list(Multi30k(root=data_dir, split=split, language_pair=language_pair))
-    return PhrasePairDataset(items, language_pair)
+    return PhrasePairDataset("multi30k_de_en", items, language_pair)
+
+
+class VocabCache:
+
+    def __init__(self, cache_dir: Optional[Path] = None):
+        self.cache_dir = cache_dir or (get_repo_root() / "data" / "cache" / "vocab")
+        self.specials = Specials.create()
+
+    def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str):
+        directory = self.cache_dir / tokenizer_name / tokenizer_language
+        language_index = dataset.language_pair.index(dataset_language)
+        vocab_file = directory / f"{dataset.name}-{dataset_language}.vocab.pt"
+        try:
+            vocab = torch.load(str(vocab_file))
+        except FileNotFoundError:
+            vocab = None
+        if vocab is not None:
+            return vocab
+        phrases = [phrase_pair[language_index] for phrase_pair in dataset]
+        vocab = self.build_vocab(phrases, tokenizer_name, tokenizer_language)
+        vocab.set_default_index(self.specials.indexes.unk)
+        vocab_file.parent.mkdir(exist_ok=True, parents=True)
+        torch.save(vocab, str(vocab_file))
+        return vocab
+
+    def build_vocab(self, phrases: Iterable[str], tokenizer_name: str, tokenizer_language: str):
+        tokenizer = torchtext.data.utils.get_tokenizer(tokenizer=tokenizer_name, language=tokenizer_language)
+        def _yield_tokens():
+            for phrase in phrases:
+                yield tokenizer(phrase)
+        vocab = torchtext.vocab.build_vocab_from_iterator(_yield_tokens(), specials=self.specials.tokens.as_list())
+        return vocab

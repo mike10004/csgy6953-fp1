@@ -1,5 +1,4 @@
 from typing import Iterable
-from typing import NamedTuple
 from typing import Iterator
 from typing import Sequence
 from typing import Callable
@@ -10,6 +9,7 @@ import torch.nn.utils.rnn
 from torch import Tensor
 from torchtext.vocab import Vocab
 from torchtext.vocab import build_vocab_from_iterator
+from dlfp.utils import Specials
 
 Tokenizer = Callable[[str], Sequence[str]]
 TextTransform = Callable[[str], Tensor]
@@ -17,36 +17,6 @@ UNK_IDX, PAD_IDX, BOS_IDX, EOS_IDX = 0,1,2,3
 
 
 IterablePhrasePair = Iterable[Tuple[str, str]]
-
-
-class SpecialIndexes(NamedTuple):
-
-    unk: int = 0
-    pad: int = 1
-    bos: int = 2
-    eos: int = 3
-
-
-class SpecialSymbols(NamedTuple):
-
-    unk: str = '<unk>'
-    pad: str = '<pad>'
-    bos: str = '<bos>'
-    eos: str = '<eos>'
-
-    def as_list(self) -> list[str]:
-        # noinspection PyTypeChecker
-        return list(self)
-
-
-class Specials(NamedTuple):
-
-    indexes: SpecialIndexes
-    tokens: SpecialSymbols
-
-    @staticmethod
-    def create() -> 'Specials':
-        return Specials(SpecialIndexes(), SpecialSymbols())
 
 
 class Tokenage:

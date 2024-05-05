@@ -11,11 +11,12 @@ from typing import Tuple
 
 import torch
 from torchtext.data.utils import get_tokenizer
-from dlfp.tokens import Specials
+from dlfp.utils import Specials
 from dlfp.tokens import Tokenage
 import dlfp.utils
 from dlfp.tokens import Tokenizer
 from dlfp.utils import PhrasePairDataset
+from dlfp.utils import VocabCache
 
 
 MULTI30K_DE_EN_DATASETS: dict[str, PhrasePairDataset] = {}  # split -> dataset
@@ -79,33 +80,27 @@ def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
 def init_multi30k_de_en_tokenage() -> Tokenage:
     global _TEST_TOKENAGE
     if _TEST_TOKENAGE is None:
-        train_iter = load_multi30k_dataset(split='train')
-        vocab_cache_file = _cache_dir() / "vocab_cache.pkl"
-        vocab_transform = None
-        try:
-            vocab_transform = torch.load(str(vocab_cache_file))
-        except FileNotFoundError:
-            pass
-        if vocab_transform is None:
-            _TEST_TOKENAGE = _first_init_multi30k_de_en_tokenage(train_iter)
-            vocab_cache_file.parent.mkdir(exist_ok=True, parents=True)
-            torch.save(_TEST_TOKENAGE.vocab_transform, str(vocab_cache_file))
-        else:
-            SRC_LANGUAGE, TGT_LANGUAGE = "de", "en"
-            language_pair = SRC_LANGUAGE, TGT_LANGUAGE
-            tokenizers = _get_tokenizers()
-            _TEST_TOKENAGE = Tokenage(
-                language_pair=language_pair,
-                token_transform=_get_tokenizers(),
-                vocab_transform=vocab_transform,
-                text_transform={
-                    SRC_LANGUAGE: Tokenage.sequential_transforms(
-                        tokenizers[SRC_LANGUAGE], vocab_transform[SRC_LANGUAGE], Tokenage.tensor_transform,
-                    ),
-                    TGT_LANGUAGE: Tokenage.sequential_transforms(
-                        tokenizers[TGT_LANGUAGE], vocab_transform[TGT_LANGUAGE], Tokenage.tensor_transform,
-                    ),
-            }, specials=Specials.create())
+        dataset = load_multi30k_dataset(split='train')
+        vocab_cache = VocabCache()
+        tokenizers = _get_tokenizers()
+        vocab_transform = {
+            "de": vocab_cache.get(dataset, "de", "spacy", "de_core_news_sm"),
+            "en": vocab_cache.get(dataset, "en", "spacy", "en_core_web_sm"),
+        }
+        text_transform = {
+            "de": Tokenage.sequential_transforms(
+                tokenizers["de"], vocab_transform["de"], Tokenage.tensor_transform,
+            ),
+            "en": Tokenage.sequential_transforms(
+                tokenizers["en"], vocab_transform["en"], Tokenage.tensor_transform,
+            ),
+        }
+        _TEST_TOKENAGE = Tokenage(
+            language_pair=("de", "en"),
+            token_transform=_get_tokenizers(),
+            vocab_transform=vocab_transform,
+            text_transform=text_transform,
+            specials=Specials.create())
     return _TEST_TOKENAGE
 
 
@@ -137,7 +132,7 @@ def truncate_dataset(dataset: PhrasePairDataset, size: int, shuffle_seed: Option
         rng = Random(shuffle_seed)
         phrase_pairs = list(phrase_pairs)
         rng.shuffle(phrase_pairs)
-    return PhrasePairDataset(phrase_pairs[:size], language_pair=dataset.language_pair)
+    return PhrasePairDataset(dataset.name, phrase_pairs[:size], language_pair=dataset.language_pair)
 
 
 def _cache_dir() -> Path:

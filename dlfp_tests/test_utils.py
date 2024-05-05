@@ -4,6 +4,7 @@ from unittest import TestCase
 import torch
 
 import dlfp.utils
+from dlfp.utils import SpecialSymbols
 
 class ModuleMethodsTest(TestCase):
 
@@ -27,4 +28,12 @@ class ModuleMethodsTest(TestCase):
             [False, False, False, False, True],
             [0., 0., 0., 0., 0.]
         ]), torch.isinf(mask)))
+
+
+
+class SpecialSymbolsTest(TestCase):
+
+    def test_as_tuple(self):
+        special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
+        self.assertListEqual(special_symbols, SpecialSymbols().as_list())
 

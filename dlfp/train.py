@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import sys
 from typing import Callable
 from typing import NamedTuple
 from typing import Optional
@@ -78,6 +79,7 @@ class Trainer:
         self.optimizer_factory = create_optimizer
         self.hide_progress_train = False
         self.hide_progress_other = True
+        self.tqdm_file = sys.stdout
 
     def create_mask(self, src, tgt):
         return self.create_mask_static(src, tgt, device=self.device, pad_idx=self.pad_idx)
@@ -121,7 +123,7 @@ class Trainer:
 
         num_points = 0
 
-        for src, tgt in tqdm(dataloader, total=len(dataloader), desc=progress_desc, disable=hide_progress):
+        for src, tgt in tqdm(dataloader, total=len(dataloader), desc=progress_desc, file=self.tqdm_file, disable=hide_progress):
             num_points += src.shape[1]
             src = src.to(self.device)
             tgt = tgt.to(self.device)
