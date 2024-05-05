@@ -52,10 +52,13 @@ class TranslatorTest(TestCase):
         self.assertEqual(expected, translated, "translation")
 
     def test_greedy_decode(self):
-        device = dlfp_tests.tools.get_device()
-        model = self._load_restored_deen(self.biglot, device)
-        translator = Translator(model, self.biglot, device)
-        src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
-        indexes = translator.greedy_decode(src_phrase)
-        actual = translator.indexes_to_phrase(indexes)
-        self.assertEqual("A man in green is holding a guitar .", actual.strip())
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                device = dlfp_tests.tools.get_device()
+                model = self._load_restored_deen(self.biglot, device)
+                translator = Translator(model, self.biglot, device)
+                src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
+                indexes = translator.greedy_decode(src_phrase)
+                actual = translator.indexes_to_phrase(indexes)
+                self.assertEqual("A man in green is holding a guitar .", actual.strip())
