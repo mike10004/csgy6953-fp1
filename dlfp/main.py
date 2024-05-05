@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 
 import sys
-from argparse import ArgumentParser
 
-import torch
-from torch.utils.data.dataset import Dataset
-from dlfp.tokens import Tokenage
-from dlfp.models import Seq2SeqTransformer
-from dlfp.train import create_model
-from dlfp.train import Trainer
-
-def create_tokenage(dataset: Dataset) -> Tokenage:
-    raise NotImplementedError()
+import dlfp.running
+from dlfp.datasets import DatasetResolver
+from dlfp.running import DataSuperset
+from dlfp.running import Runner
+from dlfp.tokens import Linguist
+from dlfp.tokens import Biglot
+from dlfp.utils import LanguageCache
 
 
-def main() -> int:
-    seed = 0
-    torch.manual_seed(seed)
-    return 0
+class CruciformerRunner(Runner):
+
+    def describe(self) -> str:
+        return "Crossword Clue-Answer Translation"
+
+    def resolve_dataset(self) -> DataSuperset:
+        train = DatasetResolver.default().benchmark(split='train')
+        valid = DatasetResolver.default().benchmark(split='valid')
+        return DataSuperset(train, valid)
+
+    def create_biglot(self, superset: DataSuperset):
+        cache = LanguageCache()
+        assert ("clue", "answer") == superset.train.language_pair
+        source = Linguist.from_language(cache.get(superset.train, "clue", "spacy", "en_core_web_sm"))
+        target = Linguist.from_language(cache.get(superset.train, "answer", "spacy", "en_core_web_sm"))
+        return Biglot(source, target)
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    sys.exit(dlfp.running.main(CruciformerRunner()))

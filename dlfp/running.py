@@ -81,10 +81,10 @@ class Runner:
     def resolve_dataset(self) -> DataSuperset:
         raise NotImplementedError("abstract")
 
-    def create_biglot(self, superset: DataSuperset):
+    def create_biglot(self, superset: DataSuperset) -> Biglot:
         raise NotImplementedError("abstract")
 
-    def create_model(self, biglot: Biglot, device: str):
+    def create_model(self, biglot: Biglot, device: str) -> Seq2SeqTransformer:
         model = create_model(
             src_vocab_size=len(biglot.source.language.vocab),
             tgt_vocab_size=len(biglot.target.language.vocab),
@@ -119,6 +119,8 @@ def main(runner: Runner) -> int:
     parser.add_argument("-m", "--mode", choices=("train", "eval"), default="train")
     parser.add_argument("-o", "--output", metavar="DIR", help="output root directory")
     parser.add_argument("-f", "--file", metavar="FILE", help="checkpoint file for eval mode")
+    parser.add_argument("-e", "--epoch-count", type=int, default=10, metavar="N", help="epoch count")
+    parser.add_argument("-b", "--batch-size", type=int, default=128, metavar="N", help="training batch size")
     parser.add_argument("--limit", type=int, default=..., metavar="N", help="eval mode phrase limit")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
@@ -134,7 +136,7 @@ def main(runner: Runner) -> int:
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
-        train_config = TrainConfig(checkpoints_dir)
+        train_config = TrainConfig(checkpoints_dir, epoch_count=args.epoch_count, batch_size=args.batch_size)
         runner.run_train(train_config, device)
         return 0
     else:
