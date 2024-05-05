@@ -2,6 +2,7 @@
 
 from argparse import ArgumentParser
 from pathlib import Path
+from typing import Callable
 from typing import NamedTuple
 
 import torch
@@ -20,6 +21,8 @@ from dlfp.utils import PhrasePairDataset
 from dlfp.utils import Restored
 
 
+StringTransform = Callable[[str], str]
+
 class ModelManager:
 
     def __init__(self, model: Seq2SeqTransformer, biglot: Biglot, device):
@@ -27,18 +30,23 @@ class ModelManager:
         self.model = model
         self.biglot = biglot
         self.device = device
+        self.src_transform: StringTransform = dlfp.utils.identity
+        self.tgt_transform: StringTransform = dlfp.utils.identity
 
-    def print_translations(self, dataset: PhrasePairDataset, limit):
+    def print_translations(self, dataset: PhrasePairDataset, limit: int):
         translator = Translator(self.model, self.biglot, self.device)
-        for index, (de_phrase, en_phrase) in enumerate(dataset):
+        for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if index >= limit:
                 break
             if index > 0:
                 print()
-            print(f"{index: 2d} de: {de_phrase}")
-            print(f"{index: 2d} en: {en_phrase}")
-            translation = translator.translate(de_phrase).strip()
-            print(f"{index: 2d} mx: {translation}")
+            src_phrase = self.src_transform(src_phrase)
+            tgt_phrase = self.tgt_transform(tgt_phrase)
+            print(f"{index: 2d} src: {src_phrase}")
+            print(f"{index: 2d} tgt: {tgt_phrase}")
+            translation = translator.translate(src_phrase).strip()
+            translation = self.tgt_transform(translation)
+            print(f"{index: 2d} xxx: {translation}")
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, epoch_count: int = 10):
@@ -116,7 +124,7 @@ class Runner:
 
 def main(runner: Runner) -> int:
     parser = ArgumentParser(description=runner.describe())
-    parser.add_argument("-m", "--mode", choices=("train", "eval"), default="train")
+    parser.add_argument("-m", "--mode", metavar="MODE", choices=("train", "eval"), default="train", help="'train' or 'eval'")
     parser.add_argument("-o", "--output", metavar="DIR", help="output root directory")
     parser.add_argument("-f", "--file", metavar="FILE", help="checkpoint file for eval mode")
     parser.add_argument("-e", "--epoch-count", type=int, default=10, metavar="N", help="epoch count")

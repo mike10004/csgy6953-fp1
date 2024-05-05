@@ -10,6 +10,7 @@ from typing import Optional
 from typing import Sequence
 from typing import Callable
 from typing import Tuple
+from typing import TypeVar
 from pathlib import Path
 
 import torch
@@ -21,6 +22,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
 
+T = TypeVar("T")
 Split = Literal["train", "valid", "test"]
 Tokenizer = Callable[[str], Sequence[str]]
 
@@ -28,6 +30,10 @@ Tokenizer = Callable[[str], Sequence[str]]
 # noinspection PyUnusedLocal
 def noop(*args, **kwargs):
     pass
+
+def identity(x: T) -> T:
+    return x
+
 
 def get_repo_root() -> Path:
     return Path(__file__).absolute().parent.parent
