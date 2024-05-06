@@ -43,6 +43,7 @@ class TranslatorTest(TestCase):
             DEVICE=device,
         )
         model.load_state_dict(restored.model_state_dict)
+        model.eval()
         return model
 
     def test_translate_trained(self):

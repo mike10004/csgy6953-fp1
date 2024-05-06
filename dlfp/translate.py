@@ -5,14 +5,10 @@ from typing import Callable
 from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
-from typing import Optional
-from typing import Tuple
 from typing import Union
 
-import numpy as np
 import torch
 from torch import Tensor
-from torch.nn import Softmax
 
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.tokens import Biglot
@@ -91,21 +87,22 @@ class Translator:
         raise NotImplementedError("BUG: shouldn't reach here")
 
     def greedy_suggest(self, src_phrase: PhraseEncoding, get_max_rank: Union[int, Callable[[int], int]]) -> Iterator[Node]:
-        if isinstance(get_max_rank, int):
-            constant = get_max_rank
-            get_max_rank = lambda _: constant
-        max_len = src_phrase.num_tokens() + self.target_length_margin
-        src, src_mask = src_phrase
-        model = self.model
-        start_symbol: int = self.tokenage.source.language.specials.indexes.bos
-        src: Tensor = src.to(self.device)
-        src_mask = src_mask.to(self.device)
-        memory = model.encode(src, src_mask).to(self.device)
-        # self.saved_memory = memory.detach()
-        ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
-        root = Node(ys, prob=1.0)
-        yield root
-        yield from self._next(root, 0, memory, ys, max_len, get_max_rank, src)
+        with torch.no_grad():
+            if isinstance(get_max_rank, int):
+                constant = get_max_rank
+                get_max_rank = lambda _: constant
+            max_len = src_phrase.num_tokens() + self.target_length_margin
+            src, src_mask = src_phrase
+            model = self.model
+            start_symbol: int = self.tokenage.source.language.specials.indexes.bos
+            src: Tensor = src.to(self.device)
+            src_mask = src_mask.to(self.device)
+            memory = model.encode(src, src_mask).to(self.device)
+            # self.saved_memory = memory.detach()
+            ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
+            root = Node(ys, prob=1.0)
+            yield root
+            yield from self._next(root, 0, memory, ys, max_len, get_max_rank, src)
 
     def _next(self, node: Node, i: int, memory: Tensor, ys: Tensor, max_len, get_max_rank, src) -> Iterator[Node]:
         if i >= (max_len - 1):
@@ -157,10 +154,10 @@ class Translator:
     # def suggest(self, src_sentence: str, count: int) -> list[str]:
     def translate(self, src_sentence: str) -> str:
         self.model.eval()
-        src_encoding = self.encode_source(src_sentence)
-
-        tgt_indexes = self.greedy_decode(src_encoding).flatten()
-        return self.indexes_to_phrase(tgt_indexes)
+        with torch.no_grad():
+            src_encoding = self.encode_source(src_sentence)
+            tgt_indexes = self.greedy_decode(src_encoding).flatten()
+            return self.indexes_to_phrase(tgt_indexes)
 
     def encode_source(self, phrase: str) -> PhraseEncoding:
         src = self.tokenage.source.text_transform(phrase).view(-1, 1)
