@@ -21,7 +21,7 @@ class CruciformerRunner(Runner):
         valid = DatasetResolver.default().benchmark(split='valid')
         return DataSuperset(train, valid)
 
-    def create_biglot(self, superset: DataSuperset) -> Bilinguist:
+    def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:
         cache = LanguageCache()
         assert ("clue", "answer") == superset.train.language_pair
         source = cache.get(superset.train, "clue", "spacy", "en_core_web_sm")

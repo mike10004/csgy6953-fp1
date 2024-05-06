@@ -20,13 +20,13 @@ class DemoDeenRunner(Runner):
         valid_dataset = dlfp.utils.multi30k_de_en(split='valid')
         return DataSuperset(train_dataset, valid_dataset)
 
-    def create_biglot(self, superset: DataSuperset):
+    def create_bilinguist(self, superset: DataSuperset):
         cache = LanguageCache()
         train_dataset = superset.train
         src_lang = cache.get(train_dataset, "de", "spacy", "de_core_news_sm")
         tgt_lang = cache.get(train_dataset, "en", "spacy", "en_core_web_sm")
-        biglot = Bilinguist(src_lang, tgt_lang)
-        return biglot
+        bilinguist = Bilinguist(src_lang, tgt_lang)
+        return bilinguist
 
 
 

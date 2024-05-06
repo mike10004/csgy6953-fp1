@@ -28,10 +28,10 @@ StringTransform = Callable[[str], str]
 
 class ModelManager:
 
-    def __init__(self, model: Seq2SeqTransformer, biglot: Bilinguist, device):
+    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device):
         self.device = device
         self.model = model
-        self.biglot = biglot
+        self.bilinguist = bilinguist
         self.device = device
         self.src_transform: StringTransform = dlfp.utils.identity
         self.tgt_transform: StringTransform = dlfp.utils.identity
@@ -53,7 +53,7 @@ class ModelManager:
             print(f"{index: 2d} xxx: {translation}")
 
     def _iterate_guesses(self, dataset: PhrasePairDataset, limit: Optional[int] = None) -> Iterator[Tuple[str, str, str]]:
-        translator = Translator(self.model, self.biglot, self.device)
+        translator = Translator(self.model, self.bilinguist, self.device)
         for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if limit is not None and index >= limit:
                 break
@@ -65,7 +65,7 @@ class ModelManager:
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, epoch_count: int = 10):
-        trainer = Trainer(self.model, pad_idx=self.biglot.source.specials.indexes.pad, device=self.device)
+        trainer = Trainer(self.model, pad_idx=self.bilinguist.source.specials.indexes.pad, device=self.device)
         print(f"writing checkpoints to {checkpoints_dir}")
         checkpointer = Checkpointer(checkpoints_dir, self.model)
         results = trainer.train(loaders, epoch_count, callback=checkpointer.checkpoint)
@@ -92,7 +92,7 @@ class TrainConfig(NamedTuple):
 class Runnable(NamedTuple):
 
     superset: DataSuperset
-    biglot: Bilinguist
+    bilinguist: Bilinguist
     manager: ModelManager
 
 
@@ -104,28 +104,28 @@ class Runner:
     def resolve_dataset(self) -> DataSuperset:
         raise NotImplementedError("abstract")
 
-    def create_biglot(self, superset: DataSuperset) -> Bilinguist:
+    def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:
         raise NotImplementedError("abstract")
 
-    def create_model(self, biglot: Bilinguist, device: str) -> Seq2SeqTransformer:
+    def create_model(self, bilinguist: Bilinguist, device: str) -> Seq2SeqTransformer:
         model = create_model(
-            src_vocab_size=len(biglot.source.vocab),
-            tgt_vocab_size=len(biglot.target.vocab),
+            src_vocab_size=len(bilinguist.source.vocab),
+            tgt_vocab_size=len(bilinguist.target.vocab),
             DEVICE=device,
         )
         return model
 
     def run_train(self, train_config: TrainConfig, device: str):
         r = self.create_runnable(device)
-        loaders = TrainLoaders.from_datasets(r.superset.train, r.superset.valid, collate_fn=r.biglot.collate, batch_size=train_config.batch_size)
+        loaders = TrainLoaders.from_datasets(r.superset.train, r.superset.valid, collate_fn=r.bilinguist.collate, batch_size=train_config.batch_size)
         r.manager.train(loaders, train_config.checkpoints_dir, train_config.epoch_count)
 
     def create_runnable(self, device: str) -> Runnable:
         superset = self.resolve_dataset()
-        biglot = self.create_biglot(superset)
-        model = self.create_model(biglot, device)
-        model_manager = ModelManager(model, biglot, device)
-        return Runnable(superset, biglot, model_manager)
+        bilinguist = self.create_bilinguist(superset)
+        model = self.create_model(bilinguist, device)
+        model_manager = ModelManager(model, bilinguist, device)
+        return Runnable(superset, bilinguist, model_manager)
 
     def run_eval(self, restored: Restored, device: str, limit: int = ...):
         r = self.create_runnable(device)

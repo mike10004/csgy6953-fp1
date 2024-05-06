@@ -24,7 +24,7 @@ def show_examples1(batch_size: int = 4, max_batch: int = 10):
 
 
 
-class BiglotTest(TestCase):
+class BilinguistTest(TestCase):
 
     verbose = False
 
