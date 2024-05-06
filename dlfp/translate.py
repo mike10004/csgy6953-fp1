@@ -2,6 +2,7 @@
 
 from collections import deque
 from typing import Callable
+from typing import Collection
 from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
@@ -9,6 +10,7 @@ from typing import Union
 
 import torch
 from torch import Tensor
+from torchtext.vocab import Vocab
 
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import Bilinguist
@@ -28,7 +30,7 @@ class Node:
 
     def __init__(self, y: Tensor, prob: float, complete: bool = False):
         self.y = y.detach()
-        self.current_word = self.y.flatten()[-1]
+        self.current_word = self.y.flatten()[-1].item()
         self.parent = None
         self.children = []
         self.complete = complete
@@ -69,16 +71,47 @@ class Node:
                 queue.append(child)
 
 
+
+class NodeFilter:
+
+    def get_max_len(self, input_len: int) -> int:
+        return input_len + 5
+
+    def include(self, node: Node) -> bool:
+        return True
+
+
+class GermanToEnglishNodeFilter(NodeFilter):
+
+    def __init__(self, unrepeatables: Collection[int] = None):
+        super().__init__()
+        self.no_skip = False
+        self.unrepeatables = frozenset(unrepeatables or ())
+
+    @staticmethod
+    def default(target_vocab: Vocab) -> 'GermanToEnglishNodeFilter':
+        index_period = target_vocab(['.'])[0]
+        return GermanToEnglishNodeFilter(unrepeatables=(index_period,))
+
+    def include(self, node: Node) -> bool:
+        # node.current_word == self.index_period and child.current_word == self.index_period
+        if self.no_skip:
+            return True
+        if node.parent is None:
+            return True
+        if node.current_word in self.unrepeatables and node.current_word == node.parent.current_word:
+            return False
+        return True
+
+
 class Translator:
 
-    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
+    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str, node_filter: NodeFilter = None):
         self.device = device
         self.model = model
         self.bilinguist = bilinguist
-        self.target_length_margin: int = 5
-        self.saved_memory = None
-        self.no_skip = False
-        self.index_period = self.bilinguist.target.vocab(['.'])[0]
+        self.node_filter = node_filter or NodeFilter()
+        self.index_period = bilinguist.target.vocab(['.'])[0]
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase, 1):
@@ -91,7 +124,7 @@ class Translator:
             if isinstance(get_max_rank, int):
                 constant = get_max_rank
                 get_max_rank = lambda _: constant
-            max_len = src_phrase.num_tokens() + self.target_length_margin
+            max_len = self.node_filter.get_max_len(src_phrase.num_tokens())
             src, src_mask = src_phrase
             model = self.model
             start_symbol: int = self.bilinguist.source.specials.indexes.bos
@@ -136,9 +169,7 @@ class Translator:
                 child = Node(child_ys, next_prob)
                 node.add_child(child)
                 yield node
-                if not self.no_skip and (node.current_word == self.index_period and child.current_word == self.index_period):
-                    pass
-                else:
+                if self.node_filter.include(child):
                     yield from self._next(child, i + 1, memory, child_ys, max_len, get_max_rank, src)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
