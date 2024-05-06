@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
+from random import Random
 from unittest import TestCase
 import torch
 
 from dlfp.train import create_model
+from dlfp.translate import Node
 from dlfp.translate import Translator
 import dlfp_tests.tools
 from dlfp.utils import Restored
@@ -63,7 +65,7 @@ class TranslatorTest(TestCase):
                 actual = translator.indexes_to_phrase(indexes)
                 self.assertEqual("A man in green is holding a guitar .", actual.strip())
 
-    def test_greedy_suggest(self, verbose: bool = True):
+    def test_greedy_suggest(self, verbose: bool = False):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             with torch.no_grad():
@@ -71,11 +73,39 @@ class TranslatorTest(TestCase):
                 model = self._load_restored_deen(self.biglot, device)
                 translator = Translator(model, self.biglot, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
-                suggestions = list(translator.greedy_suggest(src_phrase, 2))
-                for index, suggestion in enumerate(suggestions):
-                    actual = translator.indexes_to_phrase(suggestion)
-                    if verbose:
-                        print(actual)
-                    if index == 0:
-                        self.assertEqual("A man in green is holding a guitar .", actual.strip())
+                completes = []
+                visited = 0
+                for index, node in enumerate(translator.greedy_suggest(src_phrase, 2)):
+                    visited += 1
+                    # if len(completes) > 100:
+                    #     break
+                    if node.complete:
+                        completes.append(node)
+                        actual = translator.indexes_to_phrase(node.y)
+                        if verbose:
+                            print(actual)
+                        if index == 0:
+                            self.assertEqual("A man in green is holding a guitar .", actual.strip())
+                print(f"{len(completes)} nodes completed; {visited} visited")
+                # for node in completes[:100]:
+                #     lineage = node.lineage()
+                #     print(lineage)
+                root = completes[0].lineage()[0]
+                print(root)
+                for child in root.children:
+                    print(child)
+                print()
+                self.assertIsNone(root.parent)
+                sample = completes[1:]
+                rng = Random(0x3951551)
+                rng.shuffle(sample)
+                sample = sample[:100]
+                for complete in [completes[0]] + sample:
+                    lineage = complete.lineage()
+                    probability = Node.cumulative_probability(lineage)
+                    actual = translator.indexes_to_phrase(complete.y)
+                    print(f"{probability:.4f} {actual}")
+
+
+
 
