@@ -7,8 +7,7 @@ from dlfp.datasets import DatasetResolver
 from dlfp.running import DataSuperset
 from dlfp.running import Runnable
 from dlfp.running import Runner
-from dlfp.tokens import Linguist
-from dlfp.tokens import Biglot
+from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
 
@@ -22,12 +21,12 @@ class CruciformerRunner(Runner):
         valid = DatasetResolver.default().benchmark(split='valid')
         return DataSuperset(train, valid)
 
-    def create_biglot(self, superset: DataSuperset):
+    def create_biglot(self, superset: DataSuperset) -> Bilinguist:
         cache = LanguageCache()
         assert ("clue", "answer") == superset.train.language_pair
-        source = Linguist.from_language(cache.get(superset.train, "clue", "spacy", "en_core_web_sm"))
-        target = Linguist.from_language(cache.get(superset.train, "answer", "spacy", "en_core_web_sm"))
-        return Biglot(source, target)
+        source = cache.get(superset.train, "clue", "spacy", "en_core_web_sm")
+        target = cache.get(superset.train, "answer", "spacy", "en_core_web_sm")
+        return Bilinguist(source, target)
 
     def create_runnable(self, device: str) -> Runnable:
         r = super().create_runnable(device)

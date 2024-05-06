@@ -11,7 +11,7 @@ import torch
 from torch import Tensor
 
 from dlfp.utils import generate_square_subsequent_mask
-from dlfp.tokens import Biglot
+from dlfp.utils import Bilinguist
 from dlfp.models import Seq2SeqTransformer
 
 
@@ -71,14 +71,14 @@ class Node:
 
 class Translator:
 
-    def __init__(self, model: Seq2SeqTransformer, tokenage: Biglot, device):
+    def __init__(self, model: Seq2SeqTransformer, tokenage: Bilinguist, device):
         self.device = device
         self.model = model
         self.tokenage = tokenage
         self.target_length_margin: int = 5
         self.saved_memory = None
         self.no_skip = False
-        self.index_period = self.tokenage.target.language.vocab(['.'])[0]
+        self.index_period = self.tokenage.target.vocab(['.'])[0]
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase, 1):
@@ -94,7 +94,7 @@ class Translator:
             max_len = src_phrase.num_tokens() + self.target_length_margin
             src, src_mask = src_phrase
             model = self.model
-            start_symbol: int = self.tokenage.source.language.specials.indexes.bos
+            start_symbol: int = self.tokenage.source.specials.indexes.bos
             src: Tensor = src.to(self.device)
             src_mask = src_mask.to(self.device)
             memory = model.encode(src, src_mask).to(self.device)
@@ -127,7 +127,7 @@ class Translator:
         next_words = next_words.detach().flatten().cpu().numpy()
         # for next_word, next_prob in zip(next_words, next_words_probs_s.flatten().cpu().numpy()):
         for next_word, next_prob in zip(next_words, next_words_probs):
-            if next_word == self.tokenage.target.language.specials.indexes.eos:
+            if next_word == self.tokenage.target.specials.indexes.eos:
                 child = Node(ys, next_prob, complete=True)
                 node.add_child(child)
                 yield child
@@ -143,10 +143,10 @@ class Translator:
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
         indexes = indexes.flatten()
-        tokens = self.tokenage.target.language.vocab.lookup_tokens(list(indexes.cpu().numpy()))
+        tokens = self.tokenage.target.vocab.lookup_tokens(list(indexes.cpu().numpy()))
         return (" ".join(tokens)
-                .replace(self.tokenage.target.language.specials.tokens.bos,      "")
-                .replace(self.tokenage.target.language.specials.tokens.eos, ""))
+                .replace(self.tokenage.target.specials.tokens.bos,      "")
+                .replace(self.tokenage.target.specials.tokens.eos, ""))
 
     # def translate(self, src_sentence: str) -> str:
     #     return self.suggest(src_sentence, 1)[0]

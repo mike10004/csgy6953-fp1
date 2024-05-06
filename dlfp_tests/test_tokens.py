@@ -34,10 +34,10 @@ class BiglotTest(TestCase):
         for i, (src_phrase, dst_phrase) in enumerate(train_iter):
             if i >= 10:
                 break
-            tokenized = tokenage.source.language.tokenizer(src_phrase)
+            tokenized = tokenage.source.tokenizer(src_phrase)
             self.assertSetEqual({str}, set([type(x) for x in tokenized]))
             some_word = tokenized[len(tokenized) // 2]
-            vocab = tokenage.source.language.vocab
+            vocab = tokenage.source.vocab
             some_token = vocab[some_word]
             word = vocab.lookup_token(some_token)
             token = vocab[word]
@@ -49,8 +49,8 @@ class BiglotTest(TestCase):
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
         tokenage = init_multi30k_de_en_tokenage()
-        de_tokens = tokenage.source.language.tokenizer(p0_de)
-        de_vocab = tokenage.source.language.vocab
+        de_tokens = tokenage.source.tokenizer(p0_de)
+        de_vocab = tokenage.source.vocab
         de_indices = np.array(de_vocab(de_tokens))
         if self.verbose: print(de_indices)
         cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate)

@@ -16,6 +16,7 @@ from pathlib import Path
 import torch
 import torchtext.vocab
 import torchtext.data.utils
+import torch.nn.utils.rnn
 from torchtext.vocab import Vocab
 from torch import nn
 from torch import Tensor
@@ -25,6 +26,7 @@ from torch.utils.data.dataset import Dataset
 T = TypeVar("T")
 Split = Literal["train", "valid", "test"]
 Tokenizer = Callable[[str], Sequence[str]]
+TextTransform = Callable[[str], Tensor]
 
 
 # noinspection PyUnusedLocal
@@ -86,6 +88,11 @@ class Specials(NamedTuple):
     def create() -> 'Specials':
         return Specials(SpecialIndexes(), SpecialSymbols())
 
+    def to_tensor(self, token_ids: list[int]):
+        """Add BOS/EOS and create tensor for input sequence indices."""
+        return torch.cat((torch.tensor([self.indexes.bos]),
+                          torch.tensor(token_ids),
+                          torch.tensor([self.indexes.eos])))
 
 class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
 
@@ -205,13 +212,26 @@ class Language(NamedTuple):
     name: str
     tokenizer: Tokenizer
     vocab: Vocab
+    text_transform: TextTransform
     specials: Specials
 
-    def to_tensor(self, token_ids: list[int]):
-        """Add BOS/EOS and create tensor for input sequence indices."""
-        return torch.cat((torch.tensor([self.specials.indexes.bos]),
-                          torch.tensor(token_ids),
-                          torch.tensor([self.specials.indexes.eos])))
+    @staticmethod
+    def from_parts(name: str, tokenizer: Tokenizer, vocab: Vocab, specials: Specials):
+        text_transform = Language.compose([
+            tokenizer,
+            vocab,
+            specials.to_tensor,
+        ])
+        return Language(name, tokenizer, vocab, text_transform, specials)
+
+    @staticmethod
+    def compose(transforms):
+        def func(txt_input):
+            for transform in transforms:
+                txt_input = transform(txt_input)
+            return txt_input
+        return func
+
 class LanguageCache:
 
     def __init__(self, cache_dir: Optional[Path] = None):
@@ -237,7 +257,7 @@ class LanguageCache:
         return self.to_language(dataset_language, vocab, tokenizer)
 
     def to_language(self, name: str, vocab: Vocab, tokenizer: Tokenizer) -> Language:
-        return Language(
+        return Language.from_parts(
             name=name,
             tokenizer=tokenizer,
             vocab=vocab,
@@ -250,3 +270,22 @@ class LanguageCache:
                 yield tokenizer(phrase)
         vocab = torchtext.vocab.build_vocab_from_iterator(_yield_tokens(), specials=self.specials.tokens.as_list())
         return vocab
+
+
+class Bilinguist(NamedTuple):
+
+    source: Language
+    target: Language
+
+    def collate(self, batch: Iterable[Tuple[str, str]]):
+        """Collate data samples into batch tensors."""
+        src_batch, tgt_batch = [], []
+        for src_sample, tgt_sample in batch:
+            src_batch.append(self.source.text_transform(src_sample.rstrip("\n")))
+            tgt_batch.append(self.target.text_transform(tgt_sample.rstrip("\n")))
+        src_batch = torch.nn.utils.rnn.pad_sequence(src_batch, padding_value=self.source.specials.indexes.pad)
+        tgt_batch = torch.nn.utils.rnn.pad_sequence(tgt_batch, padding_value=self.target.specials.indexes.pad)
+        return src_batch, tgt_batch
+
+    def languages(self) -> Tuple[Language, Language]:
+        return self.source, self.target

@@ -2,14 +2,11 @@
 
 import sys
 
-import torch
-
 import dlfp.utils
 import dlfp.running
 from dlfp.running import DataSuperset
 from dlfp.running import Runner
-from dlfp.tokens import Biglot
-from dlfp.tokens import Linguist
+from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
 
@@ -26,9 +23,9 @@ class DemoDeenRunner(Runner):
     def create_biglot(self, superset: DataSuperset):
         cache = LanguageCache()
         train_dataset = superset.train
-        src_ling = Linguist.from_language(cache.get(train_dataset, "de", "spacy", "de_core_news_sm"))
-        tgt_ling = Linguist.from_language(cache.get(train_dataset, "en", "spacy", "en_core_web_sm"))
-        biglot = Biglot(src_ling, tgt_ling)
+        src_lang = cache.get(train_dataset, "de", "spacy", "de_core_news_sm")
+        tgt_lang = cache.get(train_dataset, "en", "spacy", "en_core_web_sm")
+        biglot = Bilinguist(src_lang, tgt_lang)
         return biglot
 
 

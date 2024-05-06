@@ -10,8 +10,7 @@ from random import Random
 
 import torch
 from dlfp.utils import Specials
-from dlfp.tokens import Biglot
-from dlfp.tokens import Linguist
+from dlfp.utils import Bilinguist
 import dlfp.utils
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import LanguageCache
@@ -75,16 +74,14 @@ def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
     return dataset
 
 
-def init_multi30k_de_en_tokenage() -> Biglot:
+def init_multi30k_de_en_tokenage() -> Bilinguist:
     global _TEST_TOKENAGE
     if _TEST_TOKENAGE is None:
         dataset = load_multi30k_dataset(split='train')
         cache = LanguageCache()
         src_lang = cache.get(dataset, "de", "spacy", "de_core_news_sm")
         tgt_lang = cache.get(dataset, "en", "spacy", "en_core_web_sm")
-        src_ling = Linguist.from_language(src_lang)
-        tgt_ling = Linguist.from_language(tgt_lang)
-        _TEST_TOKENAGE = Biglot(src_ling, tgt_ling)
+        _TEST_TOKENAGE = Bilinguist(src_lang, tgt_lang)
     return _TEST_TOKENAGE
 
 

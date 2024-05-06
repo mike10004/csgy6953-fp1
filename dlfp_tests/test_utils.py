@@ -6,6 +6,7 @@ import torch
 import dlfp.utils
 from dlfp.utils import SpecialSymbols
 
+
 class ModuleMethodsTest(TestCase):
 
     def test_generate_square_subsequent_mask(self):

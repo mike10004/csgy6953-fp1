@@ -13,7 +13,7 @@ import tabulate
 
 import dlfp.utils
 from dlfp.models import Seq2SeqTransformer
-from dlfp.tokens import Biglot
+from dlfp.utils import Bilinguist
 from dlfp.train import TrainLoaders
 from dlfp.train import Trainer
 from dlfp.train import create_model
@@ -28,7 +28,7 @@ StringTransform = Callable[[str], str]
 
 class ModelManager:
 
-    def __init__(self, model: Seq2SeqTransformer, biglot: Biglot, device):
+    def __init__(self, model: Seq2SeqTransformer, biglot: Bilinguist, device):
         self.device = device
         self.model = model
         self.biglot = biglot
@@ -65,7 +65,7 @@ class ModelManager:
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, epoch_count: int = 10):
-        trainer = Trainer(self.model, pad_idx=self.biglot.source.language.specials.indexes.pad, device=self.device)
+        trainer = Trainer(self.model, pad_idx=self.biglot.source.specials.indexes.pad, device=self.device)
         print(f"writing checkpoints to {checkpoints_dir}")
         checkpointer = Checkpointer(checkpoints_dir, self.model)
         results = trainer.train(loaders, epoch_count, callback=checkpointer.checkpoint)
@@ -92,7 +92,7 @@ class TrainConfig(NamedTuple):
 class Runnable(NamedTuple):
 
     superset: DataSuperset
-    biglot: Biglot
+    biglot: Bilinguist
     manager: ModelManager
 
 
@@ -104,13 +104,13 @@ class Runner:
     def resolve_dataset(self) -> DataSuperset:
         raise NotImplementedError("abstract")
 
-    def create_biglot(self, superset: DataSuperset) -> Biglot:
+    def create_biglot(self, superset: DataSuperset) -> Bilinguist:
         raise NotImplementedError("abstract")
 
-    def create_model(self, biglot: Biglot, device: str) -> Seq2SeqTransformer:
+    def create_model(self, biglot: Bilinguist, device: str) -> Seq2SeqTransformer:
         model = create_model(
-            src_vocab_size=len(biglot.source.language.vocab),
-            tgt_vocab_size=len(biglot.target.language.vocab),
+            src_vocab_size=len(biglot.source.vocab),
+            tgt_vocab_size=len(biglot.target.vocab),
             DEVICE=device,
         )
         return model
