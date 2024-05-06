@@ -17,8 +17,9 @@ class CruciformerRunner(Runner):
         return "Crossword Clue-Answer Translation"
 
     def resolve_dataset(self) -> DataSuperset:
-        train = DatasetResolver.default().benchmark(split='train')
-        valid = DatasetResolver.default().benchmark(split='valid')
+        resolver = DatasetResolver()
+        train = resolver.benchmark(split='train')
+        valid = resolver.benchmark(split='valid')
         return DataSuperset(train, valid)
 
     def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:

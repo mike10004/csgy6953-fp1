@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 from typing import Iterable
 from typing import Any
+from typing import Iterator
 from typing import Literal
 from typing import NamedTuple
 from typing import Optional
@@ -110,6 +111,16 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
 
     def __iter__(self):
         return iter(self.phrase_pairs)
+
+    def source_phrases(self) -> Iterator[str]:
+        yield from self.phrases(0)
+
+    def target_phrases(self) -> Iterator[str]:
+        yield from self.phrases(1)
+
+    def phrases(self, index: int) -> Iterator[str]:
+        for phrase_pair in self:
+            yield phrase_pair[index]
 
 
 def timestamp() -> str:

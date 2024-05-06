@@ -12,7 +12,7 @@ dlfp_tests.tools.suppress_cuda_warning()
 class DatasetResolverTest(TestCase):
 
     def test_benchmark(self):
-        resolver = DatasetResolver.default()
+        resolver = DatasetResolver()
         dataset = resolver.benchmark(split="train")
         cache = LanguageCache()
         for language_name in dataset.language_pair:
