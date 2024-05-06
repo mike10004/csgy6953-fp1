@@ -74,11 +74,15 @@ class TranslatorTest(TestCase):
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
                 model = self._load_restored_deen(self.bilinguist, device)
-                translator = Translator(model, self.bilinguist, device, node_filter=GermanToEnglishNodeFilter.default(self.bilinguist.target.vocab))
+                node_filter = GermanToEnglishNodeFilter(
+                    max_rank=2,
+                    unrepeatables=GermanToEnglishNodeFilter.default_unrepeatables(self.bilinguist.target.vocab),
+                )
+                translator = Translator(model, self.bilinguist, device, node_filter=node_filter)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 completes = []
                 visited = 0
-                for index, node in enumerate(translator.greedy_suggest(src_phrase, 2)):
+                for index, node in enumerate(translator.greedy_suggest(src_phrase)):
                     visited += 1
                     # if len(completes) > 100:
                     #     break
