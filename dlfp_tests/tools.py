@@ -105,3 +105,5 @@ def _cache_dir() -> Path:
     return dlfp.utils.get_repo_root() / "data" / "cache"
 
 
+def get_testdata_dir() -> Path:
+    return dlfp.utils.get_repo_root() / "dlfp_tests" / "testdata"

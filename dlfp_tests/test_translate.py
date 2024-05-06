@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from random import Random
+import csv
 from unittest import TestCase
 import torch
 
 from dlfp.train import create_model
-from dlfp.translate import GermanToEnglishNodeFilter
+# from dlfp.translate import GermanToEnglishNodeFilter
 from dlfp.translate import Node
 from dlfp.translate import Translator
 import dlfp_tests.tools
@@ -74,7 +74,8 @@ class TranslatorTest(TestCase):
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
                 model = self._load_restored_deen(self.bilinguist, device)
-                translator = Translator(model, self.bilinguist, device, node_filter=GermanToEnglishNodeFilter.default(self.bilinguist.target.vocab))
+                # translator = Translator(model, self.bilinguist, device, node_filter=GermanToEnglishNodeFilter.default(self.bilinguist.target.vocab))
+                translator = Translator(model, self.bilinguist, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 completes = []
                 visited = 0
@@ -104,34 +105,22 @@ class TranslatorTest(TestCase):
                     probability_sum += probability
                     actual = translator.indexes_to_phrase(complete.y)
                     assigned.append((probability, actual))
-                self._check_sample(assigned)
                 assigned.sort(key=lambda a: a[0], reverse=True)
                 for a_index, (probability, phrase) in enumerate(assigned):
                     if a_index >= 10:
                         break
                     print(f"{probability/probability_sum:.6f} {phrase}")
+                self._check_output(assigned)
 
-    def _check_sample(self, assigned: list[tuple[float, str]]):
-        self.maxDiff = None
-        # rng = Random(0x3951551)
-        # sample = list(assigned)
-        # rng.shuffle(sample)
-        # sample = [assigned[0]] + sample[:4]  # check highest-prob and a sample of others
-        expected = [
-            (368268173728.13086, " A man in green is holding a guitar ."),
-            (28267459133290.5, " A man in a dark - green shirt is holds a microphone ."),
-            (1035001030.3208928, " Man in dark - green shirt holds guitar"),
-            (4927122158.345606, " A man in a green holding an guitar"),
-            (15134092160174.703, " A guy in a dark green shirt is holds an electric acoustic guitar"),
-        ]
-        for probability, phrase in expected:
-            with self.subTest():
-                actual_p, _ = self.find_corresponding(phrase, assigned)
-                self.assertEqual(probability, actual_p)
-
-    @staticmethod
-    def find_corresponding(phrase: str, assigned: list[tuple[float, str]]):
-        for q_p, q_phrase in assigned:
-            if phrase == q_phrase:
-                return q_p, phrase
-        raise ValueError(f"not found: {repr(phrase)}")
+    def _check_output(self, assigned: list[tuple[float, str]]):
+        index = 0
+        with self.subTest("content"):
+            with open(dlfp_tests.tools.get_testdata_dir() / "translate-expected-1.csv") as ifile:
+                expecteds = [(float(p), t) for p, t in csv.reader(ifile)]
+            for (e_probability, e_phrase), (a_probabilty, a_phrase) in zip(expecteds, assigned):
+                self.assertEqual(e_phrase, a_phrase, f"phrase {index}")
+                self.assertAlmostEqual(e_probability, a_probabilty, delta=0.05)
+                index += 1
+        with self.subTest("length"):
+            self.assertEqual(len(expecteds), len(assigned), "lengths of lists")
+            self.assertGreater(index, 100)
