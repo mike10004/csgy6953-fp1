@@ -100,11 +100,19 @@ class TranslatorTest(TestCase):
                 rng = Random(0x3951551)
                 rng.shuffle(sample)
                 sample = sample[:100]
-                for complete in [completes[0]] + sample:
+                assigned = []
+                probability_sum = 0.0
+                for complete in completes:
                     lineage = complete.lineage()
                     probability = Node.cumulative_probability(lineage)
+                    probability_sum += probability
                     actual = translator.indexes_to_phrase(complete.y)
-                    print(f"{probability:.4f} {actual}")
+                    assigned.append((probability, actual))
+                assigned.sort(key=lambda a: a[0], reverse=True)
+                for a_index, (probability, phrase) in enumerate(assigned):
+                    if a_index >= 10:
+                        break
+                    print(f"{probability/probability_sum:.6f} {phrase}")
 
 
 

@@ -6,10 +6,14 @@ from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
+from typing import Tuple
 from typing import Union
 
+import numpy as np
 import torch
 from torch import Tensor
+from torch.nn import Softmax
+
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.tokens import Biglot
 from dlfp.models import Seq2SeqTransformer
@@ -28,6 +32,7 @@ class Node:
 
     def __init__(self, y: Tensor, prob: float, complete: bool = False):
         self.y = y.detach()
+        self.current_word = self.y.flatten()[-1]
         self.parent = None
         self.children = []
         self.complete = complete
@@ -54,6 +59,7 @@ class Node:
         p = 1.0
         for node in nodes:
             p *= node.prob
+            count += 1
         if count == 0:
             return 0
         return p
@@ -75,6 +81,8 @@ class Translator:
         self.tokenage = tokenage
         self.target_length_margin: int = 5
         self.saved_memory = None
+        self.no_skip = False
+        self.index_period = self.tokenage.target.language.vocab(['.'])[0]
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase, 1):
@@ -112,9 +120,15 @@ class Translator:
         out = out.transpose(0, 1)
         prob = self.model.generator(out[:, -1])
         max_rank = get_max_rank(i)
+        # s = Softmax(dim=1)
+        # prob_softmax = s(prob)
         next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
+        # next_words_probs_s, next_words_s = torch.topk(prob_softmax, k=max_rank, dim=1)
+        # assert torch.equal(next_words, next_words_s)
         next_words_probs = next_words_probs.flatten().cpu().numpy()
+        # next_words_probs = next_words_probs / np.sum(next_words_probs)
         next_words = next_words.flatten().cpu().numpy()
+        # for next_word, next_prob in zip(next_words, next_words_probs_s.flatten().cpu().numpy()):
         for next_word, next_prob in zip(next_words, next_words_probs):
             if next_word == self.tokenage.target.language.specials.indexes.eos:
                 child = Node(ys, next_prob, complete=True)
@@ -125,7 +139,10 @@ class Translator:
                 child = Node(child_ys, next_prob)
                 node.add_child(child)
                 yield node
-                yield from self._next(child, i + 1, memory, child_ys, max_len, get_max_rank, src)
+                if not self.no_skip and (node.current_word == self.index_period and child.current_word == self.index_period):
+                    pass
+                else:
+                    yield from self._next(child, i + 1, memory, child_ys, max_len, get_max_rank, src)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
         indexes = indexes.flatten()
