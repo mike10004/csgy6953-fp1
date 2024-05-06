@@ -21,7 +21,7 @@ DEVICE = None
 _CUDA_WARNINGS_SUPPRESSED = None
 _CFG = None
 T = TypeVar("T")
-_TEST_TOKENAGE = None
+_TEST_MULTI30K_BILINGUIST = None
 
 
 def get_cfg() -> ConfigParser:
@@ -74,15 +74,15 @@ def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
     return dataset
 
 
-def init_multi30k_de_en_tokenage() -> Bilinguist:
-    global _TEST_TOKENAGE
-    if _TEST_TOKENAGE is None:
+def get_multi30k_de_en_bilinguist() -> Bilinguist:
+    global _TEST_MULTI30K_BILINGUIST
+    if _TEST_MULTI30K_BILINGUIST is None:
         dataset = load_multi30k_dataset(split='train')
         cache = LanguageCache()
         src_lang = cache.get(dataset, "de", "spacy", "de_core_news_sm")
         tgt_lang = cache.get(dataset, "en", "spacy", "en_core_web_sm")
-        _TEST_TOKENAGE = Bilinguist(src_lang, tgt_lang)
-    return _TEST_TOKENAGE
+        _TEST_MULTI30K_BILINGUIST = Bilinguist(src_lang, tgt_lang)
+    return _TEST_MULTI30K_BILINGUIST
 
 
 def get_device() -> str:

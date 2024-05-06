@@ -18,7 +18,7 @@ dlfp_tests.tools.suppress_cuda_warning()
 class TranslatorTest(TestCase):
 
     def setUp(self):
-        self.biglot = dlfp_tests.tools.init_multi30k_de_en_tokenage()
+        self.biglot = dlfp_tests.tools.get_multi30k_de_en_bilinguist()
 
     def test_translate(self):
         with torch.random.fork_rng():

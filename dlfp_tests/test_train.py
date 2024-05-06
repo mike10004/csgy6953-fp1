@@ -23,18 +23,18 @@ class TrainerTest(TestCase):
 
     def test_create_mask(self):
         train_dataset = dlfp_tests.tools.load_multi30k_dataset(split='train')
-        tokenage = dlfp_tests.tools.init_multi30k_de_en_tokenage()
-        dataloader = DataLoader(train_dataset, batch_size=16, collate_fn=tokenage.collate)
+        bilinguist = dlfp_tests.tools.get_multi30k_de_en_bilinguist()
+        dataloader = DataLoader(train_dataset, batch_size=16, collate_fn=bilinguist.collate)
         src, tgt = next(iter(dataloader))
         tgt_input = tgt[:-1, :]
-        masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=tokenage.source.specials.indexes.pad)
+        masks = Trainer.create_mask_static(src, tgt_input, device="cpu", pad_idx=bilinguist.source.specials.indexes.pad)
         self.assertSetEqual({torch.bool}, set(mask.dtype for mask in masks))
 
 
     def test_train(self):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
-            tokenage = dlfp_tests.tools.init_multi30k_de_en_tokenage()
+            bilinguist = dlfp_tests.tools.get_multi30k_de_en_bilinguist()
             batch_size = 2
             train_dataset = dlfp_tests.tools.load_multi30k_dataset(split='train')
             valid_dataset = dlfp_tests.tools.load_multi30k_dataset(split='valid')
@@ -42,14 +42,14 @@ class TrainerTest(TestCase):
             valid_dataset = dlfp_tests.tools.truncate_dataset(valid_dataset, size=batch_size * 2)
             device = dlfp_tests.tools.get_device()
             model = create_model(
-                src_vocab_size=len(tokenage.source.vocab),
-                tgt_vocab_size=len(tokenage.target.vocab),
+                src_vocab_size=len(bilinguist.source.vocab),
+                tgt_vocab_size=len(bilinguist.target.vocab),
                 DEVICE=device,
             )
-            trainer = Trainer(model, pad_idx=tokenage.source.specials.indexes.pad, device=device)
+            trainer = Trainer(model, pad_idx=bilinguist.source.specials.indexes.pad, device=device)
             trainer.hide_progress = not self.verbose
             callback = noop if not self.verbose else None
-            loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=tokenage.collate)
+            loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, collate_fn=bilinguist.collate)
             epoch_count = 1
             results = trainer.train(loaders, epoch_count, callback=callback)
             self.assertEqual(epoch_count, len(results))

@@ -6,7 +6,7 @@ from unittest import TestCase
 from torch.utils.data import DataLoader
 import dlfp_tests.tools
 from dlfp_tests.tools import load_multi30k_dataset
-from dlfp_tests.tools import init_multi30k_de_en_tokenage
+from dlfp_tests.tools import get_multi30k_de_en_bilinguist
 
 
 dlfp_tests.tools.suppress_cuda_warning()
@@ -29,15 +29,15 @@ class BiglotTest(TestCase):
     verbose = False
 
     def test_init(self):
-        tokenage = init_multi30k_de_en_tokenage()
+        bilinguist = get_multi30k_de_en_bilinguist()
         train_iter = load_multi30k_dataset(split='train')
         for i, (src_phrase, dst_phrase) in enumerate(train_iter):
             if i >= 10:
                 break
-            tokenized = tokenage.source.tokenizer(src_phrase)
+            tokenized = bilinguist.source.tokenizer(src_phrase)
             self.assertSetEqual({str}, set([type(x) for x in tokenized]))
             some_word = tokenized[len(tokenized) // 2]
-            vocab = tokenage.source.vocab
+            vocab = bilinguist.source.vocab
             some_token = vocab[some_word]
             word = vocab.lookup_token(some_token)
             token = vocab[word]
@@ -48,12 +48,12 @@ class BiglotTest(TestCase):
         train_iter = load_multi30k_dataset(split='train')
         p0_de, p0_en = train_iter.phrase_pairs[0]
         batch_size = 2
-        tokenage = init_multi30k_de_en_tokenage()
-        de_tokens = tokenage.source.tokenizer(p0_de)
-        de_vocab = tokenage.source.vocab
+        bilinguist = get_multi30k_de_en_bilinguist()
+        de_tokens = bilinguist.source.tokenizer(p0_de)
+        de_vocab = bilinguist.source.vocab
         de_indices = np.array(de_vocab(de_tokens))
         if self.verbose: print(de_indices)
-        cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=tokenage.collate)
+        cooked_dataloader = DataLoader(train_iter, batch_size=batch_size, collate_fn=bilinguist.collate)
         de_batch, en_batch = next(iter(cooked_dataloader))
         self.assertIsInstance(de_batch, Tensor)
         self.assertIsInstance(en_batch, Tensor)
@@ -65,8 +65,8 @@ class BiglotTest(TestCase):
         np.testing.assert_array_equal(de_tokens, actual_p0_de[1:len(de_indices)+1])
 
     def test_specials(self):
-        tokenage = init_multi30k_de_en_tokenage()
-        languages = tokenage.languages()
+        bilinguist = get_multi30k_de_en_bilinguist()
+        languages = bilinguist.languages()
         src, tgt = languages
         self.assertIs(src.specials, tgt.specials)
         for language in languages:
