@@ -125,9 +125,9 @@ class Translator:
         next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
         # next_words_probs_s, next_words_s = torch.topk(prob_softmax, k=max_rank, dim=1)
         # assert torch.equal(next_words, next_words_s)
-        next_words_probs = next_words_probs.flatten().cpu().numpy()
+        next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
         # next_words_probs = next_words_probs / np.sum(next_words_probs)
-        next_words = next_words.flatten().cpu().numpy()
+        next_words = next_words.detach().flatten().cpu().numpy()
         # for next_word, next_prob in zip(next_words, next_words_probs_s.flatten().cpu().numpy()):
         for next_word, next_prob in zip(next_words, next_words_probs):
             if next_word == self.tokenage.target.language.specials.indexes.eos:
