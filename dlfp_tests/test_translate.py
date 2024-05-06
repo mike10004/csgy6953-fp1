@@ -62,3 +62,20 @@ class TranslatorTest(TestCase):
                 indexes = translator.greedy_decode(src_phrase)
                 actual = translator.indexes_to_phrase(indexes)
                 self.assertEqual("A man in green is holding a guitar .", actual.strip())
+
+    def test_greedy_suggest(self, verbose: bool = True):
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                device = dlfp_tests.tools.get_device()
+                model = self._load_restored_deen(self.biglot, device)
+                translator = Translator(model, self.biglot, device)
+                src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
+                suggestions = list(translator.greedy_suggest(src_phrase, 2))
+                for index, suggestion in enumerate(suggestions):
+                    actual = translator.indexes_to_phrase(suggestion)
+                    if verbose:
+                        print(actual)
+                    if index == 0:
+                        self.assertEqual("A man in green is holding a guitar .", actual.strip())
+

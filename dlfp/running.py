@@ -3,7 +3,10 @@
 from argparse import ArgumentParser
 from pathlib import Path
 from typing import Callable
+from typing import Iterator
 from typing import NamedTuple
+from typing import Optional
+from typing import Tuple
 
 import torch
 import tabulate
@@ -33,20 +36,32 @@ class ModelManager:
         self.src_transform: StringTransform = dlfp.utils.identity
         self.tgt_transform: StringTransform = dlfp.utils.identity
 
+    # def evaluate_accuracy(self, dataset: PhrasePairDataset, ranks: Sequence[int] = (1, 10, 100, 1000)):
+    #     ranks = sorted(ranks, reverse=True)
+    #     rank_acc = defaultdict(int)
+    #     count = 0
+    #     for index, (src_phrase, tgt_phrase, translation) in enumerate(self._iterate_guesses(dataset)):
+    #         count += 1
+    #         for rank in ranks:
+
     def print_translations(self, dataset: PhrasePairDataset, limit: int):
-        translator = Translator(self.model, self.biglot, self.device)
-        for index, (src_phrase, tgt_phrase) in enumerate(dataset):
-            if index >= limit:
-                break
+        for index, (src_phrase, tgt_phrase, translation) in enumerate(self._iterate_guesses(dataset, limit=limit)):
             if index > 0:
                 print()
-            src_phrase = self.src_transform(src_phrase)
-            tgt_phrase = self.tgt_transform(tgt_phrase)
             print(f"{index: 2d} src: {src_phrase}")
             print(f"{index: 2d} tgt: {tgt_phrase}")
+            print(f"{index: 2d} xxx: {translation}")
+
+    def _iterate_guesses(self, dataset: PhrasePairDataset, limit: Optional[int] = None) -> Iterator[Tuple[str, str, str]]:
+        translator = Translator(self.model, self.biglot, self.device)
+        for index, (src_phrase, tgt_phrase) in enumerate(dataset):
+            if limit is not None and index >= limit:
+                break
+            src_phrase = self.src_transform(src_phrase)
+            tgt_phrase = self.tgt_transform(tgt_phrase)
             translation = translator.translate(src_phrase).strip()
             translation = self.tgt_transform(translation)
-            print(f"{index: 2d} xxx: {translation}")
+            yield src_phrase, tgt_phrase, translation
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, epoch_count: int = 10):
