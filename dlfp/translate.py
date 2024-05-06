@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 from collections import deque
-from typing import Callable
 from typing import Collection
 from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
-from typing import Union
 
 import torch
 from torch import Tensor
@@ -145,35 +143,27 @@ class Translator:
             src: Tensor = src.to(self.device)
             src_mask = src_mask.to(self.device)
             memory = model.encode(src, src_mask).to(self.device)
-            # self.saved_memory = memory.detach()
             ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
             root = Node(ys, prob=1.0)
             yield root
-            yield from self._next(root, memory, ys, max_len)
+            yield from self._next(root, memory, max_len)
 
-    def _next(self, node: Node, memory: Tensor, ys: Tensor, max_len) -> Iterator[Node]:
+    def _next(self, node: Node, memory: Tensor, max_len) -> Iterator[Node]:
+        ys = node.y
         tgt_sequence_len = node.sequence_length()
         if tgt_sequence_len >= max_len:
             child = Node(ys, prob=1.0, complete=True)
             node.add_child(child)
             yield child
             return
-        # memory = memory.to(self.device)
-        # assert torch.equal(memory, self.saved_memory)
         tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.device).type(torch.bool)).to(self.device)
         out = self.model.decode(ys, memory, tgt_mask)
         out = out.transpose(0, 1)
         prob = self.model.generator(out[:, -1])
         max_rank = self.node_filter.get_max_rank(tgt_sequence_len)
-        # s = Softmax(dim=1)
-        # prob_softmax = s(prob)
         next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
-        # next_words_probs_s, next_words_s = torch.topk(prob_softmax, k=max_rank, dim=1)
-        # assert torch.equal(next_words, next_words_s)
         next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
-        # next_words_probs = next_words_probs / np.sum(next_words_probs)
         next_words = next_words.detach().flatten().cpu().numpy()
-        # for next_word, next_prob in zip(next_words, next_words_probs_s.flatten().cpu().numpy()):
         for next_word, next_prob in zip(next_words, next_words_probs):
             if next_word == self.bilinguist.target.specials.indexes.eos:
                 child = Node(ys, next_prob, complete=True)
@@ -185,7 +175,7 @@ class Translator:
                 node.add_child(child)
                 yield node
                 if self.node_filter.include(child):
-                    yield from self._next(child, memory, child_ys, max_len)
+                    yield from self._next(child, memory, max_len)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
         indexes = indexes.flatten()
