@@ -75,11 +75,10 @@ class ModelManager:
                  concurrency: int = None,
                  top_k: int = 1):
         ranks = sorted(ranks, reverse=True)
+        progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset) -> dict[int, int]:
             rank_acc = defaultdict(int)
-            count = 0
-            for index, (src_phrase, tgt_phrase, suggestions) in tqdm(enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=max(ranks))), file=sys.stdout, total=len(dataset), disable=hide_progress):
-                count += 1
+            for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=max(ranks))):
                 phrases = [s.phrase for s in suggestions]
                 try:
                     actual_rank = phrases.index(tgt_phrase) + 1
@@ -90,6 +89,7 @@ class ModelManager:
                         rank_acc[rank] += 1
                 if callback is not None:
                     callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:top_k])))
+                progress_bar.update(1)
             return dict(rank_acc)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
@@ -191,7 +191,8 @@ class Runner:
         r.manager.train(loaders, train_config.checkpoints_dir, train_config.epoch_count)
 
     def create_runnable(self, device: str) -> Runnable:
-        superset = self.resolve_dataset()
+        dataset_name = getattr(self, "dataset_name", None)
+        superset = self.resolve_dataset(dataset_name)
         bilinguist = self.create_bilinguist(superset)
         model = self.create_model(bilinguist, device)
         model_manager = ModelManager(model, bilinguist, device)
@@ -240,12 +241,15 @@ def main(runner: Runner) -> int:
     parser.add_argument("-e", "--epoch-count", type=int, default=10, metavar="N", help="epoch count")
     parser.add_argument("-b", "--batch-size", type=int, default=128, metavar="N", help="training batch size")
     parser.add_argument("--limit", type=int, default=..., metavar="N", help="demo mode phrase limit")
+    parser.add_argument("-d", "--dataset", metavar="NAME", help="specify dataset name")
     split_choices = ("train", "valid", "test")
     parser.add_argument("-s", "--split", metavar="SPLIT", choices=split_choices, help="eval mode dataset split")
+    parser.add_argument("--concurrency", type=int)
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     seed = 0
     torch.manual_seed(seed)
+    runner.dataset_name = args.dataset
     if args.mode == "demo":
         checkpoint_file = args.file
         if not checkpoint_file:
@@ -263,7 +267,7 @@ def main(runner: Runner) -> int:
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
         output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{dlfp.utils.timestamp()}.csv"
-        runner.run_eval(restored, device, output_file, split=split)
+        runner.run_eval(restored, device, output_file, split=split, concurrency=args.concurrency)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"

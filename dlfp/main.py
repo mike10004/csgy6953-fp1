@@ -19,7 +19,7 @@ class CruciformerRunner(Runner):
 
     def resolve_dataset(self, dataset_name: str = None) -> DataSuperset:
         resolver = DatasetResolver()
-        dataset_name = dataset_name or "benchmark"
+        dataset_name = dataset_name or "easymark"
         train = resolver.by_name(dataset_name, split='train')
         valid = resolver.by_name(dataset_name, split='valid')
         return DataSuperset(train, valid)
