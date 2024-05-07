@@ -78,11 +78,11 @@ class TranslatorTest(TestCase):
                     max_rank=2,
                     unrepeatables=GermanToEnglishNodeFilter.default_unrepeatables(self.bilinguist.target.vocab),
                 )
-                translator = Translator(model, self.bilinguist, device, node_filter=node_filter)
+                translator = Translator(model, self.bilinguist, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 completes = []
                 visited = 0
-                for index, node in enumerate(translator.greedy_suggest(src_phrase)):
+                for index, node in enumerate(translator.greedy_suggest(src_phrase, node_filter=node_filter)):
                     visited += 1
                     # if len(completes) > 100:
                     #     break

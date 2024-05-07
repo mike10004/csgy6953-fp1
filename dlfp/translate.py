@@ -121,12 +121,10 @@ class GermanToEnglishNodeFilter(MultiRankNodeFilter):
 
 class Translator:
 
-    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str, node_filter: NodeFilter = None):
+    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
         self.device = device
         self.model = model
         self.bilinguist = bilinguist
-        self.node_filter = node_filter or NodeFilter()
-        self.index_period = bilinguist.target.vocab(['.'])[0]
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase):
@@ -134,9 +132,10 @@ class Translator:
                 return node.y
         raise NotImplementedError("BUG: shouldn't reach here")
 
-    def greedy_suggest(self, src_phrase: PhraseEncoding) -> Iterator[Node]:
+    def greedy_suggest(self, src_phrase: PhraseEncoding, node_filter: NodeFilter = None) -> Iterator[Node]:
         with torch.no_grad():
-            max_len = self.node_filter.get_max_len(src_phrase.num_tokens())
+            node_filter = node_filter or NodeFilter()
+            max_len = node_filter.get_max_len(src_phrase.num_tokens())
             src, src_mask = src_phrase
             model = self.model
             start_symbol: int = self.bilinguist.source.specials.indexes.bos
@@ -145,36 +144,9 @@ class Translator:
             memory = model.encode(src, src_mask).to(self.device)
             ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
             root = Node(ys, prob=1.0)
-            yield root
-            yield from self._next(root, memory, max_len)
+            visitor = NodeVisitor(self, max_len, memory, node_filter)
+            yield from visitor.visit(root)
 
-    def _next(self, node: Node, memory: Tensor, max_len: int) -> Iterator[Node]:
-        ys = node.y
-        tgt_sequence_len = node.sequence_length()
-        if tgt_sequence_len >= max_len:
-            node.complete = True
-        yield node
-        if node.complete:
-            return
-        tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.device).type(torch.bool)).to(self.device)
-        out = self.model.decode(ys, memory, tgt_mask)
-        out = out.transpose(0, 1)
-        prob = self.model.generator(out[:, -1])
-        max_rank = self.node_filter.get_max_rank(tgt_sequence_len)
-        next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
-        next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
-        next_words = next_words.detach().flatten().cpu().numpy()
-        for next_word, next_prob in zip(next_words, next_words_probs):
-            if next_word == self.bilinguist.target.specials.indexes.eos:
-                child = Node(ys, next_prob, complete=True)
-                node.add_child(child)
-                yield from self._next(child, memory, max_len)
-            else:
-                child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
-                child = Node(child_ys, next_prob)
-                node.add_child(child)
-                if self.node_filter.include(child):
-                    yield from self._next(child, memory, max_len)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
         indexes = indexes.flatten()
@@ -200,3 +172,39 @@ class Translator:
         src_mask = (torch.zeros(num_tokens, num_tokens)).type(torch.bool)
         return PhraseEncoding(src, src_mask)
 
+
+class NodeVisitor:
+
+    def __init__(self, parent: Translator, max_len: int, memory: Tensor, node_filter: NodeFilter):
+        self.parent = parent
+        self.max_len = max_len
+        self.memory = memory
+        self.node_filter = node_filter
+
+    def visit(self, node: Node) -> Iterator[Node]:
+        ys = node.y
+        tgt_sequence_len = node.sequence_length()
+        if tgt_sequence_len >= self.max_len:
+            node.complete = True
+        yield node
+        if node.complete:
+            return
+        tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
+        out = self.parent.model.decode(ys, self.memory, tgt_mask)
+        out = out.transpose(0, 1)
+        prob = self.parent.model.generator(out[:, -1])
+        max_rank = self.node_filter.get_max_rank(tgt_sequence_len)
+        next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
+        next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
+        next_words = next_words.detach().flatten().cpu().numpy()
+        for next_word, next_prob in zip(next_words, next_words_probs):
+            if next_word == self.parent.bilinguist.target.specials.indexes.eos:
+                child = Node(ys, next_prob, complete=True)
+                node.add_child(child)
+                yield from self.visit(child)
+            else:
+                child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
+                child = Node(child_ys, next_prob)
+                node.add_child(child)
+                if self.node_filter.include(child):
+                    yield from self.visit(child)
