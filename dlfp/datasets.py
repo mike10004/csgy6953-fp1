@@ -37,30 +37,30 @@ class DatasetResolver:
 
     def multi30k_de_en(self, split: Split) -> PhrasePairDataset:
         from torchtext.datasets import Multi30k
-        SRC_LANGUAGE = 'de'
-        TGT_LANGUAGE = 'en'
-        language_pair = (SRC_LANGUAGE, TGT_LANGUAGE)
+        language_pair = ('de', 'en')
         # noinspection PyTypeChecker
         items: list[tuple[str, str]] = list(Multi30k(root=str(self.data_root), split=split, language_pair=language_pair))
         return PhrasePairDataset("multi30k_de_en", items, language_pair)
-
 
     def benchmark(self, split: Split) -> PhrasePairDataset:
         stem = {
             "valid": "val"
         }.get(split, split)
-        dataset_dir = self.data_root / "datasets" / "benchmark"
         source_filename, target_filename = f"{stem}.source", f"{stem}.target"
+        return self._load_marklike("benchmark", source_filename, target_filename)
+
+    def easymark(self, split: Split) -> PhrasePairDataset:
+        source_filename, target_filename = f"{split}.source", f"{split}.target"
+        return self._load_marklike("easymark", source_filename, target_filename)
+
+    def _load_marklike(self, dataset_name: str, source_filename: str, target_filename: str):
+        dataset_dir = self.data_root / "datasets" / dataset_name
         source_lines = (dataset_dir / source_filename).read_text(self.encoding).splitlines()
         target_lines = (dataset_dir / target_filename).read_text(self.encoding).splitlines()
         if len(source_lines) != len(target_lines):
             _log.warning(f"source/target length mismatch: {len(source_lines)} != {len(target_lines)}")
-        def clean_target(dirty: str) -> str:
-            if dirty.startswith('"""'):
-                return dirty.strip('"')
-            return dirty
-        phrase_pairs = list(zip(source_lines, map(clean_target, target_lines)))
-        return PhrasePairDataset("benchmark", phrase_pairs, language_pair=("clue", "answer"))
+        phrase_pairs = list(zip(source_lines, target_lines))
+        return PhrasePairDataset(dataset_name, phrase_pairs, language_pair=("clue", "answer"))
 
 
 def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:
@@ -75,6 +75,7 @@ def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:
         return source, target
     else:
         raise NotImplementedError(f"unrecognized dataset: {repr(dataset.name)}")
+
 
 class Summary(NamedTuple):
 
