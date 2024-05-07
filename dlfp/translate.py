@@ -148,13 +148,13 @@ class Translator:
             yield root
             yield from self._next(root, memory, max_len)
 
-    def _next(self, node: Node, memory: Tensor, max_len) -> Iterator[Node]:
+    def _next(self, node: Node, memory: Tensor, max_len: int) -> Iterator[Node]:
         ys = node.y
         tgt_sequence_len = node.sequence_length()
         if tgt_sequence_len >= max_len:
-            child = Node(ys, prob=1.0, complete=True)
-            node.add_child(child)
-            yield child
+            node.complete = True
+        yield node
+        if node.complete:
             return
         tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.device).type(torch.bool)).to(self.device)
         out = self.model.decode(ys, memory, tgt_mask)
@@ -168,12 +168,11 @@ class Translator:
             if next_word == self.bilinguist.target.specials.indexes.eos:
                 child = Node(ys, next_prob, complete=True)
                 node.add_child(child)
-                yield child
+                yield from self._next(child, memory, max_len)
             else:
                 child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
                 child = Node(child_ys, next_prob)
                 node.add_child(child)
-                yield node
                 if self.node_filter.include(child):
                     yield from self._next(child, memory, max_len)
 
