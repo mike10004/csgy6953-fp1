@@ -71,12 +71,12 @@ class TrainLoaders(NamedTuple):
 
 class Trainer:
 
-    def __init__(self, model: Seq2SeqTransformer, pad_idx: int, device, loss_fn: LossFunction = None):
+    def __init__(self, model: Seq2SeqTransformer, pad_idx: int, device: str, loss_fn: LossFunction = None):
         self.model = model
         self.device = device
         self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss(ignore_index=pad_idx)
         self.pad_idx = pad_idx
-        self.optimizer_factory = create_optimizer
+        self.optimizer_factory: Callable[[Seq2SeqTransformer], Optimizer] = create_optimizer
         self.hide_progress_train = False
         self.hide_progress_other = True
         self.tqdm_file = sys.stdout

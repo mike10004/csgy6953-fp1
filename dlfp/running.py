@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-import contextlib
+
 import csv
 import sys
+import contextlib
 from argparse import ArgumentParser
 from collections import defaultdict
 from concurrent.futures import Future
@@ -18,6 +19,8 @@ from typing import Tuple
 
 import torch
 import tabulate
+from torch.optim import Optimizer
+from torch.nn import Module
 from tqdm import tqdm
 
 import dlfp.utils
@@ -136,6 +139,7 @@ class ModelManager:
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig'):
         trainer = Trainer(self.model, pad_idx=self.bilinguist.source.specials.indexes.pad, device=self.device)
+        trainer.optimizer_factory = train_config.create_optimizer
         print(f"writing checkpoints to {checkpoints_dir}")
         checkpointer = Checkpointer(checkpoints_dir, self.model)
         checkpointer.retain_all = train_config.retain_all_checkpoints
@@ -158,13 +162,43 @@ class DataSuperset(NamedTuple):
 
 class TrainConfig(NamedTuple):
 
+    dataset_name: str
     checkpoints_dir: Path
     epoch_count: int = 10
     batch_size: int = 128
     retain_all_checkpoints: bool = False
+    lr: float = 0.0001
+    betas: tuple[float, float] = (0.9, 0.98)
+    eps: float = 1e-9
 
     def to_jsonable(self) -> dict[str, Optional[str]]:
         return {k:(None if v is None else str(v)) for k, v in self._asdict().items()}
+
+    def create_optimizer(self, model: Module) -> Optimizer:
+        return torch.optim.Adam(model.parameters(), lr=self.lr, betas=self.betas, eps=self.eps)
+
+    @staticmethod
+    def argument_keys() -> list[str]:
+        return [k for k in TrainConfig._fields if not k in {"dataset_name", "checkpoints_dir"}]
+
+    @staticmethod
+    def from_args(dataset_name: str, checkpoints_dir: Path, arguments: Optional[list[str]]) -> 'TrainConfig':
+        # epoch_count=args.epoch_count, batch_size=args.batch_size, retain_all_checkpoints=args.retain
+        types = {
+            'epoch_count': int,
+            'batch_size': int,
+            'retain_all_checkpoints': bool,
+            'betas': lambda s: tuple(float(b) for b in s.split(',')),
+        }
+        kwargs = {}
+        for arg in (arguments or []):
+            if not arg in TrainConfig._fields:
+                raise ValueError(f'not a valid --train-config argument key: {arg}; allowed keys are {TrainConfig.argument_keys()}')
+            key, value = arg.split('=', maxsplit=1)
+            value = types.get(key, float)
+            kwargs[key] = value
+        return TrainConfig(dataset_name, checkpoints_dir, **kwargs)
+
 
 
 class Runnable(NamedTuple):
@@ -194,20 +228,19 @@ class Runner:
         return model
 
     def run_train(self, train_config: TrainConfig, device: str):
-        r = self.create_runnable(device)
+        r = self.create_runnable(train_config.dataset_name, device)
         loaders = TrainLoaders.from_datasets(r.superset.train, r.superset.valid, collate_fn=r.bilinguist.collate, batch_size=train_config.batch_size)
         r.manager.train(loaders, train_config.checkpoints_dir, train_config)
 
-    def create_runnable(self, device: str) -> Runnable:
-        dataset_name = getattr(self, "dataset_name", None)
+    def create_runnable(self, dataset_name: str, device: str) -> Runnable:
         superset = self.resolve_dataset(dataset_name)
         bilinguist = self.create_bilinguist(superset)
         model = self.create_model(bilinguist, device)
         model_manager = ModelManager(model, bilinguist, device)
         return Runnable(superset, bilinguist, model_manager)
 
-    def run_eval(self, restored: Restored, device: str, output_file: Path, split: Split = "valid", concurrency: Optional[int] = None):
-        r = self.create_runnable(device)
+    def run_eval(self, restored: Restored, dataset_name: str, device: str, output_file: Path, split: Split = "valid", concurrency: Optional[int] = None):
+        r = self.create_runnable(dataset_name, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, split)
         output_file.parent.mkdir(exist_ok=True, parents=True)
@@ -231,8 +264,8 @@ class Runner:
             accuracy = accuracy_count / len(dataset)
             print(f"{rank:5d}: {accuracy*100:.4f}%")
 
-    def run_demo(self, restored: Restored, device: str, limit: int = ...):
-        r = self.create_runnable(device)
+    def run_demo(self, restored: Restored, dataset_name: str, device: str, limit: int = ...):
+        r = self.create_runnable(dataset_name, device)
         if limit is ...:
             limit = 5
         if limit is None:
@@ -242,18 +275,16 @@ class Runner:
 
 
 def main(runner: Runner) -> int:
-    parser = ArgumentParser(description=runner.describe())
+    parser = ArgumentParser(description=runner.describe(), epilog=f"Allowed --train-config keys are: {TrainConfig.argument_keys()}")
     parser.add_argument("-m", "--mode", metavar="MODE", choices=("train", "eval", "demo"), default="train", help="'train', 'eval', or 'demo' (print some outputs)")
     parser.add_argument("-o", "--output", metavar="DIR", help="output root directory")
     parser.add_argument("-f", "--file", metavar="FILE", help="checkpoint file for eval mode")
-    parser.add_argument("-e", "--epoch-count", type=int, default=10, metavar="N", help="epoch count")
-    parser.add_argument("-b", "--batch-size", type=int, default=128, metavar="N", help="training batch size")
+    parser.add_argument("-c", "--train-config", metavar="K=V", action='append', help="set training configuration parameter")
     parser.add_argument("--limit", type=int, default=..., metavar="N", help="demo mode phrase limit")
-    parser.add_argument("--retain", action='store_true', help="retain all checkpoint files (instead of deleting on improvement)")
     parser.add_argument("-d", "--dataset", metavar="NAME", help="specify dataset name")
     split_choices = ("train", "valid", "test")
     parser.add_argument("-s", "--split", metavar="SPLIT", choices=split_choices, help="eval mode dataset split")
-    parser.add_argument("--concurrency", type=int)
+    parser.add_argument("--concurrency", type=int, help="eval mode concurrency")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     seed = 0
@@ -265,7 +296,7 @@ def main(runner: Runner) -> int:
             parser.error("checkpoint file must be specified")
             return 1
         restored = Restored.from_file(checkpoint_file, device=device)
-        runner.run_demo(restored, device, args.limit)
+        runner.run_demo(restored, args.dataset, device, args.limit)
         return 0
     elif args.mode == "eval":
         checkpoint_file = args.file
@@ -276,11 +307,11 @@ def main(runner: Runner) -> int:
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
         output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{dlfp.utils.timestamp()}.csv"
-        runner.run_eval(restored, device, output_file, split=split, concurrency=args.concurrency)
+        runner.run_eval(restored, args.dataset, device, output_file, split=split, concurrency=args.concurrency)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
-        train_config = TrainConfig(checkpoints_dir, epoch_count=args.epoch_count, batch_size=args.batch_size, retain_all_checkpoints=args.retain)
+        train_config = TrainConfig.from_args(args.dataset, checkpoints_dir, args.train_config)
         runner.run_train(train_config, device)
         return 0
     else:
