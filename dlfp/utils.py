@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import math
 import os
 from datetime import datetime
 from typing import Iterable
@@ -97,7 +97,7 @@ class Specials(NamedTuple):
 
 class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
 
-    def __init__(self, name: str, phrase_pairs: list[Tuple[str, str]], language_pair: Tuple[str, str]):
+    def __init__(self, name: str, phrase_pairs: Sequence[Tuple[str, str]], language_pair: Tuple[str, str]):
         super().__init__()
         self.name = name
         self.phrase_pairs = tuple(phrase_pairs)
@@ -121,6 +121,19 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
     def phrases(self, index: int) -> Iterator[str]:
         for phrase_pair in self:
             yield phrase_pair[index]
+
+    def slice(self, start_inclusive: int, stop_exclusive: int) -> 'PhrasePairDataset':
+        return PhrasePairDataset(self.name, self.phrase_pairs[start_inclusive:stop_exclusive], self.language_pair)
+
+    def partition(self, count: int) -> list['PhrasePairDataset']:
+        partition_size = int(math.ceil(len(self) / count))
+        assert partition_size >= 1
+        parts = []
+        start = 0
+        while len(parts) < count:
+            part = self.slice(start, start + partition_size)
+            parts.append(part)
+        return parts
 
 
 def timestamp() -> str:

@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-
+import csv
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
+from concurrent.futures import Future
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any
 from typing import Callable
 from typing import Collection
 from typing import Iterator
@@ -32,6 +35,22 @@ from dlfp.utils import Split
 
 StringTransform = Callable[[str], str]
 
+
+class Attempt(NamedTuple):
+
+    index: int
+    source: str
+    target: str
+    rank: int
+    top: tuple[str, ...]
+
+    @staticmethod
+    def headers(top_k: int) -> list[str]:
+        return list(Attempt._fields[:-1]) + [f"top_{i+1}" for i in range(top_k)]
+
+    def to_row(self) -> list[Any]:
+        return [self.index, self.source, self.target, self.rank] + list(self.top)
+
 class ModelManager:
 
     def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device):
@@ -42,19 +61,46 @@ class ModelManager:
         self.src_transform: StringTransform = dlfp.utils.identity
         self.tgt_transform: StringTransform = dlfp.utils.identity
 
-    def evaluate(self, dataset: PhrasePairDataset, ranks: Collection[int] = (1, 10, 100, 1000), hide_progress: bool = False):
+    def evaluate(self,
+                 dataset: PhrasePairDataset,
+                 ranks: Collection[int] = (1, 10, 100, 1000),
+                 callback: Callable[[Attempt], None] = None,
+                 hide_progress: bool = False,
+                 concurrency: int = None,
+                 top_k: int = 1):
         ranks = sorted(ranks, reverse=True)
-        rank_acc = defaultdict(int)
-        count = 0
-        for index, (src_phrase, tgt_phrase, suggestions) in tqdm(enumerate(self._iterate_guesses(dataset, limit=None, guesses_per_phrase=max(ranks))), file=sys.stdout, total=len(dataset), disable=hide_progress):
-            count += 1
-            phrases = [s.phrase for s in suggestions]
-            for rank in ranks:
-                if tgt_phrase in phrases[:rank]:
-                    rank_acc[rank] += 1
-                else:
-                    break
-        return {rank: rank_acc[rank] / count for rank in rank_acc}
+        def perform(dataset_part: PhrasePairDataset) -> dict[int, int]:
+            rank_acc = defaultdict(int)
+            count = 0
+            for index, (src_phrase, tgt_phrase, suggestions) in tqdm(enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=max(ranks))), file=sys.stdout, total=len(dataset), disable=hide_progress):
+                count += 1
+                phrases = [s.phrase for s in suggestions]
+                try:
+                    actual_rank = phrases.index(tgt_phrase) + 1
+                except ValueError:
+                    actual_rank = float("nan")
+                for rank in ranks:
+                    if actual_rank <= rank:
+                        rank_acc[rank] += 1
+                if callback is not None:
+                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, tuple(phrases[:top_k])))
+            return dict(rank_acc)
+        if concurrency is not None:
+            partitioning = dataset.partition(concurrency)
+            with ThreadPoolExecutor(max_workers=concurrency) as executor:
+                futures: list[Future] = []
+                for partitioning_item in partitioning:
+                    partitioning_item: PhrasePairDataset
+                    future = executor.submit(perform, partitioning_item)
+                    futures.append(future)
+            rank_accs = [future.result() for future in futures]
+            total_rank_acc = {rank: 0 for rank in ranks}
+            for rank_acc_part in rank_accs:
+                for rank in ranks:
+                    total_rank_acc[rank] += rank_acc_part[rank]
+        else:
+            total_rank_acc = perform(dataset)
+        return total_rank_acc
 
     def print_translations(self, dataset: PhrasePairDataset, limit: int):
         for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset, limit=limit)):
@@ -145,11 +191,17 @@ class Runner:
         model_manager = ModelManager(model, bilinguist, device)
         return Runnable(superset, bilinguist, model_manager)
 
-    def run_eval(self, restored: Restored, device: str, split: Split = "valid"):
+    def run_eval(self, restored: Restored, device: str, output_file: Path, split: Split = "valid"):
         r = self.create_runnable(device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, split)
-        evaluation = r.manager.evaluate(dataset)
+        output_file.parent.mkdir(exist_ok=True, parents=True)
+        with open(output_file, "w", newline="", encoding="utf-8") as ofile:
+            csv_writer = csv.writer(ofile)
+            csv_writer.writerow(Attempt.headers(1))
+            def callback(attempt: Attempt):
+                csv_writer.writerow(attempt.to_row())
+            evaluation = r.manager.evaluate(dataset, callback=callback)
         print("split:", split)
         for rank, accuracy in evaluation.items():
             print(f"{rank: 4d}: {accuracy*100:.4f}%")
@@ -193,7 +245,8 @@ def main(runner: Runner) -> int:
             return 1
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
-        runner.run_eval(restored, device, split=split)
+        output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{dlfp.utils.timestamp()}.csv"
+        runner.run_eval(restored, device, output_file, split=split)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
