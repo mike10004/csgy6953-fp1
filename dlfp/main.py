@@ -10,7 +10,6 @@ from dlfp.running import Runner
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
-
 class CruciformerRunner(Runner):
 
     def describe(self) -> str:
@@ -36,6 +35,7 @@ class CruciformerRunner(Runner):
             answer = answer.upper()
             return answer
         r.manager.tgt_transform = to_crossword_answer
+        r.manager.node_navigator = CruciformerNodeNavigator()
         return r
 
 

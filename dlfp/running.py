@@ -20,6 +20,7 @@ from tqdm import tqdm
 
 import dlfp.utils
 from dlfp.models import Seq2SeqTransformer
+from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.utils import Bilinguist
 from dlfp.train import TrainLoaders
@@ -42,6 +43,7 @@ class Attempt(NamedTuple):
     source: str
     target: str
     rank: int
+    suggestion_count: int
     top: tuple[str, ...]
 
     @staticmethod
@@ -49,7 +51,8 @@ class Attempt(NamedTuple):
         return list(Attempt._fields[:-1]) + [f"top_{i+1}" for i in range(top_k)]
 
     def to_row(self) -> list[Any]:
-        return [self.index, self.source, self.target, self.rank] + list(self.top)
+        return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
+
 
 class ModelManager:
 
@@ -60,6 +63,7 @@ class ModelManager:
         self.device = device
         self.src_transform: StringTransform = dlfp.utils.identity
         self.tgt_transform: StringTransform = dlfp.utils.identity
+        self.node_navigator: Optional[NodeNavigator] = None
 
     def evaluate(self,
                  dataset: PhrasePairDataset,
@@ -83,7 +87,7 @@ class ModelManager:
                     if actual_rank <= rank:
                         rank_acc[rank] += 1
                 if callback is not None:
-                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, tuple(phrases[:top_k])))
+                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:top_k])))
             return dict(rank_acc)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
@@ -122,7 +126,7 @@ class ModelManager:
                 translation = self.tgt_transform(translation)
                 suggestions = [Suggestion(translation, float("nan"))]
             else:
-                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase)
+                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=self.node_navigator)
                 if not self.tgt_transform is dlfp.utils.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
             yield src_phrase, tgt_phrase, suggestions
@@ -203,7 +207,8 @@ class Runner:
                 csv_writer.writerow(attempt.to_row())
             evaluation = r.manager.evaluate(dataset, callback=callback)
         print("split:", split)
-        for rank, accuracy in evaluation.items():
+        for rank, accuracy_count in evaluation.items():
+            accuracy = accuracy_count / len(dataset)
             print(f"{rank: 4d}: {accuracy*100:.4f}%")
 
     def run_demo(self, restored: Restored, device: str, limit: int = ...):

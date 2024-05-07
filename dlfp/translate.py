@@ -2,7 +2,6 @@
 
 from collections import deque
 from typing import Collection
-from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
 
@@ -114,6 +113,16 @@ class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
         if node.current_word in self.unrepeatables and node.current_word == node.parent.current_word:
             return False
         return True
+
+
+class CruciformerNodeNavigator(MultiRankNodeNavigator):
+
+    def __init__(self, max_len: int = 5, max_rank: int = 3):
+        super().__init__(max_rank)
+        self.max_len = max_len
+
+    def get_max_len(self, input_len: int) -> int:
+        return self.max_len
 
 
 class Suggestion(NamedTuple):

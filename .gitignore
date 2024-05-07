@@ -163,3 +163,4 @@ cython_debug/
 /tests.ini
 /data/cache/
 /checkpoints/
+/evaluations/

@@ -4,11 +4,14 @@ import csv
 from unittest import TestCase
 import torch
 
+from dlfp.datasets import DatasetResolver
 from dlfp.train import create_model
+from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import GermanToEnglishNodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.translate import Translator
 import dlfp_tests.tools
+from dlfp.utils import LanguageCache
 from dlfp.utils import Restored
 from dlfp.utils import Bilinguist
 from dlfp.utils import get_repo_root
@@ -19,18 +22,19 @@ dlfp_tests.tools.suppress_cuda_warning()
 class TranslatorTest(TestCase):
 
     def setUp(self):
-        self.bilinguist = dlfp_tests.tools.get_multi30k_de_en_bilinguist()
+        self.deen_bilinguist = dlfp_tests.tools.get_multi30k_de_en_bilinguist()
+        self.device = dlfp_tests.tools.get_device()
 
     def test_translate(self):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             device = dlfp_tests.tools.get_device()
             model = create_model(
-                src_vocab_size=len(self.bilinguist.source.vocab),
-                tgt_vocab_size=len(self.bilinguist.target.vocab),
+                src_vocab_size=len(self.deen_bilinguist.source.vocab),
+                tgt_vocab_size=len(self.deen_bilinguist.target.vocab),
                 DEVICE=device,
             )
-            translator = Translator(model, self.bilinguist, device)
+            translator = Translator(model, self.deen_bilinguist, device)
             translated = translator.translate("Ein Mann in grün hält eine Gitarre, während der andere Mann sein Hemd ansieht.").strip()
             self.assertEqual("Russia cloth spoof spoof Madrid sewing Madrid Russia cloth Russia cloth Madrid Madrid sewing cloth cloth sewing Russia sewing sewing cloth cloth", translated, "translation")
 
@@ -50,8 +54,8 @@ class TranslatorTest(TestCase):
 
     def test_translate_trained(self):
         device = dlfp_tests.tools.get_device()
-        model = self._load_restored_deen(self.bilinguist, device)
-        translator = Translator(model, self.bilinguist, device)
+        model = self._load_restored_deen(self.deen_bilinguist, device)
+        translator = Translator(model, self.deen_bilinguist, device)
         translated = translator.translate("Ein Mann in grün hält eine Gitarre, während der andere Mann sein Hemd ansieht.").strip()
         expected = "A man in green holds a guitar while the other man looks at his shirt ."
         self.assertEqual(expected, translated, "translation")
@@ -61,8 +65,8 @@ class TranslatorTest(TestCase):
             torch.random.manual_seed(0)
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
-                model = self._load_restored_deen(self.bilinguist, device)
-                translator = Translator(model, self.bilinguist, device)
+                model = self._load_restored_deen(self.deen_bilinguist, device)
+                translator = Translator(model, self.deen_bilinguist, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 indexes = translator.greedy_decode(src_phrase)
                 actual = translator.indexes_to_phrase(indexes)
@@ -73,28 +77,63 @@ class TranslatorTest(TestCase):
             torch.random.manual_seed(0)
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
-                model = self._load_restored_deen(self.bilinguist, device)
+                model = self._load_restored_deen(self.deen_bilinguist, device)
                 navigator = GermanToEnglishNodeNavigator(
                     max_rank=2,
-                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.bilinguist.target.vocab),
+                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.deen_bilinguist.target.vocab),
                 )
-                translator = Translator(model, self.bilinguist, device)
+                translator = Translator(model, self.deen_bilinguist, device)
                 src_phrase = "Ein Mann in grün hält eine Gitarre"
                 limit = 10
                 suggestions = translator.suggest(src_phrase, count=limit, navigator=navigator)
                 self._check_output(suggestions, limit=limit)
+
+    def _load_restored_cruciform(self):
+        try:
+            restored = Restored.from_file(get_repo_root() / "checkpoints" / "cruciform-checkpoint-epoch009.pt", device=self.device)
+        except FileNotFoundError:
+            self.skipTest("checkpoint file not found")
+        train_dataset = DatasetResolver().benchmark("train")
+        cache = LanguageCache()
+        source = cache.get(train_dataset, "clue", "spacy", "en_core_web_sm")
+        target = cache.get(train_dataset, "answer", "spacy", "en_core_web_sm")
+        bilinguist = Bilinguist(source, target)
+        model = create_model(
+            src_vocab_size=len(bilinguist.source.vocab),
+            tgt_vocab_size=len(bilinguist.target.vocab),
+            DEVICE=self.device,
+        )
+        model.load_state_dict(restored.model_state_dict)
+        model.eval()
+        return model, bilinguist
+
+    def test_suggest_cruciform(self):
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                model, bilinguist = self._load_restored_cruciform()
+                navigator = CruciformerNodeNavigator()
+                translator = Translator(model, self.deen_bilinguist, self.device)
+                for src_phrase in [
+                    "Pound of verse",
+                    "Puts on",
+                ]:
+                    limit = 100
+                    with self.subTest():
+                        suggestions = translator.suggest(src_phrase, count=limit, navigator=navigator)
+                        self.assertGreater(len(suggestions), 10)
 
     def test_greedy_suggest(self, verbose: bool = False):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
-                model = self._load_restored_deen(self.bilinguist, device)
+                model = self._load_restored_deen(self.deen_bilinguist, device)
                 navigator = GermanToEnglishNodeNavigator(
                     max_rank=2,
-                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.bilinguist.target.vocab),
+                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.deen_bilinguist.target.vocab),
                 )
-                translator = Translator(model, self.bilinguist, device)
+                translator = Translator(model, self.deen_bilinguist, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 completes = []
                 visited = 0
