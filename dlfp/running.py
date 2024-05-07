@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
 
 import csv
+import queue
 import sys
-import contextlib
 from argparse import ArgumentParser
 from collections import defaultdict
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from threading import RLock
+from queue import Queue
+from threading import Thread
 from typing import Any
 from typing import Callable
 from typing import Collection
@@ -244,21 +245,27 @@ class Runner:
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, split)
         output_file.parent.mkdir(exist_ok=True, parents=True)
-        write_lock = RLock()
-        @contextlib.contextmanager
-        def maybe_lock():
-            if concurrency is not None and concurrency > 1:
-                with write_lock:
-                    yield
-            else:
-                yield
-        with open(output_file, "w", newline="", encoding="utf-8") as ofile:
-            csv_writer = csv.writer(ofile)
-            csv_writer.writerow(Attempt.headers(1))
-            def callback(attempt: Attempt):
-                with maybe_lock():
-                    csv_writer.writerow(attempt.to_row())
-            evaluation = r.manager.evaluate(dataset, callback=callback, concurrency=concurrency)
+        completed = False
+        attempt_q = Queue()
+        def write_csv():
+            with open(output_file, "w", newline="", encoding="utf-8") as ofile:
+                csv_writer = csv.writer(ofile)
+                csv_writer.writerow(Attempt.headers(1))
+                while (not completed) or attempt_q:
+                    try:
+                        attempt_ = attempt_q.get(timeout=0.25)
+                        csv_writer.writerow(attempt_.to_row())
+                    except queue.Empty:
+                        pass
+        write_csv_thread = Thread(target=write_csv)
+        write_csv_thread.start()
+        try:
+            evaluation = r.manager.evaluate(dataset, callback=attempt_q.put, concurrency=concurrency)
+        finally:
+            completed = True
+        print("finishing csv writes...", end="")
+        write_csv_thread.join()
+        print("done")
         print("split:", split)
         for rank, accuracy_count in evaluation.items():
             accuracy = accuracy_count / len(dataset)
