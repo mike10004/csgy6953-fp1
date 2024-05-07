@@ -7,6 +7,7 @@ from dlfp.datasets import DatasetResolver
 from dlfp.running import DataSuperset
 from dlfp.running import Runnable
 from dlfp.running import Runner
+from dlfp.translate import CruciformerNodeNavigator
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
