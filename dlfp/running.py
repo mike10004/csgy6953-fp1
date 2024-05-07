@@ -134,11 +134,15 @@ class ModelManager:
             yield src_phrase, tgt_phrase, suggestions
 
 
-    def train(self, loaders: TrainLoaders, checkpoints_dir: Path, epoch_count: int = 10):
+    def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig'):
         trainer = Trainer(self.model, pad_idx=self.bilinguist.source.specials.indexes.pad, device=self.device)
         print(f"writing checkpoints to {checkpoints_dir}")
         checkpointer = Checkpointer(checkpoints_dir, self.model)
-        results = trainer.train(loaders, epoch_count, callback=checkpointer.checkpoint)
+        checkpointer.retain_all = train_config.retain_all_checkpoints
+        checkpointer.extra = {
+            "train_config": train_config.to_jsonable(),
+        }
+        results = trainer.train(loaders, train_config.epoch_count, callback=checkpointer.checkpoint)
         results_table = [
             (r.epoch_index, r.train_loss, r.valid_loss)
             for r in results
@@ -157,6 +161,10 @@ class TrainConfig(NamedTuple):
     checkpoints_dir: Path
     epoch_count: int = 10
     batch_size: int = 128
+    retain_all_checkpoints: bool = False
+
+    def to_jsonable(self) -> dict[str, Optional[str]]:
+        return {k:(None if v is None else str(v)) for k, v in self._asdict().items()}
 
 
 class Runnable(NamedTuple):
@@ -188,7 +196,7 @@ class Runner:
     def run_train(self, train_config: TrainConfig, device: str):
         r = self.create_runnable(device)
         loaders = TrainLoaders.from_datasets(r.superset.train, r.superset.valid, collate_fn=r.bilinguist.collate, batch_size=train_config.batch_size)
-        r.manager.train(loaders, train_config.checkpoints_dir, train_config.epoch_count)
+        r.manager.train(loaders, train_config.checkpoints_dir, train_config)
 
     def create_runnable(self, device: str) -> Runnable:
         dataset_name = getattr(self, "dataset_name", None)
@@ -241,6 +249,7 @@ def main(runner: Runner) -> int:
     parser.add_argument("-e", "--epoch-count", type=int, default=10, metavar="N", help="epoch count")
     parser.add_argument("-b", "--batch-size", type=int, default=128, metavar="N", help="training batch size")
     parser.add_argument("--limit", type=int, default=..., metavar="N", help="demo mode phrase limit")
+    parser.add_argument("--retain", action='store_true', help="retain all checkpoint files (instead of deleting on improvement)")
     parser.add_argument("-d", "--dataset", metavar="NAME", help="specify dataset name")
     split_choices = ("train", "valid", "test")
     parser.add_argument("-s", "--split", metavar="SPLIT", choices=split_choices, help="eval mode dataset split")
@@ -271,7 +280,7 @@ def main(runner: Runner) -> int:
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
-        train_config = TrainConfig(checkpoints_dir, epoch_count=args.epoch_count, batch_size=args.batch_size)
+        train_config = TrainConfig(checkpoints_dir, epoch_count=args.epoch_count, batch_size=args.batch_size, retain_all_checkpoints=args.retain)
         runner.run_train(train_config, device)
         return 0
     else:

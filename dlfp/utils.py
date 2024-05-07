@@ -181,6 +181,7 @@ class Checkpointer:
         self.retain_all = False
         self._epoch_results = []
         self.quiet = False
+        self.extra = None
 
     def is_checkpointable(self, epoch_result: EpochResult) -> bool:
         if not self.only_min_valid_loss:
@@ -204,6 +205,8 @@ class Checkpointer:
             'epoch_results': self._epoch_results,
             'model_state_dict': self.model.state_dict(),
         }
+        if self.extra is not None:
+            checkpoint['extra'] = self.extra
         if self.optimizer is not None:
             checkpoint['optimizer_state_dict'] = self.optimizer.state_dict()
         checkpoint_file = self.checkpoints_dir / f"checkpoint-epoch{epoch_result.epoch_index:03d}.pt"
