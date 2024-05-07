@@ -5,7 +5,7 @@ from unittest import TestCase
 import torch
 
 from dlfp.train import create_model
-from dlfp.translate import GermanToEnglishNodeFilter
+from dlfp.translate import GermanToEnglishNodeNavigator
 from dlfp.translate import Node
 from dlfp.translate import Translator
 import dlfp_tests.tools
@@ -74,18 +74,16 @@ class TranslatorTest(TestCase):
             with torch.no_grad():
                 device = dlfp_tests.tools.get_device()
                 model = self._load_restored_deen(self.bilinguist, device)
-                node_filter = GermanToEnglishNodeFilter(
+                navigator = GermanToEnglishNodeNavigator(
                     max_rank=2,
-                    unrepeatables=GermanToEnglishNodeFilter.default_unrepeatables(self.bilinguist.target.vocab),
+                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.bilinguist.target.vocab),
                 )
                 translator = Translator(model, self.bilinguist, device)
                 src_phrase = translator.encode_source("Ein Mann in grün hält eine Gitarre")
                 completes = []
                 visited = 0
-                for index, node in enumerate(translator.greedy_suggest(src_phrase, node_filter=node_filter)):
+                for index, node in enumerate(translator.greedy_suggest(src_phrase, navigator=navigator)):
                     visited += 1
-                    # if len(completes) > 100:
-                    #     break
                     if node.complete:
                         completes.append(node)
                         actual = translator.indexes_to_phrase(node.y)

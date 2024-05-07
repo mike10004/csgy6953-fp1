@@ -75,7 +75,7 @@ class Node:
 
 
 
-class NodeFilter:
+class NodeNavigator:
 
     def get_max_len(self, input_len: int) -> int:
         return input_len + 5
@@ -87,7 +87,7 @@ class NodeFilter:
         return True
 
 
-class MultiRankNodeFilter(NodeFilter):
+class MultiRankNodeNavigator(NodeNavigator):
 
     def __init__(self, max_rank: int):
         self.max_rank = max_rank
@@ -96,7 +96,7 @@ class MultiRankNodeFilter(NodeFilter):
         return self.max_rank
 
 
-class GermanToEnglishNodeFilter(MultiRankNodeFilter):
+class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
 
     def __init__(self, max_rank: int = 1, unrepeatables: Collection[int] = None):
         super().__init__(max_rank=max_rank)
@@ -132,10 +132,10 @@ class Translator:
                 return node.y
         raise NotImplementedError("BUG: shouldn't reach here")
 
-    def greedy_suggest(self, src_phrase: PhraseEncoding, node_filter: NodeFilter = None) -> Iterator[Node]:
+    def greedy_suggest(self, src_phrase: PhraseEncoding, navigator: NodeNavigator = None) -> Iterator[Node]:
         with torch.no_grad():
-            node_filter = node_filter or NodeFilter()
-            max_len = node_filter.get_max_len(src_phrase.num_tokens())
+            navigator = navigator or NodeNavigator()
+            max_len = navigator.get_max_len(src_phrase.num_tokens())
             src, src_mask = src_phrase
             model = self.model
             start_symbol: int = self.bilinguist.source.specials.indexes.bos
@@ -144,7 +144,7 @@ class Translator:
             memory = model.encode(src, src_mask).to(self.device)
             ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
             root = Node(ys, prob=1.0)
-            visitor = NodeVisitor(self, max_len, memory, node_filter)
+            visitor = NodeVisitor(self, max_len, memory, navigator)
             yield from visitor.visit(root)
 
 
@@ -155,10 +155,6 @@ class Translator:
                 .replace(self.bilinguist.target.specials.tokens.bos, "")
                 .replace(self.bilinguist.target.specials.tokens.eos, ""))
 
-    # def translate(self, src_sentence: str) -> str:
-    #     return self.suggest(src_sentence, 1)[0]
-    #
-    # def suggest(self, src_sentence: str, count: int) -> list[str]:
     def translate(self, src_sentence: str) -> str:
         self.model.eval()
         with torch.no_grad():
@@ -175,11 +171,11 @@ class Translator:
 
 class NodeVisitor:
 
-    def __init__(self, parent: Translator, max_len: int, memory: Tensor, node_filter: NodeFilter):
+    def __init__(self, parent: Translator, max_len: int, memory: Tensor, navigator: NodeNavigator):
         self.parent = parent
         self.max_len = max_len
         self.memory = memory
-        self.node_filter = node_filter
+        self.navigator = navigator
 
     def visit(self, node: Node) -> Iterator[Node]:
         ys = node.y
@@ -193,7 +189,7 @@ class NodeVisitor:
         out = self.parent.model.decode(ys, self.memory, tgt_mask)
         out = out.transpose(0, 1)
         prob = self.parent.model.generator(out[:, -1])
-        max_rank = self.node_filter.get_max_rank(tgt_sequence_len)
+        max_rank = self.navigator.get_max_rank(tgt_sequence_len)
         next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
         next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
         next_words = next_words.detach().flatten().cpu().numpy()
@@ -206,5 +202,5 @@ class NodeVisitor:
                 child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
                 child = Node(child_ys, next_prob)
                 node.add_child(child)
-                if self.node_filter.include(child):
+                if self.navigator.include(child):
                     yield from self.visit(child)
