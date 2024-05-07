@@ -243,6 +243,7 @@ def main(runner: Runner) -> int:
         if not checkpoint_file:
             parser.error("checkpoint file must be specified")
             return 1
+        checkpoint_file = Path(checkpoint_file)
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
         output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{dlfp.utils.timestamp()}.csv"
