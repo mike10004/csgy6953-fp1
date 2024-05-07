@@ -6,7 +6,7 @@ import torch
 
 from dlfp.train import create_model
 from dlfp.translate import GermanToEnglishNodeNavigator
-from dlfp.translate import Node
+from dlfp.translate import Suggestion
 from dlfp.translate import Translator
 import dlfp_tests.tools
 from dlfp.utils import Restored
@@ -68,6 +68,22 @@ class TranslatorTest(TestCase):
                 actual = translator.indexes_to_phrase(indexes)
                 self.assertEqual("A man in green is holding a guitar .", actual.strip())
 
+    def test_suggest_10(self):
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                device = dlfp_tests.tools.get_device()
+                model = self._load_restored_deen(self.bilinguist, device)
+                navigator = GermanToEnglishNodeNavigator(
+                    max_rank=2,
+                    unrepeatables=GermanToEnglishNodeNavigator.default_unrepeatables(self.bilinguist.target.vocab),
+                )
+                translator = Translator(model, self.bilinguist, device)
+                src_phrase = "Ein Mann in grün hält eine Gitarre"
+                limit = 10
+                suggestions = translator.suggest(src_phrase, count=limit, navigator=navigator)
+                self._check_output(suggestions, limit=limit)
+
     def test_greedy_suggest(self, verbose: bool = False):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
@@ -98,30 +114,32 @@ class TranslatorTest(TestCase):
                     print(child)
                 print()
                 self.assertIsNone(root.parent)
-                assigned = []
+                assigned: list[Suggestion] = []
                 probability_sum = 0.0
                 for complete in completes:
-                    lineage = complete.lineage()
-                    probability = Node.cumulative_probability(lineage)
+                    probability = complete.cumulative_probability()
                     probability_sum += probability
                     actual = translator.indexes_to_phrase(complete.y)
-                    assigned.append((probability, actual))
-                assigned.sort(key=lambda a: a[0], reverse=True)
-                for a_index, (probability, phrase) in enumerate(assigned):
+                    assigned.append(Suggestion(actual, probability))
+                assigned.sort(key=Suggestion.sort_key_by_probability, reverse=True)
+                for a_index, s in enumerate(assigned):
                     if a_index >= 10:
                         break
-                    print(f"{probability/probability_sum:.6f} {phrase}")
+                    print(f"{s.probability/probability_sum:.6f} {s.phrase}")
                 self._check_output(assigned)
 
-    def _check_output(self, assigned: list[tuple[float, str]]):
+    def _check_output(self, assigned: list[Suggestion], limit: int = None):
         index = 0
         with self.subTest("content"):
             with open(dlfp_tests.tools.get_testdata_dir() / "translate-expected-1.csv") as ifile:
-                expecteds = [(float(p), t) for p, t in csv.reader(ifile)]
-            for (e_probability, e_phrase), (a_probabilty, a_phrase) in zip(expecteds, assigned):
+                expecteds = [Suggestion(t, float(p)) for p, t in csv.reader(ifile)]
+            if limit is not None:
+                expecteds = expecteds[:limit]
+            for (e_phrase, e_probability), (a_phrase, a_probabilty) in zip(expecteds, assigned):
                 self.assertEqual(e_phrase, a_phrase, f"phrase {index}")
                 self.assertAlmostEqual(e_probability, a_probabilty, delta=0.05)
                 index += 1
-        with self.subTest("length"):
-            self.assertEqual(len(expecteds), len(assigned), "lengths of lists")
-            self.assertGreater(index, 100)
+        if limit is None:
+            with self.subTest("length"):
+                self.assertEqual(len(expecteds), len(assigned), "lengths of lists")
+                self.assertGreater(index, 100)

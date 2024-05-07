@@ -94,17 +94,23 @@ def _token_count_histo(phrases: Iterator[str], lang: Language) -> dict[int, int]
 class TokenAnalysis(NamedTuple):
 
     top_k: tuple[tuple[str, Sequence[str]], ...]
+    token_count_histo: dict[int, int]
 
     @staticmethod
     def interrogate(phrases: Iterator[str], k: int, language: Language, min_tokens: int = 0) -> 'TokenAnalysis':
         phrases_with_token_counts: list[tuple[str, Sequence[str]]] = []
+        histo = defaultdict(int)
         for phrase in phrases:
             tokens = language.tokenizer(phrase)
             if len(tokens) < min_tokens:
                 continue
+            histo[len(tokens)] += 1
             phrases_with_token_counts.append((phrase, tokens))
         phrases_with_token_counts.sort(key=lambda x: len(x[1]), reverse=True)
-        return TokenAnalysis(tuple(phrases_with_token_counts[:k]))
+        return TokenAnalysis(
+            top_k=tuple(phrases_with_token_counts[:k]),
+            token_count_histo=histo,
+        )
 
 
 def main() -> int:
@@ -138,6 +144,7 @@ def main() -> int:
     elif args.mode == "tokens":
         headers = ["n", "phrase"]
         table = []
+        histos = []
         for dataset_name in args.dataset:
             dataset = get_dataset(dataset_name)
             languages = get_languages(dataset)
@@ -148,7 +155,13 @@ def main() -> int:
             token_analysis = TokenAnalysis.interrogate(dataset.phrases(index), k=args.k, language=languages[index])
             for phrase, tokens in token_analysis.top_k:
                 table.append((len(tokens), phrase, str(tokens)))
+            histos.append(token_analysis.token_count_histo)
         print(tabulate.tabulate(table, headers=headers))
+        print()
+        for histo in histos:
+            total = sum(histo.values())
+            for token_count, frequency in histo.items():
+                print(f"{token_count:2d}: {frequency:6d} ({100.0 * frequency / total:.1f}%)")
     else:
         raise NotImplementedError("unsupported mode")
     return 0

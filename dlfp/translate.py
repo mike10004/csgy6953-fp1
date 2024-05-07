@@ -54,15 +54,12 @@ class Node:
     def __repr__(self):
         return f"Node({self.y.flatten().cpu().numpy().tolist()},c={len(self.children)})"
 
-    @staticmethod
-    def cumulative_probability(nodes: Iterable['Node']) -> float:
-        count = 0
+    def cumulative_probability(self) -> float:
+        nodes = self.lineage()
+        assert len(nodes) > 0
         p = 1.0
         for node in nodes:
             p *= node.prob
-            count += 1
-        if count == 0:
-            return 0
         return p
 
     def bfs(self) -> Iterator['Node']:
@@ -119,6 +116,16 @@ class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
         return True
 
 
+class Suggestion(NamedTuple):
+
+    phrase: str
+    probability: float
+
+    @staticmethod
+    def sort_key_by_probability(suggestion: 'Suggestion') -> float:
+        return suggestion.probability
+
+
 class Translator:
 
     def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
@@ -156,11 +163,20 @@ class Translator:
                 .replace(self.bilinguist.target.specials.tokens.eos, ""))
 
     def translate(self, src_sentence: str) -> str:
+        return self.suggest(src_sentence, count=1)[0].phrase
+
+    def suggest(self, src_sentence: str, count: int, navigator: NodeNavigator = None) -> list[Suggestion]:
+        suggestions = []
         self.model.eval()
         with torch.no_grad():
             src_encoding = self.encode_source(src_sentence)
-            tgt_indexes = self.greedy_decode(src_encoding).flatten()
-            return self.indexes_to_phrase(tgt_indexes)
+            for node in self.greedy_suggest(src_encoding, navigator):
+                if node.complete:
+                    tgt_indexes = node.y.flatten()
+                    tgt_phrase = self.indexes_to_phrase(tgt_indexes)
+                    suggestions.append(Suggestion(tgt_phrase, node.cumulative_probability()))
+        suggestions.sort(key=Suggestion.sort_key_by_probability, reverse=True)
+        return suggestions[:count]
 
     def encode_source(self, phrase: str) -> PhraseEncoding:
         src = self.bilinguist.source.text_transform(phrase).view(-1, 1)
