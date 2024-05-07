@@ -5,6 +5,7 @@ import argparse
 import logging
 from collections import defaultdict
 from pathlib import Path
+from random import Random
 from typing import Iterator
 from typing import NamedTuple
 from typing import Sequence
@@ -27,14 +28,28 @@ def _readlines(pathname: Path) -> list[str]:
 class DatasetResolver:
 
     def __init__(self, data_root: Path = None):
-        self.data_root = data_root or (get_repo_root() / "data" / "datasets")
+        self.data_root = data_root or (get_repo_root() / "data")
         self.encoding = 'utf-8'
+
+    def by_name(self, dataset_name: str, split: Split) -> PhrasePairDataset:
+        fn = getattr(self, dataset_name)
+        return fn(split)
+
+    def multi30k_de_en(self, split: Split) -> PhrasePairDataset:
+        from torchtext.datasets import Multi30k
+        SRC_LANGUAGE = 'de'
+        TGT_LANGUAGE = 'en'
+        language_pair = (SRC_LANGUAGE, TGT_LANGUAGE)
+        # noinspection PyTypeChecker
+        items: list[tuple[str, str]] = list(Multi30k(root=str(self.data_root), split=split, language_pair=language_pair))
+        return PhrasePairDataset("multi30k_de_en", items, language_pair)
+
 
     def benchmark(self, split: Split) -> PhrasePairDataset:
         stem = {
             "valid": "val"
         }.get(split, split)
-        dataset_dir = self.data_root / "benchmark"
+        dataset_dir = self.data_root / "datasets" / "benchmark"
         source_filename, target_filename = f"{stem}.source", f"{stem}.target"
         source_lines = (dataset_dir / source_filename).read_text(self.encoding).splitlines()
         target_lines = (dataset_dir / target_filename).read_text(self.encoding).splitlines()
@@ -91,24 +106,42 @@ def _token_count_histo(phrases: Iterator[str], lang: Language) -> dict[int, int]
     return dict(counts)
 
 
+class Tokenized(NamedTuple):
+
+    phrase: str
+    tokens: Sequence[str]
+
+
 class TokenAnalysis(NamedTuple):
 
-    top_k: tuple[tuple[str, Sequence[str]], ...]
+    top_k: tuple[Tokenized, ...]
     token_count_histo: dict[int, int]
 
     @staticmethod
-    def interrogate(phrases: Iterator[str], k: int, language: Language, min_tokens: int = 0) -> 'TokenAnalysis':
-        phrases_with_token_counts: list[tuple[str, Sequence[str]]] = []
-        histo = defaultdict(int)
-        for phrase in phrases:
-            tokens = language.tokenizer(phrase)
-            if len(tokens) < min_tokens:
-                continue
-            histo[len(tokens)] += 1
-            phrases_with_token_counts.append((phrase, tokens))
-        phrases_with_token_counts.sort(key=lambda x: len(x[1]), reverse=True)
+    def interrogate(phrases: Iterator[str], k: int, sample: str, language: Language, min_tokens: int = 0) -> 'TokenAnalysis':
+        if sample == "random":
+            phrases = list(phrases)
+            histo = _token_count_histo(iter(phrases), language)
+            Random().shuffle(phrases)
+            tokenizeds = []
+            for phrase in phrases:
+                if len(tokenizeds) >= k:
+                    break
+                tokens = language.tokenizer(phrase)
+                tokenizeds.append(Tokenized(phrase, tokens))
+        else:
+            tokenizeds: list[Tokenized] = []
+            histo = defaultdict(int)
+            for phrase in phrases:
+                tokens = language.tokenizer(phrase)
+                if len(tokens) < min_tokens:
+                    continue
+                histo[len(tokens)] += 1
+                tokenizeds.append(Tokenized(phrase, tokens))
+            reverse = sample == "longest"
+            tokenizeds.sort(key=lambda x: len(x.tokens), reverse=reverse)
         return TokenAnalysis(
-            top_k=tuple(phrases_with_token_counts[:k]),
+            top_k=tuple(tokenizeds[:k]),
             token_count_histo=histo,
         )
 
@@ -123,7 +156,10 @@ def main() -> int:
     parser.add_argument("-m", "--mode", choices=mode_choices, default="summary", metavar="MODE", help=f"one of {mode_choices}")
     half_choices = ("source", "target")
     parser.add_argument("--half", metavar="HALF", choices=half_choices, default="target", help=f"one of {half_choices}")
-    parser.add_argument("-k", type=int, default=10, help="tokens mode: top K")
+    parser.add_argument("-k", type=int, default=10, help="tokens mode sample size")
+    tokens_choices = ("random", "longest", "shortest")
+    parser.add_argument("--sample", choices=tokens_choices, metavar="SAMPLE", default="random", help=f"how to sample from dataset; one of {tokens_choices}")
+    parser.add_argument("--min-tokens", type=int, default=0)
     args = parser.parse_args()
     data_root = args.data_root
     resolver = DatasetResolver(data_root)
@@ -142,7 +178,7 @@ def main() -> int:
         table = [[getattr(d, k) for k in headers] for d in summaries]
         print(tabulate.tabulate(table, headers=headers))
     elif args.mode == "tokens":
-        headers = ["n", "phrase"]
+        headers = ["n", "phrase", "tokens"]
         table = []
         histos = []
         for dataset_name in args.dataset:
@@ -152,15 +188,16 @@ def main() -> int:
                 "source": 0,
                 "target": 1,
             }[args.half]
-            token_analysis = TokenAnalysis.interrogate(dataset.phrases(index), k=args.k, language=languages[index])
+            token_analysis = TokenAnalysis.interrogate(dataset.phrases(index), k=args.k, sample=args.sample, language=languages[index], min_tokens=args.min_tokens)
             for phrase, tokens in token_analysis.top_k:
-                table.append((len(tokens), phrase, str(tokens)))
+                table.append((len(tokens), phrase, "|".join(tokens)))
             histos.append(token_analysis.token_count_histo)
         print(tabulate.tabulate(table, headers=headers))
         print()
         for histo in histos:
             total = sum(histo.values())
-            for token_count, frequency in histo.items():
+            for token_count in sorted(histo.keys()):
+                frequency = histo[token_count]
                 print(f"{token_count:2d}: {frequency:6d} ({100.0 * frequency / total:.1f}%)")
     else:
         raise NotImplementedError("unsupported mode")

@@ -4,6 +4,7 @@ import sys
 
 import dlfp.utils
 import dlfp.running
+from dlfp.datasets import DatasetResolver
 from dlfp.running import DataSuperset
 from dlfp.running import Runner
 from dlfp.utils import Bilinguist
@@ -15,9 +16,11 @@ class DemoDeenRunner(Runner):
     def describe(self) -> str:
         return "Run German-to-English translation demo"
 
-    def resolve_dataset(self) -> DataSuperset:
-        train_dataset = dlfp.utils.multi30k_de_en(split='train')
-        valid_dataset = dlfp.utils.multi30k_de_en(split='valid')
+    def resolve_dataset(self, dataset_name: str = None) -> DataSuperset:
+        resolver = DatasetResolver()
+        dataset_name = dataset_name or "multi30k_de_en"
+        train_dataset = resolver.by_name(dataset_name, split='train')
+        valid_dataset = resolver.by_name(dataset_name, split='valid')
         return DataSuperset(train_dataset, valid_dataset)
 
     def create_bilinguist(self, superset: DataSuperset):

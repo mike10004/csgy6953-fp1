@@ -220,17 +220,6 @@ class Checkpointer:
         _print(message)
 
 
-def multi30k_de_en(split: str) -> PhrasePairDataset:
-    from torchtext.datasets import Multi30k
-    SRC_LANGUAGE = 'de'
-    TGT_LANGUAGE = 'en'
-    data_dir = str(get_repo_root() / "data")
-    language_pair = (SRC_LANGUAGE, TGT_LANGUAGE)
-    # noinspection PyTypeChecker
-    items: list[Tuple[str, str]] = list(Multi30k(root=data_dir, split=split, language_pair=language_pair))
-    return PhrasePairDataset("multi30k_de_en", items, language_pair)
-
-
 class Language(NamedTuple):
 
     name: str

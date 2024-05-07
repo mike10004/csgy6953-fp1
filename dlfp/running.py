@@ -171,7 +171,7 @@ class Runner:
     def describe(self) -> str:
         raise NotImplementedError("abstract")
 
-    def resolve_dataset(self) -> DataSuperset:
+    def resolve_dataset(self, dataset_name: str = None) -> DataSuperset:
         raise NotImplementedError("abstract")
 
     def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:

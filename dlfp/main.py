@@ -11,15 +11,17 @@ from dlfp.translate import CruciformerNodeNavigator
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
+
 class CruciformerRunner(Runner):
 
     def describe(self) -> str:
         return "Crossword Clue-Answer Translation"
 
-    def resolve_dataset(self) -> DataSuperset:
+    def resolve_dataset(self, dataset_name: str = None) -> DataSuperset:
         resolver = DatasetResolver()
-        train = resolver.benchmark(split='train')
-        valid = resolver.benchmark(split='valid')
+        dataset_name = dataset_name or "benchmark"
+        train = resolver.by_name(dataset_name, split='train')
+        valid = resolver.by_name(dataset_name, split='valid')
         return DataSuperset(train, valid)
 
     def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:

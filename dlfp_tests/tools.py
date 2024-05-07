@@ -9,11 +9,14 @@ from typing import TypeVar
 from random import Random
 
 import torch
+
+from dlfp.datasets import DatasetResolver
 from dlfp.utils import Specials
 from dlfp.utils import Bilinguist
 import dlfp.utils
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import LanguageCache
+from dlfp.utils import Split
 
 
 MULTI30K_DE_EN_DATASETS: dict[str, PhrasePairDataset] = {}  # split -> dataset
@@ -66,10 +69,10 @@ def suppress_cuda_warning():
     _CUDA_WARNINGS_SUPPRESSED = True
 
 
-def load_multi30k_dataset(split: str = 'train') -> PhrasePairDataset:
+def load_multi30k_dataset(split: Split = 'train') -> PhrasePairDataset:
     dataset = MULTI30K_DE_EN_DATASETS.get(split, None)
     if dataset is None:
-        dataset = dlfp.utils.multi30k_de_en(split=split)
+        dataset = DatasetResolver().multi30k_de_en(split=split)
         MULTI30K_DE_EN_DATASETS[split] = dataset
     return dataset
 
