@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import contextlib
 import csv
 import sys
 from argparse import ArgumentParser
@@ -6,6 +7,7 @@ from collections import defaultdict
 from concurrent.futures import Future
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from threading import RLock
 from typing import Any
 from typing import Callable
 from typing import Collection
@@ -195,21 +197,30 @@ class Runner:
         model_manager = ModelManager(model, bilinguist, device)
         return Runnable(superset, bilinguist, model_manager)
 
-    def run_eval(self, restored: Restored, device: str, output_file: Path, split: Split = "valid"):
+    def run_eval(self, restored: Restored, device: str, output_file: Path, split: Split = "valid", concurrency: Optional[int] = None):
         r = self.create_runnable(device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, split)
         output_file.parent.mkdir(exist_ok=True, parents=True)
+        write_lock = RLock()
+        @contextlib.contextmanager
+        def maybe_lock():
+            if concurrency is not None and concurrency > 1:
+                with write_lock:
+                    yield
+            else:
+                yield
         with open(output_file, "w", newline="", encoding="utf-8") as ofile:
             csv_writer = csv.writer(ofile)
             csv_writer.writerow(Attempt.headers(1))
             def callback(attempt: Attempt):
-                csv_writer.writerow(attempt.to_row())
-            evaluation = r.manager.evaluate(dataset, callback=callback)
+                with maybe_lock():
+                    csv_writer.writerow(attempt.to_row())
+            evaluation = r.manager.evaluate(dataset, callback=callback, concurrency=concurrency)
         print("split:", split)
         for rank, accuracy_count in evaluation.items():
             accuracy = accuracy_count / len(dataset)
-            print(f"{rank: 4d}: {accuracy*100:.4f}%")
+            print(f"{rank:5d}: {accuracy*100:.4f}%")
 
     def run_demo(self, restored: Restored, device: str, limit: int = ...):
         r = self.create_runnable(device)
