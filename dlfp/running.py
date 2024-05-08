@@ -41,6 +41,7 @@ from dlfp.utils import Split
 
 StringTransform = Callable[[str], str]
 DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+ATTEMPTS_TOP_K = 10
 
 
 class Attempt(NamedTuple):
@@ -93,11 +94,12 @@ def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> Accur
                 actual_rank = int(row["rank"])
             except ValueError:
                 actual_rank = None
-            for rank in ranks:
-                if actual_rank <= rank:
-                    rank_acc_count[rank] += 1
-                else:
-                    break
+            if actual_rank is not None:
+                for rank in ranks:
+                    if actual_rank <= rank:
+                        rank_acc_count[rank] += 1
+                    else:
+                        break
     return AccuracyResult(rank_acc_count, attempt_count)
 
 
@@ -127,7 +129,7 @@ class ModelManager:
                 except ValueError:
                     actual_rank = float("nan")
                 if callback is not None:
-                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases)))
+                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:ATTEMPTS_TOP_K])))
                 progress_bar.update(1)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
@@ -276,7 +278,7 @@ class Runner:
         def write_csv():
             with open(output_file, "w", newline="", encoding="utf-8") as ofile:
                 csv_writer = csv.writer(ofile)
-                csv_writer.writerow(Attempt.headers(1))
+                csv_writer.writerow(Attempt.headers(ATTEMPTS_TOP_K))
                 while (not completed) or attempt_q:
                     try:
                         attempt_ = attempt_q.get(timeout=0.25)

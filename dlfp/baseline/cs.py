@@ -1,3 +1,6 @@
+import csv
+import json
+import math
 import sys
 from collections import defaultdict
 from typing import Dict
@@ -7,11 +10,13 @@ from typing import Tuple
 import nltk.corpus
 from collections import Counter
 import string
-import math
+import tabulate
 from tqdm import tqdm
 
 import dlfp.utils
 from dlfp.datasets import DatasetResolver
+from dlfp.running import AccuracyResult
+from dlfp.running import Attempt
 from dlfp.utils import PhrasePairDataset
 
 
@@ -81,3 +86,48 @@ class Words_Offline:
 			deduplicated[clue] = suggestions
 		clue_mapping = deduplicated
 		return clue_mapping
+
+
+def evaluate_valid():
+	from dlfp.running import measure_accuracy
+	resolver = DatasetResolver()
+	train_dataset = resolver.easymark(split="train").normalize_answers()
+	# import dlfp_tests.tools
+	# train_dataset = dlfp_tests.tools.truncate_dataset(train_dataset, 1000)
+	valid_dataset = resolver.easymark(split="valid").normalize_answers()
+	valid_clues = {}
+	for clue, answer in valid_dataset:
+		valid_clues[clue] = len(answer)
+	print(len(valid_dataset), "clues total")
+	print(len(valid_clues), "unique clues")
+	solver = Words_Offline(train_dataset)
+	solution = solver.all_solution(valid_clues)
+	timestamp = dlfp.utils.timestamp()
+	raw_output_file = dlfp.utils.get_repo_root() / "evaluations" / f"cs-solution-{timestamp}.csv"
+	raw_output_file.parent.mkdir(exist_ok=True, parents=True)
+	with open(raw_output_file, 'w') as ofile:
+		json.dump(solution, ofile, indent=2)
+	print("raw solution written to", raw_output_file)
+	attempt_file = dlfp.utils.get_repo_root() / "evaluations" / f"cs-attempts-{timestamp}.csv"
+	attempt_file.parent.mkdir(exist_ok=True, parents=True)
+	k = 10
+	with open(attempt_file, "w", newline="", encoding="utf-8") as ofile:
+		csv_writer = csv.writer(ofile)
+		csv_writer.writerow(Attempt.headers(k))
+		for index, (clue, correct_answer) in enumerate(valid_dataset):
+			suggestion_list = solution[clue]
+			suggested_answers = [answer for _, answer in suggestion_list]
+			try:
+				rank = suggested_answers.index(correct_answer) + 1
+			except ValueError:
+				rank = float("nan")
+			attempt = Attempt(index, clue, correct_answer, rank, len(suggested_answers), top=tuple(suggested_answers[:k]))
+			csv_writer.writerow(attempt.to_row())
+	print("attempts written to", attempt_file)
+	accuracy_result = measure_accuracy(attempt_file)
+	accuracy_table = accuracy_result.to_table()
+	print(tabulate.tabulate(accuracy_table, headers=AccuracyResult.table_headers()))
+
+
+if __name__ == '__main__':
+	evaluate_valid()

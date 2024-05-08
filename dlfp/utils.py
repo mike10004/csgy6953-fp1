@@ -135,6 +135,14 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
             parts.append(part)
         return parts
 
+    def normalize_answers(self, new_name: str = None) -> 'PhrasePairDataset':
+        new_name = new_name or f"{self.name}_norm"
+        phrase_pairs = []
+        for clue, answer in self.phrase_pairs:
+            norm_answer = normalize_answer(answer)
+            phrase_pairs.append((clue, norm_answer))
+        return PhrasePairDataset(new_name, phrase_pairs, self.language_pair)
+
 
 def timestamp() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M")
