@@ -221,10 +221,11 @@ class TrainConfig(NamedTuple):
         }
         kwargs = {}
         for arg in (arguments or []):
-            if not arg in TrainConfig._fields:
-                raise ValueError(f'not a valid --train-config argument key: {arg}; allowed keys are {TrainConfig.argument_keys()}')
             key, value = arg.split('=', maxsplit=1)
-            value = types.get(key, float)
+            if not key in TrainConfig._fields:
+                raise ValueError(f'not a valid --train-config argument key: {key}; allowed keys are {TrainConfig.argument_keys()}')
+            value_type = types.get(key, float)
+            value = value_type(value)
             kwargs[key] = value
         return TrainConfig(dataset_name, checkpoints_dir, **kwargs)
 
