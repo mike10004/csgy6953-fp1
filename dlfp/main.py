@@ -31,13 +31,9 @@ class CruciformerRunner(Runner):
         target = cache.get(superset.train, "answer", "spacy", "en_core_web_sm")
         return Bilinguist(source, target)
 
-    def create_runnable(self, device: str) -> Runnable:
-        r = super().create_runnable(device)
-        def to_crossword_answer(answer: str) -> str:
-            answer = answer.replace(" ", "")
-            answer = answer.upper()
-            return answer
-        r.manager.tgt_transform = to_crossword_answer
+    def create_runnable(self, dataset_name: str, device: str) -> Runnable:
+        r = super().create_runnable(dataset_name, device)
+        r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
         r.manager.node_navigator = CruciformerNodeNavigator()
         return r
 

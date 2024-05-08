@@ -3,13 +3,8 @@
 import csv
 import queue
 import sys
-from argparse import ArgumentParser
-from collections import defaultdict
-from concurrent.futures import Future
-from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from queue import Queue
-from threading import Thread
 from typing import Any
 from typing import Callable
 from typing import Collection
@@ -17,6 +12,10 @@ from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
+from threading import Thread
+from argparse import ArgumentParser
+from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 import torch
 import tabulate
@@ -41,6 +40,7 @@ from dlfp.utils import Split
 
 
 StringTransform = Callable[[str], str]
+DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
 
 class Attempt(NamedTuple):
@@ -60,6 +60,47 @@ class Attempt(NamedTuple):
         return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
 
 
+class AccuracyResult(NamedTuple):
+
+    rank_acc_count: dict[int, int]
+    attempt_count: int
+
+    @staticmethod
+    def table_headers() -> list[Any]:
+        return ["rank", "count", "percent"]
+
+    def to_table(self) -> list[list[Any]]:
+        ranks = sorted(self.rank_acc_count.keys())
+        table = []
+        for rank in ranks:
+            count = self.rank_acc_count[rank]
+            proportion = count / self.attempt_count
+            table.append([rank, count, proportion * 100.0])
+        return table
+
+
+def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> AccuracyResult:
+    ranks = ranks or DEFAULT_RANKS
+    ranks = list(sorted(ranks, reverse=True))
+    rank_acc_count = defaultdict(int)
+    attempt_count = 0
+    with open(attempt_file, "r") as ifile:
+        csv_reader = csv.DictReader(ifile)
+        for row in csv_reader:
+            attempt_count += 1
+            row: dict[str, str]
+            try:
+                actual_rank = int(row["rank"])
+            except ValueError:
+                actual_rank = None
+            for rank in ranks:
+                if actual_rank <= rank:
+                    rank_acc_count[rank] += 1
+                else:
+                    break
+    return AccuracyResult(rank_acc_count, attempt_count)
+
+
 class ModelManager:
 
     def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device):
@@ -73,44 +114,29 @@ class ModelManager:
 
     def evaluate(self,
                  dataset: PhrasePairDataset,
-                 ranks: Collection[int] = (1, 10, 100, 1000),
-                 callback: Callable[[Attempt], None] = None,
+                 suggestion_count: int,
+                 callback: Callable[[Attempt], None],
                  hide_progress: bool = False,
-                 concurrency: int = None,
-                 top_k: int = 1):
-        ranks = sorted(ranks, reverse=True)
+                 concurrency: int = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
-        def perform(dataset_part: PhrasePairDataset) -> dict[int, int]:
-            rank_acc = defaultdict(int)
-            for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=max(ranks))):
+        def perform(dataset_part: PhrasePairDataset):
+            for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
                 phrases = [s.phrase for s in suggestions]
                 try:
                     actual_rank = phrases.index(tgt_phrase) + 1
                 except ValueError:
                     actual_rank = float("nan")
-                for rank in ranks:
-                    if actual_rank <= rank:
-                        rank_acc[rank] += 1
                 if callback is not None:
-                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:top_k])))
+                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases)))
                 progress_bar.update(1)
-            return dict(rank_acc)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
             with ThreadPoolExecutor(max_workers=concurrency) as executor:
-                futures: list[Future] = []
                 for partitioning_item in partitioning:
                     partitioning_item: PhrasePairDataset
-                    future = executor.submit(perform, partitioning_item)
-                    futures.append(future)
-            rank_accs = [future.result() for future in futures]
-            total_rank_acc = {rank: 0 for rank in ranks}
-            for rank_acc_part in rank_accs:
-                for rank in ranks:
-                    total_rank_acc[rank] += rank_acc_part[rank]
+                    executor.submit(perform, partitioning_item)
         else:
-            total_rank_acc = perform(dataset)
-        return total_rank_acc
+            perform(dataset)
 
     def print_translations(self, dataset: PhrasePairDataset, limit: int):
         for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset, limit=limit)):
@@ -260,16 +286,16 @@ class Runner:
         write_csv_thread = Thread(target=write_csv)
         write_csv_thread.start()
         try:
-            evaluation = r.manager.evaluate(dataset, callback=attempt_q.put, concurrency=concurrency)
+            r.manager.evaluate(dataset, max(DEFAULT_RANKS), callback=attempt_q.put, concurrency=concurrency)
         finally:
             completed = True
         print("finishing csv writes...", end="")
         write_csv_thread.join()
         print("done")
         print("split:", split)
-        for rank, accuracy_count in evaluation.items():
-            accuracy = accuracy_count / len(dataset)
-            print(f"{rank:5d}: {accuracy*100:.4f}%")
+        result = measure_accuracy(output_file, DEFAULT_RANKS)
+        table = result.to_table()
+        print(tabulate.tabulate(table, headers=AccuracyResult.table_headers()))
 
     def run_demo(self, restored: Restored, dataset_name: str, device: str, limit: int = ...):
         r = self.create_runnable(dataset_name, device)

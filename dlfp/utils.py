@@ -305,3 +305,20 @@ class Bilinguist(NamedTuple):
 
     def languages(self) -> Tuple[Language, Language]:
         return self.source, self.target
+
+
+def normalize_answer(answer: str, alphabet: str = "abcdefghijklmnopqrstuvwxyz") -> str:
+    answer = answer.lower()
+    answer = answer.replace(" ", "")
+    reconstruct = False
+    for x in answer:
+        if not x.isalpha():
+            reconstruct = True
+            break
+    if reconstruct:
+        answer = "".join(x for x in answer if x in alphabet)
+    return answer
+
+
+def normalize_answer_upper(answer: str) -> str:
+    return normalize_answer(answer).upper()
