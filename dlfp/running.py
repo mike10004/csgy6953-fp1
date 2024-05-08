@@ -199,6 +199,7 @@ class TrainConfig(NamedTuple):
     lr: float = 0.0001
     betas: tuple[float, float] = (0.9, 0.98)
     eps: float = 1e-9
+    train_data_shuffle_disabled: bool = False
 
     def to_jsonable(self) -> dict[str, Optional[str]]:
         return {k:(None if v is None else str(v)) for k, v in self._asdict().items()}
@@ -259,7 +260,13 @@ class Runner:
 
     def run_train(self, train_config: TrainConfig, device: str):
         r = self.create_runnable(train_config.dataset_name, device)
-        loaders = TrainLoaders.from_datasets(r.superset.train, r.superset.valid, collate_fn=r.bilinguist.collate, batch_size=train_config.batch_size)
+        loaders = TrainLoaders.from_datasets(
+            r.superset.train,
+            r.superset.valid,
+            collate_fn=r.bilinguist.collate,
+            batch_size=train_config.batch_size,
+            train_shuffle=not train_config.train_data_shuffle_disabled,
+        )
         r.manager.train(loaders, train_config.checkpoints_dir, train_config)
 
     def create_runnable(self, dataset_name: str, device: str) -> Runnable:

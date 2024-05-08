@@ -185,19 +185,17 @@ class Checkpointer:
         self.optimizer = optimizer
         self.only_min_valid_loss = False
         self.min_valid_loss = None
+        self._min_valid_loss_checkpoint_file = None
         self._previous_checkpoint_file = None
         self.retain_all = False
         self._epoch_results = []
         self.quiet = False
         self.extra = None
 
-    def is_checkpointable(self, epoch_result: EpochResult) -> bool:
+    def is_checkpointable(self, is_min_valid_loss: bool) -> bool:
         if not self.only_min_valid_loss:
             return True
-        if self.min_valid_loss is None:
-            return True
-        if epoch_result.valid_loss < self.min_valid_loss:
-            self.min_valid_loss = epoch_result.valid_loss
+        if is_min_valid_loss:
             return True
         return False
 
@@ -207,7 +205,11 @@ class Checkpointer:
                 print(f"epoch {epoch_result.epoch_index:2d}:", *args, **kwargs)
         _print(f"train loss {epoch_result.train_loss:.4f}; valid loss {epoch_result.valid_loss:.4f}")
         self._epoch_results.append(epoch_result._asdict())
-        if not self.is_checkpointable(epoch_result):
+        is_min_valid_loss = False
+        if self.min_valid_loss is None or epoch_result.valid_loss < self.min_valid_loss:
+            self.min_valid_loss = epoch_result.valid_loss
+            is_min_valid_loss = True
+        if not self.is_checkpointable(is_min_valid_loss):
             return
         checkpoint = {
             'epoch_results': self._epoch_results,
@@ -222,12 +224,15 @@ class Checkpointer:
         torch.save(checkpoint, str(checkpoint_file))
         message = f"saved checkpoint {checkpoint_file.relative_to(self.checkpoints_dir)}"
         if self._previous_checkpoint_file is not None:
-            try:
-                os.remove(self._previous_checkpoint_file)
-                message = f"{message}; deleted previous"
-            except IOError:
-                pass
+            if self._previous_checkpoint_file != self._min_valid_loss_checkpoint_file:
+                try:
+                    os.remove(self._previous_checkpoint_file)
+                    message = f"{message}; deleted previous"
+                except IOError:
+                    pass
         self._previous_checkpoint_file = checkpoint_file
+        if is_min_valid_loss:
+            self._min_valid_loss_checkpoint_file = checkpoint_file
         _print(message)
 
 

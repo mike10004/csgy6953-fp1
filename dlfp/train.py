@@ -60,9 +60,10 @@ class TrainLoaders(NamedTuple):
                       *,
                       collate_fn,
                       batch_size: int = 128,
-                      valid_batch_size: Optional[int] = None) -> 'TrainLoaders':
+                      valid_batch_size: Optional[int] = None,
+                      train_shuffle: bool = False) -> 'TrainLoaders':
         valid_batch_size = valid_batch_size or batch_size
-        train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn)
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=train_shuffle)
         valid_loader = DataLoader(valid_dataset, batch_size=valid_batch_size, collate_fn=collate_fn)
         return TrainLoaders(train_loader, valid_loader)
 
