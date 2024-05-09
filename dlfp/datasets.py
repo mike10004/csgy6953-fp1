@@ -12,6 +12,7 @@ from typing import Sequence
 
 import tabulate
 
+from dlfp.common import Table
 from dlfp.utils import Language
 from dlfp.utils import LanguageCache
 from dlfp.utils import PhrasePairDataset
@@ -153,11 +154,11 @@ def main() -> int:
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("-d", "--dataset", metavar="NAME", action='append', required=True)
     parser.add_argument("-s", "--split", default="train", metavar="SPLIT", choices=('train', 'valid', 'test'), help="train, valid, or test")
-    mode_choices = ("summary", "tokens")
+    mode_choices = ("summary", "tokens", "juxtapose")
     parser.add_argument("-m", "--mode", choices=mode_choices, default="summary", metavar="MODE", help=f"one of {mode_choices}")
     half_choices = ("source", "target")
     parser.add_argument("--half", metavar="HALF", choices=half_choices, default="target", help=f"one of {half_choices}")
-    parser.add_argument("-k", type=int, default=10, help="tokens mode sample size")
+    parser.add_argument("-k", type=int, default=10, help="sample size for 'tokens' and 'juxtapose' modes")
     tokens_choices = ("random", "longest", "shortest")
     parser.add_argument("--sample", choices=tokens_choices, metavar="SAMPLE", default="random", help=f"how to sample from dataset; one of {tokens_choices}")
     parser.add_argument("--min-tokens", type=int, default=0)
@@ -200,6 +201,14 @@ def main() -> int:
             for token_count in sorted(histo.keys()):
                 frequency = histo[token_count]
                 print(f"{token_count:2d}: {frequency:6d} ({100.0 * frequency / total:.1f}%)")
+    elif args.mode == "juxtapose":
+        rng = Random()
+        for dataset_name in args.dataset:
+            dataset = get_dataset(dataset_name)
+            dataset = dataset.shuffle(rng).slice(0, args.k)
+            headers = dataset.language_pair
+            table = Table(dataset.phrase_pairs, headers=headers)
+            table.write(fmt="simple_grid")
     else:
         raise NotImplementedError("unsupported mode")
     return 0

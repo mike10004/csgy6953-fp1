@@ -2,6 +2,7 @@
 
 import os
 import math
+from random import Random
 from typing import Iterable
 from typing import Any
 from typing import Iterator
@@ -115,6 +116,11 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
     def phrases(self, index: int) -> Iterator[str]:
         for phrase_pair in self:
             yield phrase_pair[index]
+
+    def shuffle(self, rng: Random) -> 'PhrasePairDataset':
+        phrase_pairs = list(self.phrase_pairs)
+        rng.shuffle(phrase_pairs)
+        return PhrasePairDataset(self.name, phrase_pairs, self.language_pair)
 
     def slice(self, start_inclusive: int, stop_exclusive: int) -> 'PhrasePairDataset':
         return PhrasePairDataset(self.name, self.phrase_pairs[start_inclusive:stop_exclusive], self.language_pair)

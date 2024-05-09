@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import re
 import sys
 from argparse import ArgumentParser
 from pathlib import Path
@@ -19,12 +19,19 @@ class PredicateSet:
 
     def __init__(self,
                  max_tokens: Optional[int] = None,
-                 prohibited_substrings: Collection[str] = None):
+                 prohibited_substrings: Collection[str] = None,
+                 require_regex_match: Optional[str] = None):
         self.max_tokens = max_tokens
         self.prohibited_substrings = frozenset(prohibited_substrings or ())
+        self.require_regex_match = require_regex_match
 
     def required_length(self, tokenized: Tokenized) -> bool:
         return self.max_tokens is None or (len(tokenized.tokens) <= self.max_tokens)
+
+    def regex_match(self, tokenized: Tokenized) -> bool:
+        if not self.require_regex_match:
+            return True
+        return re.fullmatch(self.require_regex_match, tokenized.phrase) is not None
 
     def no_prohibited_substrings(self, tokenized: Tokenized) -> bool:
         for substring in self.prohibited_substrings:
@@ -36,6 +43,7 @@ class PredicateSet:
         predicates = [
             self.required_length,
             self.no_prohibited_substrings,
+            self.regex_match,
         ]
         return all(map(lambda predicate: predicate(tokenized), predicates))
 
@@ -75,15 +83,15 @@ def clean(dataset: PhrasePairDataset, source_predicates: PredicateSet, target_pr
 
 def main() -> int:
     parser = ArgumentParser()
-    parser.add_argument("--split", action='append', required=True)
+    parser.add_argument("--split", action='append')
     parser.add_argument("-o", "--output", type=Path, metavar="DIR")
     args = parser.parse_args()
     resolver = DatasetResolver()
     source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
-    target_predicates = PredicateSet(max_tokens=4)
+    target_predicates = PredicateSet(max_tokens=4, require_regex_match=r'^[a-z ]+$')
     dataset_name = "easymark"
     output_dir = args.output or (resolver.data_root / "datasets" / dataset_name)
-    for split in args.split:
+    for split in (args.split or ["train", "valid", "test"]):
         dataset = resolver.benchmark(split)
         output_prefix = str(output_dir / f"{split}.")
         result = clean(dataset, source_predicates, target_predicates, output_prefix)

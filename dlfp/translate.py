@@ -4,11 +4,13 @@ from collections import deque
 from typing import Collection
 from typing import Iterator
 from typing import NamedTuple
+from typing import Sequence
 
 import torch
 from torch import Tensor
 from torchtext.vocab import Vocab
 
+from dlfp.utils import Specials
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import Bilinguist
 from dlfp.models import Seq2SeqTransformer
@@ -33,6 +35,8 @@ class Node:
         self.parent = None
         self.children = []
         self.complete = complete
+        if isinstance(prob, Tensor):
+            prob = prob.item()
         self.prob = prob
 
     def sequence_length(self) -> int:
@@ -82,6 +86,9 @@ class NodeNavigator:
     def include(self, node: Node) -> bool:
         return True
 
+    def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
+        return next_word_probs
+
 
 class MultiRankNodeNavigator(NodeNavigator):
 
@@ -115,14 +122,24 @@ class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
         return True
 
 
-class CruciformerNodeNavigator(MultiRankNodeNavigator):
+class CruciformerNodeNavigator(NodeNavigator):
 
-    def __init__(self, max_len: int = 5, max_rank: int = 3):
-        super().__init__(max_rank)
+    def __init__(self, max_len: int = 4, max_ranks: Sequence[int] = (100, 3, 1)):
         self.max_len = max_len
+        self.max_ranks = tuple([-1] + list(max_ranks))
+        self.softmax = torch.nn.Softmax(dim=0)
+
+    def get_max_rank(self, tgt_sequence_len: int) -> int:
+        if tgt_sequence_len >= len(self.max_ranks):
+            return self.max_ranks[-1]
+        return self.max_ranks[tgt_sequence_len]
+
 
     def get_max_len(self, input_len: int) -> int:
         return self.max_len
+
+    def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
+        return self.softmax(next_word_probs)
 
 
 class Suggestion(NamedTuple):
@@ -141,6 +158,8 @@ class Translator:
         self.device = device
         self.model = model
         self.bilinguist = bilinguist
+        specials = Specials.create()
+        self.strip_indexes = {specials.indexes.bos, specials.indexes.eos}
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase):
@@ -163,10 +182,10 @@ class Translator:
             visitor = NodeVisitor(self, max_len, memory, navigator)
             yield from visitor.visit(root)
 
-
     def indexes_to_phrase(self, indexes: Tensor) -> str:
-        indexes = indexes.flatten()
-        tokens = self.bilinguist.target.vocab.lookup_tokens(list(indexes.cpu().numpy()))
+        indexes = indexes.detach().flatten().cpu().numpy()
+        indexes = [idx for idx in indexes if not idx in self.strip_indexes]
+        tokens = self.bilinguist.target.vocab.lookup_tokens(indexes)
         return (" ".join(tokens)
                 .replace(self.bilinguist.target.specials.tokens.bos, "")
                 .replace(self.bilinguist.target.specials.tokens.eos, ""))
@@ -214,10 +233,13 @@ class NodeVisitor:
         out = self.parent.model.decode(ys, self.memory, tgt_mask)
         out = out.transpose(0, 1)
         prob = self.parent.model.generator(out[:, -1])
+        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
+        next_words: Tensor = next_words.flatten()
+        next_words_probs: Tensor = next_words_probs.flatten()
+        next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
-        next_words_probs, next_words = torch.topk(prob, k=max_rank, dim=1)
-        next_words_probs = next_words_probs.detach().flatten().cpu().numpy()
-        next_words = next_words.detach().flatten().cpu().numpy()
+        next_words = next_words[:max_rank]
+        next_words_probs = next_words_probs[:max_rank]
         for next_word, next_prob in zip(next_words, next_words_probs):
             if next_word == self.parent.bilinguist.target.specials.indexes.eos:
                 child = Node(ys, next_prob, complete=True)
