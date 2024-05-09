@@ -14,6 +14,7 @@ from dlfp.datasets import DatasetResolver
 from dlfp.utils import Specials
 from dlfp.utils import Bilinguist
 import dlfp.utils
+import dlfp.common
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import LanguageCache
 from dlfp.utils import Split
@@ -36,7 +37,7 @@ def get_cfg() -> ConfigParser:
 
 def load_cfg() -> ConfigParser:
     cfg = ConfigParser()
-    cfg.read([str(dlfp.utils.get_repo_root() / "tests.ini")])
+    cfg.read([str(dlfp.common.get_repo_root() / "tests.ini")])
     return cfg
 
 
@@ -60,7 +61,7 @@ def suppress_cuda_warning():
         import torch.cuda
         torch.cuda.is_available()
         import spacy
-        dlfp.utils.noop(spacy)
+        dlfp.common.noop(spacy)
     for w in warnings_list:
         if w.category is UserWarning and ("CUDA initialization" in str(w) or "Can't initialize NVML" in str(w)):
             pass
@@ -105,8 +106,8 @@ def truncate_dataset(dataset: PhrasePairDataset, size: int, shuffle_seed: Option
 
 
 def _cache_dir() -> Path:
-    return dlfp.utils.get_repo_root() / "data" / "cache"
+    return dlfp.common.get_repo_root() / "data" / "cache"
 
 
 def get_testdata_dir() -> Path:
-    return dlfp.utils.get_repo_root() / "dlfp_tests" / "testdata"
+    return dlfp.common.get_repo_root() / "dlfp_tests" / "testdata"

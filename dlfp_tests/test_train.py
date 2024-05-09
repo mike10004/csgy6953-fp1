@@ -11,7 +11,7 @@ from dlfp.models import Seq2SeqTransformer
 from dlfp.train import create_model
 from dlfp.train import Trainer
 from dlfp.train import TrainLoaders
-from dlfp.utils import noop
+from dlfp.common import noop
 import dlfp_tests.tools
 
 dlfp_tests.tools.suppress_cuda_warning()
