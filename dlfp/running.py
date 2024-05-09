@@ -325,7 +325,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
-        train_hp = TrainHyperparametry.from_args(args.train_config)
+        train_hp = TrainHyperparametry.from_args(args.train_param)
         train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain)
         runner.run_train(train_config, device)
         return 0
