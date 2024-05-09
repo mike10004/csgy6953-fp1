@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import csv
-import queue
 import sys
+import queue
 from pathlib import Path
 from queue import Queue
 from typing import Any
@@ -24,6 +24,7 @@ from torch.nn import Module
 from tqdm import tqdm
 
 import dlfp.utils
+import dlfp.common
 from dlfp.models import Seq2SeqTransformer
 from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
@@ -110,8 +111,8 @@ class ModelManager:
         self.model = model
         self.bilinguist = bilinguist
         self.device = device
-        self.src_transform: StringTransform = dlfp.utils.identity
-        self.tgt_transform: StringTransform = dlfp.utils.identity
+        self.src_transform: StringTransform = dlfp.common.identity
+        self.tgt_transform: StringTransform = dlfp.common.identity
         self.node_navigator: Optional[NodeNavigator] = None
 
     def evaluate(self,
@@ -161,7 +162,7 @@ class ModelManager:
                 suggestions = [Suggestion(translation, float("nan"))]
             else:
                 suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=self.node_navigator)
-                if not self.tgt_transform is dlfp.utils.identity:
+                if not self.tgt_transform is dlfp.common.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
             yield src_phrase, tgt_phrase, suggestions
 
@@ -333,6 +334,7 @@ def main(runner: Runner) -> int:
     seed = 0
     torch.manual_seed(seed)
     runner.dataset_name = args.dataset
+    timestamp = dlfp.common.timestamp()
     if args.mode == "demo":
         checkpoint_file = args.file
         if not checkpoint_file:
@@ -349,11 +351,11 @@ def main(runner: Runner) -> int:
         checkpoint_file = Path(checkpoint_file)
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
-        output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{dlfp.utils.timestamp()}.csv"
+        output_file = Path(args.output or ".") / f"evaluations/{checkpoint_file.stem}_{split}_{timestamp}.csv"
         runner.run_eval(restored, args.dataset, device, output_file, split=split, concurrency=args.concurrency)
         return 0
     elif args.mode == "train":
-        checkpoints_dir = Path(args.output or ".") / f"checkpoints/{dlfp.utils.timestamp()}"
+        checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
         train_config = TrainConfig.from_args(args.dataset, checkpoints_dir, args.train_config)
         runner.run_train(train_config, device)
         return 0

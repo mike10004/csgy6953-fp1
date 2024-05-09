@@ -15,7 +15,7 @@ import tabulate
 from dlfp.utils import Language
 from dlfp.utils import LanguageCache
 from dlfp.utils import PhrasePairDataset
-from dlfp.utils import get_repo_root
+from dlfp.common import get_repo_root
 from dlfp.utils import Split
 
 _log = logging.getLogger(__name__)

@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
-import math
+
 import os
-from datetime import datetime
+import math
 from typing import Iterable
 from typing import Any
 from typing import Iterator
+from typing import Union
 from typing import Literal
 from typing import NamedTuple
 from typing import Optional
@@ -24,22 +25,15 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
 
+import dlfp.common
+
 T = TypeVar("T")
+Pathish = Union[Path, str]
 Split = Literal["train", "valid", "test"]
 Tokenizer = Callable[[str], Sequence[str]]
 TextTransform = Callable[[str], Tensor]
 
 
-# noinspection PyUnusedLocal
-def noop(*args, **kwargs):
-    pass
-
-def identity(x: T) -> T:
-    return x
-
-
-def get_repo_root() -> Path:
-    return Path(__file__).absolute().parent.parent
 
 
 def equal_scalar(t: Tensor, s: float) -> Tensor:
@@ -142,10 +136,6 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
             norm_answer = normalize_answer(answer)
             phrase_pairs.append((clue, norm_answer))
         return PhrasePairDataset(new_name, phrase_pairs, self.language_pair)
-
-
-def timestamp() -> str:
-    return datetime.now().strftime("%Y%m%d-%H%M")
 
 
 class EpochResult(NamedTuple):
@@ -261,10 +251,11 @@ class Language(NamedTuple):
             return txt_input
         return func
 
+
 class LanguageCache:
 
     def __init__(self, cache_dir: Optional[Path] = None):
-        self.cache_dir = cache_dir or (get_repo_root() / "data" / "cache" / "vocab")
+        self.cache_dir = cache_dir or (dlfp.common.get_repo_root() / "data" / "cache" / "vocab")
         self.specials = Specials.create()
 
     def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str) -> Language:
@@ -335,3 +326,5 @@ def normalize_answer(answer: str, alphabet: str = "abcdefghijklmnopqrstuvwxyz") 
 
 def normalize_answer_upper(answer: str) -> str:
     return normalize_answer(answer).upper()
+
+

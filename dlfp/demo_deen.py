@@ -2,7 +2,6 @@
 
 import sys
 
-import dlfp.utils
 import dlfp.running
 from dlfp.datasets import DatasetResolver
 from dlfp.running import DataSuperset
