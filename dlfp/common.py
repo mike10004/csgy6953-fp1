@@ -5,8 +5,10 @@ import csv
 import json
 import contextlib
 from datetime import datetime
+from typing import Callable
 from typing import ContextManager
 from typing import TextIO
+from typing import Type
 from typing import Any
 from typing import Union
 from typing import NamedTuple
@@ -80,3 +82,20 @@ class Table(NamedTuple):
             content = tabulate.tabulate(self.rows, **kwargs)
             print(content, file=sink)
 
+
+def nt_from_args(nt_type: Type[T], arguments: Optional[list[str]], types: Optional[dict[str, Callable]] = None) -> T:
+    # noinspection PyProtectedMember
+    fields = nt_type._fields
+    types = types or {}
+    kwargs = {}
+    for arg in (arguments or []):
+        key, value = arg.split('=', maxsplit=1)
+        if not key in fields:
+            raise ValueError(f"{nt_type.__name__}: invalid argument key {repr(key)}; allowed keys are {fields}")
+        value_type = types.get(key, float)
+        try:
+            value = value_type(value)
+        except ValueError:
+            raise ValueError(f"{nt_type.__name__}: expected token parseable as {value_type} for key {repr(key)}, but got {repr(value)}")
+        kwargs[key] = value
+    return nt_type(**kwargs)

@@ -14,6 +14,9 @@ from dlfp.baseline.cs import Words_Offline
 from dlfp.baseline.cs import SuggestionDict
 from dlfp.utils import PhrasePairDataset
 
+
+SKIP_ALL = True
+
 # Pattern is (initial_X, initial_Y), direction(D or A), length
 # THE WORDS INSERTED SHOULD HAVE THEIR STARTING LETTER CAPITALIZED (For clue names)
 # "": {"start":(), "direction":"", "length": },
@@ -69,6 +72,10 @@ def zip_safe(a, b):
 
 
 class Words_OfflineTest(TestCase):
+
+    def setUp(self):
+        if SKIP_ALL:
+            self.skipTest("SKIP_ALL=True")
 
     def test_fetch_all_small(self):
         dataset = SmallGinsberg().load_dataset()

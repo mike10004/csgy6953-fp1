@@ -5,7 +5,7 @@ from unittest import TestCase
 import torch
 
 from dlfp.datasets import DatasetResolver
-from dlfp.train import create_model
+from dlfp.models import create_model
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import GermanToEnglishNodeNavigator
 from dlfp.translate import Suggestion
@@ -14,7 +14,7 @@ import dlfp_tests.tools
 from dlfp.utils import LanguageCache
 from dlfp.utils import Restored
 from dlfp.utils import Bilinguist
-from dlfp.utils import get_repo_root
+from dlfp.common import get_repo_root
 
 dlfp_tests.tools.suppress_cuda_warning()
 
@@ -32,8 +32,7 @@ class TranslatorTest(TestCase):
             model = create_model(
                 src_vocab_size=len(self.deen_bilinguist.source.vocab),
                 tgt_vocab_size=len(self.deen_bilinguist.target.vocab),
-                DEVICE=device,
-            )
+            ).to(device)
             translator = Translator(model, self.deen_bilinguist, device)
             translated = translator.translate("Ein Mann in grün hält eine Gitarre, während der andere Mann sein Hemd ansieht.").strip()
             self.assertEqual("Russia cloth spoof spoof Madrid sewing Madrid Russia cloth Russia cloth Madrid Madrid sewing cloth cloth sewing Russia sewing sewing cloth cloth", translated, "translation")
@@ -46,8 +45,7 @@ class TranslatorTest(TestCase):
         model = create_model(
             src_vocab_size=len(bilinguist.source.vocab),
             tgt_vocab_size=len(bilinguist.target.vocab),
-            DEVICE=device,
-        )
+        ).to(device)
         model.load_state_dict(restored.model_state_dict)
         model.eval()
         return model
@@ -101,8 +99,7 @@ class TranslatorTest(TestCase):
         model = create_model(
             src_vocab_size=len(bilinguist.source.vocab),
             tgt_vocab_size=len(bilinguist.target.vocab),
-            DEVICE=self.device,
-        )
+        ).to(self.device)
         model.load_state_dict(restored.model_state_dict)
         model.eval()
         return model, bilinguist

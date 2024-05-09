@@ -4,6 +4,7 @@ import sys
 
 import dlfp.running
 from dlfp.datasets import DatasetResolver
+from dlfp.models import ModelHyperparametry
 from dlfp.running import DataSuperset
 from dlfp.running import Runnable
 from dlfp.running import Runner
@@ -31,8 +32,8 @@ class CruciformerRunner(Runner):
         target = cache.get(superset.train, "answer", "spacy", "en_core_web_sm")
         return Bilinguist(source, target)
 
-    def create_runnable(self, dataset_name: str, device: str) -> Runnable:
-        r = super().create_runnable(dataset_name, device)
+    def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:
+        r = super().create_runnable(dataset_name, h, device)
         r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
         r.manager.node_navigator = CruciformerNodeNavigator()
         return r

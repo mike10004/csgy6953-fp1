@@ -19,34 +19,12 @@ from dlfp.utils import EpochResult
 
 LossFunction = Callable[[Tensor, Tensor], Tensor]
 
-
-def create_model(src_vocab_size: int, tgt_vocab_size: int, DEVICE):
-    EMB_SIZE = 512
-    NHEAD = 8
-    FFN_HID_DIM = 512
-    NUM_ENCODER_LAYERS = 3
-    NUM_DECODER_LAYERS = 3
-
-
-    transformer = Seq2SeqTransformer(NUM_ENCODER_LAYERS, NUM_DECODER_LAYERS, EMB_SIZE,
-                                     NHEAD, src_vocab_size, tgt_vocab_size, FFN_HID_DIM)
-    for p in transformer.parameters():
-        if p.dim() > 1:
-            nn.init.xavier_uniform_(p)
-
-    # Architecture
-    transformer = transformer.to(DEVICE)
-    return transformer
-
-
 def create_optimizer(model: nn.Module, lr=0.0001, betas=(0.9, 0.98), eps=1e-9):
     return torch.optim.Adam(model.parameters(), lr=lr, betas=betas, eps=eps)
 
 
 def _print_result(epoch_result: EpochResult):
     print(f"Epoch {epoch_result.epoch_index + 1:2d}: Train loss {epoch_result.train_loss:.3f}; Valid loss {epoch_result.valid_loss:.3f}")
-
-
 
 
 class TrainLoaders(NamedTuple):
@@ -66,8 +44,6 @@ class TrainLoaders(NamedTuple):
         train_loader = DataLoader(train_dataset, batch_size=batch_size, collate_fn=collate_fn, shuffle=train_shuffle)
         valid_loader = DataLoader(valid_dataset, batch_size=valid_batch_size, collate_fn=collate_fn)
         return TrainLoaders(train_loader, valid_loader)
-
-
 
 
 class Trainer:

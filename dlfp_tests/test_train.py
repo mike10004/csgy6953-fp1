@@ -8,7 +8,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from dlfp.models import Seq2SeqTransformer
-from dlfp.train import create_model
+from dlfp.models import create_model
 from dlfp.train import Trainer
 from dlfp.train import TrainLoaders
 from dlfp.common import noop
@@ -44,8 +44,7 @@ class TrainerTest(TestCase):
             model = create_model(
                 src_vocab_size=len(bilinguist.source.vocab),
                 tgt_vocab_size=len(bilinguist.target.vocab),
-                DEVICE=device,
-            )
+            ).to(device)
             trainer = Trainer(model, pad_idx=bilinguist.source.specials.indexes.pad, device=device)
             trainer.hide_progress = not self.verbose
             callback = noop if not self.verbose else None

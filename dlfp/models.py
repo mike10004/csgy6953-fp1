@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
 import math
+from typing import NamedTuple
+from typing import Optional
+
 import torch
 from torch import nn
 from torch import Tensor
+from torch.nn import Dropout
 from torch.nn import Transformer
+
+import dlfp.common
 
 
 class TokenEmbedding(nn.Module):
@@ -62,6 +68,12 @@ class PositionalEncoding(nn.Module):
 
 
 class Seq2SeqTransformer(nn.Module):
+
+    """Transformer model.
+
+    Source:
+    """
+
     def __init__(self,
                  num_encoder_layers: int,
                  num_decoder_layers: int,
@@ -70,25 +82,29 @@ class Seq2SeqTransformer(nn.Module):
                  src_vocab_size: int,
                  tgt_vocab_size: int,
                  dim_feedforward: int = 512,
-                 dropout: float = 0.1):
+                 transformer_dropout_rate: float = 0.1,
+                 pe_dropout_rate: float = 0.1,
+                 input_dropout_rate: float = 0.0):
         super(Seq2SeqTransformer, self).__init__()
+        self.input_dropout = Dropout(input_dropout_rate)
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
                                        num_encoder_layers=num_encoder_layers,
                                        num_decoder_layers=num_decoder_layers,
                                        dim_feedforward=dim_feedforward,
-                                       dropout=dropout)
+                                       dropout=transformer_dropout_rate)
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
-        self.positional_encoding = PositionalEncoding(emb_size, dropout=dropout)
+        self.positional_encoding = PositionalEncoding(emb_size, dropout=pe_dropout_rate)
 
     def forward(self, src: Tensor, trg: Tensor, src_mask: Tensor, tgt_mask: Tensor,
                 src_padding_mask: Tensor, tgt_padding_mask: Tensor,
                 memory_key_padding_mask: Tensor):
+        src = self.input_dropout(src)
         src_emb = self.positional_encoding(self.src_tok_emb(src))
         tgt_emb = self.positional_encoding(self.tgt_tok_emb(trg))
-        outs = self.transformer(src_emb, tgt_emb, src_mask, tgt_mask, None,
+        outs = self.transformer.forward(src_emb, tgt_emb, src_mask, tgt_mask, None,
                                 src_padding_mask, tgt_padding_mask, memory_key_padding_mask)
         return self.generator(outs)
 
@@ -99,3 +115,50 @@ class Seq2SeqTransformer(nn.Module):
     def decode(self, tgt: Tensor, memory: Tensor, tgt_mask: Tensor):
         pos_encoded = self.positional_encoding(self.tgt_tok_emb(tgt))
         return self.transformer.decoder(pos_encoded, memory, tgt_mask)
+
+
+class ModelHyperparametry(NamedTuple):
+
+    nhead: int = 8
+    emb_size: int = 512
+    num_encoder_layers: int = 3
+    num_decoder_layers: int = 3
+    dim_feedforward: int = 512
+    transformer_dropout_rate: float = 0.1
+    pe_dropout_rate: float = 0.1
+    input_dropout_rate: float = 0.0
+
+    @staticmethod
+    def from_args(arguments: Optional[list[str]]) -> 'ModelHyperparametry':
+        h = dlfp.common.nt_from_args(ModelHyperparametry, arguments, types={
+            'nhead': int,
+            'emb_size': int,
+            'num_encoder_layers': int,
+            'num_decoder_layers': int,
+            'dim_feedforward': int,
+        })
+        return h
+
+
+def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametry = None):
+    h = h or ModelHyperparametry()
+
+    transformer = Seq2SeqTransformer(
+        src_vocab_size=src_vocab_size,
+        tgt_vocab_size=tgt_vocab_size,
+        num_encoder_layers=h.num_encoder_layers,
+        num_decoder_layers=h.num_decoder_layers,
+        emb_size=h.emb_size,
+        nhead=h.nhead,
+        dim_feedforward=h.dim_feedforward,
+        transformer_dropout_rate=h.transformer_dropout_rate,
+        pe_dropout_rate=h.pe_dropout_rate,
+        input_dropout_rate=h.input_dropout_rate,
+    )
+    for p in transformer.parameters():
+        if p.dim() > 1:
+            nn.init.xavier_uniform_(p)
+
+    return transformer
+
+
