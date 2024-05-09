@@ -19,12 +19,14 @@ from concurrent.futures import ThreadPoolExecutor
 import torch
 from torch.optim import Optimizer
 from torch.nn import Module
+from torchtext.vocab import Vocab
 from tqdm import tqdm
 
 import dlfp.utils
 import dlfp.common
 import dlfp.models
 from dlfp.models import Seq2SeqTransformer
+from dlfp.translate import Node
 from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.utils import Bilinguist
@@ -53,6 +55,7 @@ class Attempt(NamedTuple):
     rank: int
     suggestion_count: int
     top: tuple[str, ...]
+    nodes: Optional[list[Node]] = None
 
     @staticmethod
     def headers(top_k: int) -> list[str]:
@@ -81,14 +84,14 @@ class ModelManager:
                  concurrency: int = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset):
-            for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
+            for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
                 phrases = [s.phrase for s in suggestions]
                 try:
                     actual_rank = phrases.index(tgt_phrase) + 1
                 except ValueError:
                     actual_rank = float("nan")
                 if callback is not None:
-                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:ATTEMPTS_TOP_K])))
+                    callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:ATTEMPTS_TOP_K]), nodes))
                 progress_bar.update(1)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
@@ -100,29 +103,33 @@ class ModelManager:
             perform(dataset)
 
     def print_translations(self, dataset: PhrasePairDataset, limit: int):
-        for index, (src_phrase, tgt_phrase, suggestions) in enumerate(self._iterate_guesses(dataset, limit=limit)):
+        for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, limit=limit)):
             if index > 0:
                 print()
             print(f"{index: 2d} src: {src_phrase}")
             print(f"{index: 2d} tgt: {tgt_phrase}")
             print(f"{index: 2d} xxx: {suggestions[0].phrase}")
 
-    def _iterate_guesses(self, dataset: PhrasePairDataset, limit: Optional[int] = None, guesses_per_phrase: Optional[int] = None) -> Iterator[Tuple[str, str, list[Suggestion]]]:
+    def _iterate_guesses(self, dataset: PhrasePairDataset, limit: Optional[int] = None, guesses_per_phrase: Optional[int] = None) -> Iterator[Tuple[str, str, list[Suggestion], Optional[list[Node]]]]:
         translator = Translator(self.model, self.bilinguist, self.device)
         for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if limit is not None and index >= limit:
                 break
             src_phrase = self.src_transform(src_phrase)
             tgt_phrase = self.tgt_transform(tgt_phrase)
+            nodes = None
             if guesses_per_phrase is None:
                 translation = translator.translate(src_phrase).strip()
                 translation = self.tgt_transform(translation)
                 suggestions = [Suggestion(translation, float("nan"))]
             else:
-                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=self.node_navigator)
+                def _set_nodes(nodes_):
+                    nonlocal nodes
+                    nodes = nodes_
+                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=self.node_navigator, nodes_callback=_set_nodes)
                 if not self.tgt_transform is dlfp.common.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
-            yield src_phrase, tgt_phrase, suggestions
+            yield src_phrase, tgt_phrase, suggestions, nodes
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig'):
@@ -239,7 +246,15 @@ class Runner:
         model_manager = ModelManager(model, bilinguist, device)
         return Runnable(superset, bilinguist, model_manager)
 
-    def run_eval(self, restored: Restored, dataset_name: str, h: ModelHyperparametry, device: str, output_file: Path, split: Split = "valid", concurrency: Optional[int] = None):
+    def run_eval(self,
+                 restored: Restored,
+                 dataset_name: str,
+                 h: ModelHyperparametry,
+                 device: str,
+                 output_file: Path,
+                 split: Split = "valid",
+                 concurrency: Optional[int] = None,
+                 nodes_folder: Optional[Path] = None):
         r = self.create_runnable(dataset_name, h, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, split)
@@ -250,10 +265,14 @@ class Runner:
             with open(output_file, "w", newline="", encoding="utf-8") as ofile:
                 csv_writer = csv.writer(ofile)
                 csv_writer.writerow(Attempt.headers(ATTEMPTS_TOP_K))
+                attempt_index = 0
                 while (not completed) or attempt_q:
                     try:
-                        attempt_ = attempt_q.get(timeout=0.25)
+                        attempt_: Attempt = attempt_q.get(timeout=0.25)
                         csv_writer.writerow(attempt_.to_row())
+                        if nodes_folder is not None:
+                            self.write_nodes(nodes_folder, attempt_, attempt_index, r.bilinguist.target.vocab)
+                        attempt_index += 1
                     except queue.Empty:
                         pass
         write_csv_thread = Thread(target=write_csv)
@@ -270,6 +289,20 @@ class Runner:
         table = result.to_table()
         table.write()
 
+    def write_nodes(self, nodes_folder: Path, attempt: Attempt, attempt_index: int, target_vocab: Vocab):
+        answer = dlfp.utils.normalize_answer_upper(attempt.target)
+        filename = f"{attempt_index:06d}-{answer}.csv"
+        with dlfp.common.open_write(nodes_folder / filename, newline="") as ofile:
+            csv_writer = csv.writer(ofile)
+            csv_writer.writerow(["cumu_prob", "word", "prob"])
+            for node in attempt.nodes:
+                lineage = node.lineage()
+                row = [node.cumulative_probability()]
+                for n in lineage:
+                    row.append(n.current_word_token(target_vocab))
+                    row.append(n.prob)
+            csv_writer.writerow(row)
+
     def run_demo(self, restored: Restored, dataset_name: str, h: ModelHyperparametry, device: str, limit: int = ...):
         r = self.create_runnable(dataset_name, h, device)
         if limit is ...:
@@ -282,7 +315,7 @@ class Runner:
 
 def main(runner: Runner) -> int:
     parser = ArgumentParser(description=runner.describe(), epilog=f"""\
-Allowed --train-config keys are: {TrainConfig._fields}.
+Allowed --train-param keys are: {TrainHyperparametry._fields}.
 Allowed --model-param keys are: {ModelHyperparametry._fields}.\
 """)
     parser.add_argument("-m", "--mode", metavar="MODE", choices=("train", "eval", "demo"), default="train", help="'train', 'eval', or 'demo' (print some outputs)")
@@ -327,6 +360,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
         train_hp = TrainHyperparametry.from_args(args.train_param)
         train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain)
+        print(json.dumps(train_config.to_jsonable(), indent=2))
         runner.run_train(train_config, device)
         return 0
     else:

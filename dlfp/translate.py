@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from collections import deque
+from typing import Callable
 from typing import Collection
 from typing import Iterator
 from typing import NamedTuple
@@ -38,6 +39,9 @@ class Node:
         if isinstance(prob, Tensor):
             prob = prob.item()
         self.prob = prob
+
+    def current_word_token(self, vocab: Vocab) -> str:
+        return vocab.lookup_token(self.current_word)
 
     def sequence_length(self) -> int:
         return self._sequence_length
@@ -193,18 +197,33 @@ class Translator:
     def translate(self, src_sentence: str) -> str:
         return self.suggest(src_sentence, count=1)[0].phrase
 
-    def suggest(self, src_sentence: str, count: int, navigator: NodeNavigator = None) -> list[Suggestion]:
-        suggestions = []
+    def suggest(self,
+                src_sentence: str,
+                count: int,
+                navigator: NodeNavigator = None,
+                nodes_callback: Callable[[list[Node]], None] = None) -> list[Suggestion]:
+        nodes = []
+        for node in self.suggest_nodes(src_sentence, navigator=navigator):
+            nodes.append(node)
+        if nodes_callback is not None:
+            nodes_callback(nodes)
+        suggestions = [self.to_suggestion(node) for node in nodes]
+        suggestions.sort(key=Suggestion.sort_key_by_probability, reverse=True)
+        return suggestions[:count]
+
+    def to_suggestion(self, node: Node) -> Suggestion:
+        tgt_indexes = node.y.flatten()
+        tgt_phrase = self.indexes_to_phrase(tgt_indexes)
+        s = Suggestion(tgt_phrase, node.cumulative_probability())
+        return s
+
+    def suggest_nodes(self, src_sentence: str, navigator: NodeNavigator = None) -> Iterator[Node]:
         self.model.eval()
         with torch.no_grad():
             src_encoding = self.encode_source(src_sentence)
             for node in self.greedy_suggest(src_encoding, navigator):
                 if node.complete:
-                    tgt_indexes = node.y.flatten()
-                    tgt_phrase = self.indexes_to_phrase(tgt_indexes)
-                    suggestions.append(Suggestion(tgt_phrase, node.cumulative_probability()))
-        suggestions.sort(key=Suggestion.sort_key_by_probability, reverse=True)
-        return suggestions[:count]
+                    yield node
 
     def encode_source(self, phrase: str) -> PhraseEncoding:
         src = self.bilinguist.source.text_transform(phrase).view(-1, 1)
