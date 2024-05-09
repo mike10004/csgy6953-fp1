@@ -24,7 +24,8 @@ def create_optimizer(model: nn.Module, lr=0.0001, betas=(0.9, 0.98), eps=1e-9):
     return torch.optim.Adam(model.parameters(), lr=lr, betas=betas, eps=eps)
 
 
-def _print_result(epoch_result: EpochResult):
+def _print_result(checkpointable: Checkpointable):
+    epoch_result = checkpointable.epoch_result
     print(f"Epoch {epoch_result.epoch_index + 1:2d}: Train loss {epoch_result.train_loss:.3f}; Valid loss {epoch_result.valid_loss:.3f}")
 
 
@@ -83,7 +84,7 @@ class Trainer:
             train_loss = self.run(loaders.train, runtype='train', optimizer=optimizer, progress_desc=progress_desc)
             val_loss = self.run(loaders.valid, runtype='valid')
             result = EpochResult(epoch, train_loss, val_loss, last_epoch=(epoch == (epoch_count - 1)))
-            callback(result)
+            callback(Checkpointable(result, self.model, optimizer))
             epoch_results.append(result)
         return epoch_results
 

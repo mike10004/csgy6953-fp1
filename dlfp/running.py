@@ -17,7 +17,6 @@ from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 
 import torch
-import tabulate
 from torch.optim import Optimizer
 from torch.nn import Module
 from tqdm import tqdm
@@ -65,7 +64,7 @@ class Attempt(NamedTuple):
 
 class ModelManager:
 
-    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device):
+    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
         self.device = device
         self.model = model
         self.bilinguist = bilinguist
