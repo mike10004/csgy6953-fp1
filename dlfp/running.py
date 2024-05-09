@@ -299,6 +299,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
+    print("device:", device)
     seed = 0
     torch.manual_seed(seed)
     runner.dataset_name = args.dataset
