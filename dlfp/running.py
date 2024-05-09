@@ -7,14 +7,12 @@ from pathlib import Path
 from queue import Queue
 from typing import Any
 from typing import Callable
-from typing import Collection
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
 from threading import Thread
 from argparse import ArgumentParser
-from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
 import torch
@@ -38,10 +36,10 @@ from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import Restored
 from dlfp.utils import Split
-
+from dlfp.metrics import measure_accuracy
+from dlfp.metrics import DEFAULT_RANKS
 
 StringTransform = Callable[[str], str]
-DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 ATTEMPTS_TOP_K = 10
 
 
@@ -60,48 +58,6 @@ class Attempt(NamedTuple):
 
     def to_row(self) -> list[Any]:
         return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
-
-
-class AccuracyResult(NamedTuple):
-
-    rank_acc_count: dict[int, int]
-    attempt_count: int
-
-    @staticmethod
-    def table_headers() -> list[Any]:
-        return ["rank", "count", "percent"]
-
-    def to_table(self) -> list[list[Any]]:
-        ranks = sorted(self.rank_acc_count.keys())
-        table = []
-        for rank in ranks:
-            count = self.rank_acc_count[rank]
-            proportion = count / self.attempt_count
-            table.append([rank, count, proportion * 100.0])
-        return table
-
-
-def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> AccuracyResult:
-    ranks = ranks or DEFAULT_RANKS
-    ranks = list(sorted(ranks, reverse=True))
-    rank_acc_count = defaultdict(int)
-    attempt_count = 0
-    with open(attempt_file, "r") as ifile:
-        csv_reader = csv.DictReader(ifile)
-        for row in csv_reader:
-            attempt_count += 1
-            row: dict[str, str]
-            try:
-                actual_rank = int(row["rank"])
-            except ValueError:
-                actual_rank = None
-            if actual_rank is not None:
-                for rank in ranks:
-                    if actual_rank <= rank:
-                        rank_acc_count[rank] += 1
-                    else:
-                        break
-    return AccuracyResult(rank_acc_count, attempt_count)
 
 
 class ModelManager:
@@ -306,7 +262,7 @@ class Runner:
         print("split:", split)
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
-        print(tabulate.tabulate(table, headers=AccuracyResult.table_headers()))
+        table.write()
 
     def run_demo(self, restored: Restored, dataset_name: str, device: str, limit: int = ...):
         r = self.create_runnable(dataset_name, device)

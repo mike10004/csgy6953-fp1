@@ -3,18 +3,15 @@
 import sys
 import csv
 import json
+import contextlib
 from datetime import datetime
-from typing import Iterable
+from typing import ContextManager
 from typing import TextIO
 from typing import Any
-from typing import Iterator
 from typing import Union
-from typing import Literal
 from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
-from typing import Callable
-from typing import Tuple
 from typing import TypeVar
 from pathlib import Path
 
@@ -40,7 +37,7 @@ def timestamp() -> str:
 
 
 @contextlib.contextmanager
-def open_write(pathname: Optional[Pathish], **kwargs) -> TextIO:
+def open_write(pathname: Optional[Pathish], **kwargs) -> ContextManager[TextIO]:
     if pathname:
         if not "mode" in kwargs:
             kwargs["mode"] = "w"
@@ -55,7 +52,13 @@ class Table(NamedTuple):
     rows: Sequence[Sequence[Any]]
     headers: Sequence[str] = None
 
-    def write(self, sink: TextIO, fmt: str = "github", **kwargs):
+    def write_file(self, pathname: Optional[Pathish], fmt: str = None):
+        with open_write(pathname) as ofile:
+            self.write(ofile, fmt)
+
+    def write(self, sink: Optional[TextIO] = None, fmt: str = None, **kwargs):
+        fmt = fmt or "github"
+        sink = sink or sys.stdout
         if fmt == "csv":
             csv_writer = csv.writer(sink, **kwargs)
             if self.headers:

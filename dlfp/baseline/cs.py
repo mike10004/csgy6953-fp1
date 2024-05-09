@@ -10,12 +10,11 @@ from typing import Tuple
 import nltk.corpus
 from collections import Counter
 import string
-import tabulate
 from tqdm import tqdm
 
 import dlfp.utils
+import dlfp.common
 from dlfp.datasets import DatasetResolver
-from dlfp.running import AccuracyResult
 from dlfp.running import Attempt
 from dlfp.utils import PhrasePairDataset
 
@@ -102,13 +101,13 @@ def evaluate_valid():
 	print(len(valid_clues), "unique clues")
 	solver = Words_Offline(train_dataset)
 	solution = solver.all_solution(valid_clues)
-	timestamp = dlfp.utils.timestamp()
-	raw_output_file = dlfp.utils.get_repo_root() / "evaluations" / f"cs-solution-{timestamp}.csv"
+	timestamp = dlfp.common.timestamp()
+	raw_output_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-solution-{timestamp}.csv"
 	raw_output_file.parent.mkdir(exist_ok=True, parents=True)
 	with open(raw_output_file, 'w') as ofile:
 		json.dump(solution, ofile, indent=2)
 	print("raw solution written to", raw_output_file)
-	attempt_file = dlfp.utils.get_repo_root() / "evaluations" / f"cs-attempts-{timestamp}.csv"
+	attempt_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-attempts-{timestamp}.csv"
 	attempt_file.parent.mkdir(exist_ok=True, parents=True)
 	k = 10
 	with open(attempt_file, "w", newline="", encoding="utf-8") as ofile:
@@ -126,7 +125,7 @@ def evaluate_valid():
 	print("attempts written to", attempt_file)
 	accuracy_result = measure_accuracy(attempt_file)
 	accuracy_table = accuracy_result.to_table()
-	print(tabulate.tabulate(accuracy_table, headers=AccuracyResult.table_headers()))
+	accuracy_table.write()
 
 
 if __name__ == '__main__':
