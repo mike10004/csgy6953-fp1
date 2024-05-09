@@ -291,13 +291,13 @@ class Runner:
 
     def write_nodes(self, nodes_folder: Path, attempt: Attempt, attempt_index: int, target_vocab: Vocab):
         answer = dlfp.utils.normalize_answer_upper(attempt.target)
-        filename = f"{attempt_index:06d}-{answer}.csv"
+        filename = f"{attempt_index:06d}-{answer}-{len(attempt.nodes)}.csv"
         with dlfp.common.open_write(nodes_folder / filename, newline="") as ofile:
             csv_writer = csv.writer(ofile)
-            csv_writer.writerow(["cumu_prob", "word", "prob"])
+            csv_writer.writerow(["seq_len", "cumu_prob", "word", "prob"])
             for node in attempt.nodes:
                 lineage = node.lineage()
-                row = [node.cumulative_probability()]
+                row = [len(lineage), node.cumulative_probability()]
                 for n in lineage:
                     row.append(n.current_word_token(target_vocab))
                     row.append(n.prob)
@@ -329,6 +329,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("-s", "--split", metavar="SPLIT", choices=split_choices, help="eval mode dataset split")
     parser.add_argument("--concurrency", type=int, help="eval mode concurrency")
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
+    parser.add_argument("--nodes", metavar="DIR", type=Path, help="in eval mode, write node data to DIR")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
@@ -354,7 +355,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
         output_file = (args.output or Path.cwd()) / "evaluations" / f"{checkpoint_file.stem}_{split}_{timestamp}.csv"
-        runner.run_eval(restored, args.dataset, model_hp, device, output_file, split=split, concurrency=args.concurrency)
+        runner.run_eval(restored, args.dataset, model_hp, device, output_file, split=split, concurrency=args.concurrency, nodes_folder=args.nodes)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
