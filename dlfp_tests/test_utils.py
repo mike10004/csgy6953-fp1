@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 
+import os
+import tempfile
+from pathlib import Path
+from random import Random
 from unittest import TestCase
 
 import torch
+import torch.nn
 import numpy as np
 from torch import Tensor
+from torch.optim import Adam
 from torch.utils.data import DataLoader
 
 import dlfp_tests.tools
@@ -12,6 +18,9 @@ from dlfp_tests.tools import load_multi30k_dataset
 from dlfp_tests.tools import get_multi30k_de_en_bilinguist
 import dlfp.utils
 from dlfp.utils import SpecialSymbols
+from dlfp.utils import Checkpointer
+from dlfp.utils import EpochResult
+from dlfp.utils import Checkpointable
 
 
 dlfp_tests.tools.suppress_cuda_warning()
@@ -115,3 +124,28 @@ class SpecialSymbolsTest(TestCase):
         special_symbols = ['<unk>', '<pad>', '<bos>', '<eos>']
         self.assertListEqual(special_symbols, SpecialSymbols().as_list())
 
+
+class CheckpointerTest(TestCase):
+
+    def test_checkpoint(self):
+        model = torch.nn.Linear(10, 1)
+        rng = Random(0x8132585)
+        optimizer = Adam(model.parameters())
+        with tempfile.TemporaryDirectory() as tmpdir:
+            checkpoints_dir = Path(tmpdir) / "checkpoints"
+            c = Checkpointer(checkpoints_dir)
+            epoch_results = [
+                EpochResult(0, rng.randint(1, 1000), 100),
+                EpochResult(1, rng.randint(1, 1000), 90),
+                EpochResult(2, rng.randint(1, 1000), 95),
+                EpochResult(3, rng.randint(1, 1000), 80),
+                EpochResult(4, rng.randint(1, 1000), 85),
+                EpochResult(5, rng.randint(1, 1000), 82, last_epoch=True),
+            ]
+            for epoch in epoch_results:
+                c.checkpoint(Checkpointable(epoch, model, optimizer))
+            filenames = os.listdir(checkpoints_dir)
+            self.assertListEqual([
+                "checkpoint-epoch003.pt",
+                "checkpoint-epoch005.pt",
+            ], filenames)

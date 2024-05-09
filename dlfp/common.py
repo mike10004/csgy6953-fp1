@@ -43,6 +43,7 @@ def open_write(pathname: Optional[Pathish], **kwargs) -> ContextManager[TextIO]:
     if pathname:
         if not "mode" in kwargs:
             kwargs["mode"] = "w"
+        Path(pathname).parent.mkdir(exist_ok=True, parents=True)
         with open(pathname, **kwargs) as ofile:
             yield ofile
     else:
@@ -70,9 +71,10 @@ class Table(NamedTuple):
             print("[", file=sink)
             for i, row in enumerate(self.rows):
                 if i > 0:
-                    print(",")
-                print("  ", end="")
+                    print(",", file=sink)
+                print("  ", end="", file=sink)
                 json.dump(row, sink, **kwargs)
+            print(file=sink)
             print("]", file=sink)
         else:
             if not "headers" in kwargs:

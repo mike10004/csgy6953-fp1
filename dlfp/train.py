@@ -12,6 +12,7 @@ from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 from dlfp.models import Seq2SeqTransformer
+from dlfp.utils import Checkpointable
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import equal_scalar
@@ -73,7 +74,7 @@ class Trainer:
         tgt_padding_mask = equal_scalar(tgt, pad_idx).transpose(0, 1)
         return src_mask, tgt_mask, src_padding_mask, tgt_padding_mask
 
-    def train(self, loaders: TrainLoaders, epoch_count: int, callback: Callable[[EpochResult], None] = None) -> list[EpochResult]:
+    def train(self, loaders: TrainLoaders, epoch_count: int, callback: Callable[[Checkpointable], None] = None) -> list[EpochResult]:
         callback = callback or _print_result
         optimizer = self.optimizer_factory(self.model)
         epoch_results = []
@@ -81,7 +82,7 @@ class Trainer:
             progress_desc = f"epoch {epoch:2d}"
             train_loss = self.run(loaders.train, runtype='train', optimizer=optimizer, progress_desc=progress_desc)
             val_loss = self.run(loaders.valid, runtype='valid')
-            result = EpochResult(epoch, train_loss, val_loss)
+            result = EpochResult(epoch, train_loss, val_loss, last_epoch=(epoch == (epoch_count - 1)))
             callback(result)
             epoch_results.append(result)
         return epoch_results

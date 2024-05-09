@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+import json
 import sys
 import queue
 from pathlib import Path
@@ -37,6 +38,7 @@ from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import Restored
 from dlfp.utils import Split
+from dlfp.common import Table
 from dlfp.metrics import measure_accuracy
 from dlfp.metrics import DEFAULT_RANKS
 
@@ -128,17 +130,17 @@ class ModelManager:
         trainer = Trainer(self.model, pad_idx=self.bilinguist.source.specials.indexes.pad, device=self.device)
         trainer.optimizer_factory = train_config.train_hp.create_optimizer
         print(f"writing checkpoints to {checkpoints_dir}")
-        checkpointer = Checkpointer(checkpoints_dir, self.model)
+        checkpointer = Checkpointer(checkpoints_dir)
         checkpointer.retain_all = train_config.retain_all_checkpoints
+        train_config_dict = train_config.to_jsonable()
         checkpointer.extra = {
-            "train_config": train_config.to_jsonable(),
+            "train_config": train_config_dict,
         }
+        with dlfp.common.open_write(checkpoints_dir / "train-config.json") as ofile:
+            json.dump(train_config_dict, ofile, indent=2)
         results = trainer.train(loaders, train_config.train_hp.epoch_count, callback=checkpointer.checkpoint)
-        results_table = [
-            (r.epoch_index, r.train_loss, r.valid_loss)
-            for r in results
-        ]
-        print(tabulate.tabulate(results_table, headers=EpochResult._fields))
+        results_table = Table([r.to_row() for r in results], EpochResult.headers())
+        results_table.write(fmt="simple_grid")
 
 
 class DataSuperset(NamedTuple):
@@ -177,6 +179,7 @@ class TrainConfig(NamedTuple):
     train_hp: TrainHyperparametry
     model_hp: ModelHyperparametry
     retain_all_checkpoints: bool = False
+    save_optimizer: bool = False
 
     def to_jsonable(self) -> dict[str, Optional[str]]:
         def _xform(value):

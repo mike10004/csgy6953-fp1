@@ -143,6 +143,14 @@ class EpochResult(NamedTuple):
     epoch_index: int
     train_loss: float
     valid_loss: float
+    last_epoch: bool = False
+
+    def to_row(self) -> tuple[int, float, float]:
+        return self.epoch_index, self.train_loss, self.valid_loss
+
+    @staticmethod
+    def headers() -> tuple[str, str, str]:
+        return "epoch_index", "train_loss", "valid_loss"
 
 
 class Restored(NamedTuple):
@@ -164,32 +172,39 @@ class Restored(NamedTuple):
         return Restored.from_checkpoint(checkpoint)
 
 
+class Checkpointable(NamedTuple):
+
+    epoch_result: EpochResult
+    model: nn.Module
+    optimizer: Optimizer
+
+
 class Checkpointer:
 
     def __init__(self,
-                 checkpoints_dir: Path,
-                 model: nn.Module,
-                 optimizer: Optional[Optimizer] = None):
+                 checkpoints_dir: Path):
         self.checkpoints_dir = checkpoints_dir
-        self.model = model
-        self.optimizer = optimizer
         self.only_min_valid_loss = False
         self.min_valid_loss = None
         self._min_valid_loss_checkpoint_file = None
-        self._previous_checkpoint_file = None
+        self._previous_checkpoint_files = set()
         self.retain_all = False
         self._epoch_results = []
         self.quiet = False
         self.extra = None
+        self.save_optimizer = False
 
-    def is_checkpointable(self, is_min_valid_loss: bool) -> bool:
+    def is_saveworthy(self, is_min_valid_loss: bool, last_epoch: bool) -> bool:
+        if last_epoch:
+            return True
         if not self.only_min_valid_loss:
             return True
         if is_min_valid_loss:
             return True
         return False
 
-    def checkpoint(self, epoch_result: EpochResult):
+    def checkpoint(self, ckpt: Checkpointable):
+        epoch_result = ckpt.epoch_result
         def _print(*args, **kwargs):
             if not self.quiet:
                 print(f"epoch {epoch_result.epoch_index:2d}:", *args, **kwargs)
@@ -199,28 +214,33 @@ class Checkpointer:
         if self.min_valid_loss is None or epoch_result.valid_loss < self.min_valid_loss:
             self.min_valid_loss = epoch_result.valid_loss
             is_min_valid_loss = True
-        if not self.is_checkpointable(is_min_valid_loss):
+        if not self.is_saveworthy(is_min_valid_loss, epoch_result.last_epoch):
             return
         checkpoint = {
             'epoch_results': self._epoch_results,
-            'model_state_dict': self.model.state_dict(),
+            'model_state_dict': ckpt.model.state_dict(),
         }
         if self.extra is not None:
             checkpoint['extra'] = self.extra
-        if self.optimizer is not None:
-            checkpoint['optimizer_state_dict'] = self.optimizer.state_dict()
+        if self.save_optimizer is not None:
+            checkpoint['optimizer_state_dict'] = ckpt.optimizer.state_dict()
         checkpoint_file = self.checkpoints_dir / f"checkpoint-epoch{epoch_result.epoch_index:03d}.pt"
         checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
         torch.save(checkpoint, str(checkpoint_file))
         message = f"saved checkpoint {checkpoint_file.relative_to(self.checkpoints_dir)}"
-        if self._previous_checkpoint_file is not None:
-            if self._previous_checkpoint_file != self._min_valid_loss_checkpoint_file:
+        if is_min_valid_loss:
+            message = f"{message} (min valid loss)"
+        deleted = []
+        for previous_checkpoint_file in self._previous_checkpoint_files:
+            if previous_checkpoint_file != self._min_valid_loss_checkpoint_file:
                 try:
-                    os.remove(self._previous_checkpoint_file)
-                    message = f"{message}; deleted previous"
+                    os.remove(previous_checkpoint_file)
+                    deleted.append(previous_checkpoint_file)
                 except IOError:
                     pass
-        self._previous_checkpoint_file = checkpoint_file
+        if deleted:
+            message = f"{message} (deleted previous: {[f.relative_to(self.checkpoints_dir).as_posix() for f in deleted]})"
+        self._previous_checkpoint_files.add(checkpoint_file)
         if is_min_valid_loss:
             self._min_valid_loss_checkpoint_file = checkpoint_file
         _print(message)
