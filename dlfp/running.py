@@ -312,7 +312,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("-d", "--dataset", metavar="NAME", help="specify dataset name")
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
     parser.add_argument("--optimizer", action='store_true', help="train mode: save optimizer state in checkpoint")
-    parser.add_argument("-e", "--eval-config", metavar="K=V", action='store_true', help=f"set eval mode option; keys are {EvalConfig._fields}")
+    parser.add_argument("-e", "--eval-config", metavar="K=V", action='append', help=f"set eval mode option; keys are {EvalConfig._fields}")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
