@@ -80,11 +80,12 @@ def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
             yield Path(root) / sorted(filenames, reverse=True)[0]
 
 
-def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("dataset", "emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
+def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("dataset_name", "emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
     table_rows = []
     short_names = {
         "transformer_dropout_rate": "tdr",
         "input_dropout_rate": "idr",
+        "dataset_name": "dataset",
     }
     for checkpoint_file in sorted(collect_checkpoint_files(checkpoints_dir)):
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
@@ -101,7 +102,7 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("datase
             merged.update(metadata)
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())
-            table_rows.append([rel_file] + [merged[k] for k in columns])
+            table_rows.append([rel_file] + [merged.get(k, None) for k in columns])
         except Exception as e:
             _log.warning(f"failed to extract hyperparametry from {rel_file} due to {type(e)}: {e}")
     all_columns = ["file"] + list(columns)

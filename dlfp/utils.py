@@ -171,7 +171,7 @@ class Restored(NamedTuple):
         epoch_results = [EpochResult(**d) for d in checkpoint['epoch_results']]
         model_state_dict = checkpoint['model_state_dict']
         optimizer_state_dict = checkpoint.get('optimizer_state_dict', None)
-        extra = checkpoint.get('extra', None)
+        extra = checkpoint.get('extra', {})
         return Restored(epoch_results, model_state_dict, optimizer_state_dict, extra)
 
     @staticmethod
