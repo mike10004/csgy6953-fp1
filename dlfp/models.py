@@ -86,7 +86,8 @@ class Seq2SeqTransformer(nn.Module):
                  dim_feedforward: int = 512,
                  transformer_dropout_rate: float = 0.1,
                  pe_dropout_rate: float = 0.1,
-                 input_dropout_rate: float = 0.0):
+                 input_dropout_rate: float = 0.0,
+                 batch_first: bool = False):
         super(Seq2SeqTransformer, self).__init__()
         self.input_dropout = Dropout(input_dropout_rate)
         self.transformer = Transformer(d_model=emb_size,
@@ -94,11 +95,13 @@ class Seq2SeqTransformer(nn.Module):
                                        num_encoder_layers=num_encoder_layers,
                                        num_decoder_layers=num_decoder_layers,
                                        dim_feedforward=dim_feedforward,
+                                       batch_first=batch_first,
                                        dropout=transformer_dropout_rate)
         self.generator = nn.Linear(emb_size, tgt_vocab_size)
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
         self.positional_encoding = PositionalEncoding(emb_size, dropout=pe_dropout_rate)
+        self.batch_first = batch_first
 
     def forward(self, src: Tensor, trg: Tensor, src_mask: Tensor, tgt_mask: Tensor,
                 src_padding_mask: Tensor, tgt_padding_mask: Tensor,
@@ -106,6 +109,9 @@ class Seq2SeqTransformer(nn.Module):
         src = self.input_dropout(src)
         src_emb = self.positional_encoding(self.src_tok_emb(src))
         tgt_emb = self.positional_encoding(self.tgt_tok_emb(trg))
+        if self.batch_first:
+            src_emb = src_emb.transpose(0, 1)
+            tgt_emb = tgt_emb.transpose(0, 1)
         outs = self.transformer.forward(src_emb, tgt_emb, src_mask, tgt_mask, None,
                                 src_padding_mask, tgt_padding_mask, memory_key_padding_mask)
         return self.generator(outs)
@@ -129,6 +135,7 @@ class ModelHyperparametry(NamedTuple):
     transformer_dropout_rate: float = 0.1
     pe_dropout_rate: float = 0.1
     input_dropout_rate: float = 0.0
+    batch_first: bool = False
 
     @staticmethod
     def from_args(arguments: Optional[list[str]]) -> 'ModelHyperparametry':
@@ -138,6 +145,7 @@ class ModelHyperparametry(NamedTuple):
             'num_encoder_layers': int,
             'num_decoder_layers': int,
             'dim_feedforward': int,
+            'batch_first': int,
         })
         return h
 
@@ -156,6 +164,7 @@ def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametr
         transformer_dropout_rate=h.transformer_dropout_rate,
         pe_dropout_rate=h.pe_dropout_rate,
         input_dropout_rate=h.input_dropout_rate,
+        batch_first=h.batch_first,
     )
     for p in transformer.parameters():
         if p.dim() > 1:
