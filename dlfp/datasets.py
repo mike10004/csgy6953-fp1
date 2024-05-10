@@ -241,21 +241,29 @@ def create_subset(dataset_name: str, split: Split, output_dir: Optional[Path], s
     return result
 
 
+def create_benchmark_variation(resolver: DatasetResolver, source_predicates: PredicateSet, target_predicates: PredicateSet, output_dir: Path):
+    splits: list[Split] = ["train", "valid", "test"]
+    for split in splits:
+        dataset = resolver.benchmark(split)
+        output_prefix = str(output_dir / f"{split}.")
+        result = filter_dataset(dataset, source_predicates, target_predicates, output_prefix)
+        print(f"{split:5}: {result.superset:6d} -> {result.subset:6d}; {[f.name for f in result.files]} written in {output_dir}")
+
+
 def create_dataset(dataset_name: str, output_dir: Optional[Path] = None, overwrite: bool = False) -> int:
-    output_dir = output_dir or (DatasetResolver().data_root / "datasets" / dataset_name)
+    resolver = DatasetResolver()
+    output_dir = output_dir or (resolver.data_root / "datasets" / dataset_name)
     if not overwrite and output_dir.exists():
         _log.error("overwrite=False and output dir already exists: %s", output_dir)
         return 2
-    resolver = DatasetResolver()
-    splits: list[Split] = ["train", "valid", "test"]
-    source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
-    target_predicates = PredicateSet(max_tokens=4, require_regex_match=r'^[a-z ]+$')
     if dataset_name == "easymark":
-        for split in splits:
-            dataset = resolver.benchmark(split)
-            output_prefix = str(output_dir / f"{split}.")
-            result = filter_dataset(dataset, source_predicates, target_predicates, output_prefix)
-            print(f"{split:5}: {result.superset:6d} -> {result.subset:6d}; {[f.name for f in result.files]} written in {output_dir}")
+        source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
+        target_predicates = PredicateSet(max_tokens=4, require_regex_match=r'^[a-z ]+$')
+        create_benchmark_variation(resolver, source_predicates, target_predicates, output_dir)
+    if dataset_name == "onemark":
+        source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
+        target_predicates = PredicateSet(max_tokens=1, require_regex_match=r'^[a-z ]+$')
+        create_benchmark_variation(resolver, source_predicates, target_predicates, output_dir)
     else:
         _log.error("unsupported dataset: %s", repr(dataset_name))
         return 1

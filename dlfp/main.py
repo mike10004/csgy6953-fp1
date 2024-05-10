@@ -13,6 +13,8 @@ from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
 
+SUPPORTED_DATASETS = ("easymark", "onemark")
+
 class CruciformerRunner(Runner):
 
     def describe(self) -> str:
@@ -20,7 +22,8 @@ class CruciformerRunner(Runner):
 
     def resolve_dataset(self, dataset_name: str = None) -> DataSuperset:
         resolver = DatasetResolver()
-        dataset_name = dataset_name or "easymark"
+        if not dataset_name:
+            raise ValueError(f"dataset name must be specified for Cruciformer training; supported: {SUPPORTED_DATASETS}")
         train = resolver.by_name(dataset_name, split='train')
         valid = resolver.by_name(dataset_name, split='valid')
         return DataSuperset(train, valid)
