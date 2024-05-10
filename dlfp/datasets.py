@@ -336,7 +336,8 @@ def main() -> int:
             table = Table(dataset.phrase_pairs, headers=headers)
             table.write(fmt="simple_grid")
     elif args.mode == "create":
-        return create_dataset(args.dataset, output_dir=args.output, overwrite=args.overwrite)
+        assert args.dataset and len(args.dataset) == 1, "exactly one dataset must be specified in create mode"
+        return create_dataset(args.dataset[0], output_dir=args.output, overwrite=args.overwrite)
     elif args.mode == "subset":
         assert args.dataset and len(args.dataset) == 1, "exactly one dataset must be specified in subset mode"
         create_subset(args.dataset[0], args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
