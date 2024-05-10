@@ -1,15 +1,25 @@
 #!/usr/bin/env python3
 
+import os
 import sys
 import csv
+import logging
 from collections import defaultdict
 from pathlib import Path
 from argparse import ArgumentParser
 from typing import Collection
 from typing import Any
+from typing import Iterator
 from typing import NamedTuple
-from dlfp.common import Table
+from typing import Sequence
 
+import dlfp.common
+from dlfp.common import Table
+from dlfp.models import ModelHyperparametry
+from dlfp.running import TrainHyperparametry
+from dlfp.utils import Restored
+
+_log = logging.getLogger(__name__)
 DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
 
 
@@ -60,19 +70,64 @@ def create_accuracy_table(attempts_file: Path) -> Table:
     return result.to_table()
 
 
+def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
+    for root, _, filenames in os.walk(checkpoints_dir):
+        for filename in filenames:
+            if filename.endswith(".pt"):
+                yield Path(root) / filename
+
+
+def get_hyperparameters(restored: Restored) -> tuple[TrainHyperparametry, ModelHyperparametry]:
+    train_hp_kwargs = (restored.extra or {}).get("train_hp", {})
+    model_hp_kwargs = (restored.extra or {}).get("model_hp", {})
+    return TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
+
+
+def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
+    table_rows = []
+    short_names = {
+        "transformer_dropout_rate": "tdr",
+        "input_dropout_rate": "idr",
+    }
+    for checkpoint_file in collect_checkpoint_files(checkpoints_dir):
+        rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
+        try:
+            restored = Restored.from_file(checkpoint_file, device="cpu")
+            train_hp, model_hp = get_hyperparameters(restored)
+            merged = {}
+            merged.update(train_hp._asdict())
+            merged.update(model_hp._asdict())
+            table_rows.append([rel_file] + [merged[k] for k in columns])
+        except Exception as e:
+            _log.warning(f"failed to extract hyperparametry from {rel_file} due to {type(e)}: {e}")
+    all_columns = ["file"] + list(columns)
+    all_columns = [short_names.get(c, c) for c in all_columns]
+    return Table(table_rows, headers=all_columns)
+
 def main() -> int:
     parser = ArgumentParser()
-    parser.add_argument("file", type=Path)
-    mode_choices = ("checkpoint", "accuracy")
-    parser.add_argument("-m", "--mode", metavar="MODE", choices=mode_choices, required=True)
-    format_choices = ("csv", "table", "json")
-    parser.add_argument("-t", "--format", metavar="FMT", choices=format_choices)
+    parser.add_argument("-f", "--file", metavar="PATH", type=Path, help="file or directory pathname, depending on mode")
+    mode_choices = ("checkpoint", "accuracy", "params")
+    parser.add_argument("-m", "--mode", metavar="MODE", choices=mode_choices, required=True, help=f"one of {mode_choices}")
+    format_choices = ("csv", "json", "table")
+    parser.add_argument("-t", "--format", metavar="FMT", choices=format_choices, help=f"one of {format_choices}")
     parser.add_argument("-o", "--output", metavar="FILE", type=Path)
     args = parser.parse_args()
+    logging.basicConfig(level="INFO")
+    output_format = {
+        "table": "simple_grid",
+    }.get(args.format, args.format)
     if args.mode == "accuracy":
         table = create_accuracy_table(args.file)
-        table.write_file(args.output, )
-
+        table.write_file(args.output, fmt=output_format)
+    elif args.mode == "checkpoint":
+        raise NotImplementedError(f"not yet supported: {repr(args.mode)}")
+    elif args.mode == "params":
+        checkpoints_dir = args.file or (dlfp.common.get_repo_root() / "checkpoints")
+        table = create_params_table(checkpoints_dir)
+        table.write_file(args.output, fmt=output_format)
+    else:
+        raise NotImplementedError(f"bug: unhandled mode {repr(args.mode)}")
     return 0
 
 

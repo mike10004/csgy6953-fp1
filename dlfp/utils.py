@@ -164,13 +164,15 @@ class Restored(NamedTuple):
     epoch_results: list[EpochResult]
     model_state_dict: dict[str, Any]
     optimizer_state_dict: Optional[dict[str, Any]] = None
+    extra: Optional[dict[str, Any]] = None
 
     @staticmethod
     def from_checkpoint(checkpoint: dict[str, Any]) -> 'Restored':
         epoch_results = [EpochResult(**d) for d in checkpoint['epoch_results']]
         model_state_dict = checkpoint['model_state_dict']
         optimizer_state_dict = checkpoint.get('optimizer_state_dict', None)
-        return Restored(epoch_results, model_state_dict, optimizer_state_dict)
+        extra = checkpoint.get('extra', None)
+        return Restored(epoch_results, model_state_dict, optimizer_state_dict, extra)
 
     @staticmethod
     def from_file(checkpoint_file: Path, device=None) -> 'Restored':

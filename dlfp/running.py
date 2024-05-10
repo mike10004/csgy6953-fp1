@@ -6,6 +6,7 @@ import sys
 import queue
 from pathlib import Path
 from queue import Queue
+from random import Random
 from typing import Callable
 from typing import Iterator
 from typing import NamedTuple
@@ -16,8 +17,6 @@ from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 
 import torch
-from torch.optim import Optimizer
-from torch.nn import Module
 from tqdm import tqdm
 
 import dlfp.utils
@@ -32,6 +31,7 @@ from dlfp.utils import Bilinguist
 from dlfp.train import TrainLoaders
 from dlfp.train import Trainer
 from dlfp.models import ModelHyperparametry
+from dlfp.models import TrainHyperparametry
 from dlfp.translate import Translator
 from dlfp.utils import Checkpointer
 from dlfp.utils import EpochResult
@@ -63,7 +63,9 @@ class ModelManager:
                  suggestion_count: int,
                  callback: Callable[[Attempt], None],
                  hide_progress: bool = False,
-                 concurrency: int = None):
+                 concurrency: int = None,
+                 limit: Optional[int] = None,
+                 shuffle_seed: Optional[int] = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset):
             for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
@@ -75,6 +77,13 @@ class ModelManager:
                 if callback is not None:
                     callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:ATTEMPTS_TOP_K]), nodes))
                 progress_bar.update(1)
+        if limit is not None:
+            rng = None
+            if shuffle_seed is None or shuffle_seed >= 0:
+                rng = Random(shuffle_seed)
+            if rng is not None:
+                dataset = dataset.shuffle(rng)
+            dataset = dataset.slice(0, limit)
         if concurrency is not None:
             partitioning = dataset.partition(concurrency)
             with ThreadPoolExecutor(max_workers=concurrency) as executor:
@@ -135,29 +144,6 @@ class DataSuperset(NamedTuple):
 
     train: PhrasePairDataset
     valid: PhrasePairDataset
-
-
-class TrainHyperparametry(NamedTuple):
-
-    epoch_count: int = 10
-    batch_size: int = 128
-    lr: float = 0.0001
-    betas: tuple[float, float] = (0.9, 0.98)
-    eps: float = 1e-9
-    train_data_shuffle_disabled: bool = False
-
-    def create_optimizer(self, model: Module) -> Optimizer:
-        return torch.optim.Adam(model.parameters(), lr=self.lr, betas=self.betas, eps=self.eps)
-
-    @staticmethod
-    def from_args(arguments: Optional[list[str]]) -> 'TrainHyperparametry':
-        types = {
-            'epoch_count': int,
-            'batch_size': int,
-            'betas': lambda s: tuple(float(b) for b in s.split(',')),
-            'train_data_shuffle_disabled': int,
-        }
-        return dlfp.common.nt_from_args(TrainHyperparametry, arguments, types)
 
 
 class TrainConfig(NamedTuple):

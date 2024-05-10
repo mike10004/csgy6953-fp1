@@ -7,8 +7,10 @@ from typing import Optional
 import torch
 from torch import nn
 from torch import Tensor
+from torch.nn import Module
 from torch.nn import Dropout
 from torch.nn import Transformer
+from torch.optim import Optimizer
 
 import dlfp.common
 
@@ -162,3 +164,24 @@ def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametr
     return transformer
 
 
+class TrainHyperparametry(NamedTuple):
+
+    epoch_count: int = 10
+    batch_size: int = 128
+    lr: float = 0.0001
+    betas: tuple[float, float] = (0.9, 0.98)
+    eps: float = 1e-9
+    train_data_shuffle_disabled: bool = False
+
+    def create_optimizer(self, model: Module) -> Optimizer:
+        return torch.optim.Adam(model.parameters(), lr=self.lr, betas=self.betas, eps=self.eps)
+
+    @staticmethod
+    def from_args(arguments: Optional[list[str]]) -> 'TrainHyperparametry':
+        types = {
+            'epoch_count': int,
+            'batch_size': int,
+            'betas': lambda s: tuple(float(b) for b in s.split(',')),
+            'train_data_shuffle_disabled': int,
+        }
+        return dlfp.common.nt_from_args(TrainHyperparametry, arguments, types)
