@@ -76,12 +76,14 @@ def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
         if filenames:
             yield Path(root) / sorted(filenames, reverse=True)[0]
 
-def get_hyperparameters(restored: Restored, checkpoint_file: Path) -> tuple[TrainHyperparametry, ModelHyperparametry]:
-    train_hp_kwargs = (restored.extra or {}).get("train_hp", {})
-    model_hp_kwargs = (restored.extra or {}).get("model_hp", {})
+def get_hyperparameters(restored: Restored) -> tuple[bool, TrainHyperparametry, ModelHyperparametry]:
+    train_config = (restored.extra or {}).get("train_config", {})
+    train_hp_kwargs = train_config.get("train_hp", {})
+    model_hp_kwargs = train_config.get("model_hp", {})
+    ok = True
     if not train_hp_kwargs or not model_hp_kwargs:
-        _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
-    return TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
+        ok = False
+    return ok, TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
 
 
 def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
@@ -90,11 +92,14 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "
         "transformer_dropout_rate": "tdr",
         "input_dropout_rate": "idr",
     }
-    for checkpoint_file in collect_checkpoint_files(checkpoints_dir):
+    for checkpoint_file in sorted(collect_checkpoint_files(checkpoints_dir)):
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
         try:
             restored = Restored.from_file(checkpoint_file, device="cpu")
-            train_hp, model_hp = get_hyperparameters(restored, checkpoint_file)
+            ok, train_hp, model_hp = get_hyperparameters(restored)
+            if not ok:
+                _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
+                continue
             merged = {}
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())
@@ -104,6 +109,7 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "
     all_columns = ["file"] + list(columns)
     all_columns = [short_names.get(c, c) for c in all_columns]
     return Table(table_rows, headers=all_columns)
+
 
 def main() -> int:
     parser = ArgumentParser()
