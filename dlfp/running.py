@@ -284,6 +284,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("--concurrency", type=int, help="eval mode concurrency")
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
     parser.add_argument("--nodes", metavar="DIR", type=Path, help="in eval mode, write node data to DIR")
+    parser.add_argument("--optimizer", action='store_true', help="train mode: save optimizer state in checkpoint")
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
@@ -317,7 +318,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
         train_hp = TrainHyperparametry.from_args(args.train_param)
-        train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain)
+        train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
         print(json.dumps(train_config.to_jsonable(), indent=2))
         runner.run_train(train_config, device)
         return 0

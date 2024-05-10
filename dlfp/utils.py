@@ -230,7 +230,7 @@ class Checkpointer:
         }
         if self.extra is not None:
             checkpoint['extra'] = self.extra
-        if self.save_optimizer is not None:
+        if self.save_optimizer:
             checkpoint['optimizer_state_dict'] = ckpt.optimizer.state_dict()
         checkpoint_file = self.checkpoints_dir / f"checkpoint-epoch{epoch_result.epoch_index:03d}.pt"
         checkpoint_file.parent.mkdir(exist_ok=True, parents=True)
