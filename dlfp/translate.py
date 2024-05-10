@@ -158,7 +158,7 @@ class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
         super().__init__(max_len, max_ranks)
 
     def include(self, node: Node) -> bool:
-        return False
+        return True
 
 
 class Suggestion(NamedTuple):
