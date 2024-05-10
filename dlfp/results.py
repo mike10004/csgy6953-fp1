@@ -72,14 +72,15 @@ def create_accuracy_table(attempts_file: Path) -> Table:
 
 def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
     for root, _, filenames in os.walk(checkpoints_dir):
-        for filename in filenames:
-            if filename.endswith(".pt"):
-                yield Path(root) / filename
+        if filenames:
+            filenames = [filename for filename in filenames if filename.endswith(".pt")]
+            yield sorted(filenames, reverse=True)[0]
 
-
-def get_hyperparameters(restored: Restored) -> tuple[TrainHyperparametry, ModelHyperparametry]:
+def get_hyperparameters(restored: Restored, checkpoint_file: Path) -> tuple[TrainHyperparametry, ModelHyperparametry]:
     train_hp_kwargs = (restored.extra or {}).get("train_hp", {})
     model_hp_kwargs = (restored.extra or {}).get("model_hp", {})
+    if not train_hp_kwargs or not model_hp_kwargs:
+        _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
     return TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
 
 
@@ -93,7 +94,7 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
         try:
             restored = Restored.from_file(checkpoint_file, device="cpu")
-            train_hp, model_hp = get_hyperparameters(restored)
+            train_hp, model_hp = get_hyperparameters(restored, checkpoint_file)
             merged = {}
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())
