@@ -72,9 +72,9 @@ def create_accuracy_table(attempts_file: Path) -> Table:
 
 def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
     for root, _, filenames in os.walk(checkpoints_dir):
+        filenames = [filename for filename in filenames if filename.endswith(".pt")]
         if filenames:
-            filenames = [filename for filename in filenames if filename.endswith(".pt")]
-            yield sorted(filenames, reverse=True)[0]
+            yield Path(root) / sorted(filenames, reverse=True)[0]
 
 def get_hyperparameters(restored: Restored, checkpoint_file: Path) -> tuple[TrainHyperparametry, ModelHyperparametry]:
     train_hp_kwargs = (restored.extra or {}).get("train_hp", {})
