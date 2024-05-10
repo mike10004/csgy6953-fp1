@@ -344,37 +344,41 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     runner.dataset_name = args.dataset
     timestamp = dlfp.common.timestamp()
     model_hp = ModelHyperparametry.from_args(args.model_param)
-    if args.mode == "demo":
-        checkpoint_file = args.file
-        if not checkpoint_file:
-            parser.error("checkpoint file must be specified")
-            return 1
-        restored = Restored.from_file(checkpoint_file, device=device)
-        runner.run_demo(restored, args.dataset, model_hp, device, args.limit)
-        return 0
-    elif args.mode == "eval":
-        checkpoint_file = args.file
-        if not checkpoint_file:
-            parser.error("checkpoint file must be specified")
-            return 1
-        checkpoint_file = Path(checkpoint_file)
-        restored = Restored.from_file(checkpoint_file, device=device)
-        eval_config = EvalConfig.from_args(args.eval_config)
-        output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
-        runner.run_eval(restored,
-                        args.dataset,
-                        model_hp,
-                        device,
-                        output_file,
-                        eval_config=eval_config)
-        return 0
-    elif args.mode == "train":
-        checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
-        train_hp = TrainHyperparametry.from_args(args.train_param)
-        train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
-        print(json.dumps(train_config.to_jsonable(), indent=2))
-        runner.run_train(train_config, device)
-        return 0
-    else:
-        parser.error("BUG unhandled mode")
-        return 2
+    try:
+        if args.mode == "demo":
+            checkpoint_file = args.file
+            if not checkpoint_file:
+                parser.error("checkpoint file must be specified")
+                return 1
+            restored = Restored.from_file(checkpoint_file, device=device)
+            runner.run_demo(restored, args.dataset, model_hp, device, args.limit)
+            return 0
+        elif args.mode == "eval":
+            checkpoint_file = args.file
+            if not checkpoint_file:
+                parser.error("checkpoint file must be specified")
+                return 1
+            checkpoint_file = Path(checkpoint_file)
+            restored = Restored.from_file(checkpoint_file, device=device)
+            eval_config = EvalConfig.from_args(args.eval_config)
+            output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
+            runner.run_eval(restored,
+                            args.dataset,
+                            model_hp,
+                            device,
+                            output_file,
+                            eval_config=eval_config)
+            return 0
+        elif args.mode == "train":
+            checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
+            train_hp = TrainHyperparametry.from_args(args.train_param)
+            train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
+            print(json.dumps(train_config.to_jsonable(), indent=2))
+            runner.run_train(train_config, device)
+            return 0
+        else:
+            parser.error("BUG unhandled mode")
+            return 2
+    except KeyboardInterrupt:
+        print("dlfp: terminating due to keyboard interrupt", file=sys.stderr)
+        return 3
