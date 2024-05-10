@@ -39,5 +39,9 @@ class CruciformerRunner(Runner):
         return r
 
 
+def main() -> int:
+    return dlfp.running.main(CruciformerRunner())
+
+
 if __name__ == '__main__':
-    sys.exit(dlfp.running.main(CruciformerRunner()))
+    sys.exit(main())
