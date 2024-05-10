@@ -17,6 +17,7 @@ import dlfp.common
 from dlfp.datasets import DatasetResolver
 from dlfp.running import Attempt
 from dlfp.utils import PhrasePairDataset
+from dlfp.results import measure_accuracy
 
 
 SuggestionDict = Dict[str, List[Tuple[float, str]]]
@@ -88,12 +89,15 @@ class Words_Offline:
 
 
 def evaluate_valid():
-	from dlfp.running import measure_accuracy
+	from argparse import ArgumentParser
 	resolver = DatasetResolver()
-	train_dataset = resolver.easymark(split="train").normalize_answers()
-	# import dlfp_tests.tools
-	# train_dataset = dlfp_tests.tools.truncate_dataset(train_dataset, 1000)
-	valid_dataset = resolver.easymark(split="valid").normalize_answers()
+	parser = ArgumentParser()
+	parser.add_argument("-d", "--dataset", default="easymark")
+	parser.add_argument("--valid-split", default="valid")
+	args = parser.parse_args()
+	dataset, valid_split = args.dataset, args.valid_split
+	train_dataset = resolver.by_name(dataset, split="train").normalize_answers()
+	valid_dataset = resolver.by_name(dataset, split=valid_split).normalize_answers()
 	valid_clues = {}
 	for clue, answer in valid_dataset:
 		valid_clues[clue] = len(answer)
@@ -102,12 +106,12 @@ def evaluate_valid():
 	solver = Words_Offline(train_dataset)
 	solution = solver.all_solution(valid_clues)
 	timestamp = dlfp.common.timestamp()
-	raw_output_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-solution-{timestamp}.csv"
+	raw_output_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-solution-{dataset}-{valid_split}-{timestamp}.json"
 	raw_output_file.parent.mkdir(exist_ok=True, parents=True)
 	with open(raw_output_file, 'w') as ofile:
 		json.dump(solution, ofile, indent=2)
 	print("raw solution written to", raw_output_file)
-	attempt_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-attempts-{timestamp}.csv"
+	attempt_file = dlfp.common.get_repo_root() / "evaluations" / f"cs-attempts-{dataset}-{valid_split}-{timestamp}.csv"
 	attempt_file.parent.mkdir(exist_ok=True, parents=True)
 	k = 10
 	with open(attempt_file, "w", newline="", encoding="utf-8") as ofile:
