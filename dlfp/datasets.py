@@ -58,6 +58,10 @@ class DatasetResolver:
         source_filename, target_filename = f"{split}.source", f"{split}.target"
         return self._load_marklike("easymark", source_filename, target_filename)
 
+    def onemark(self, split: Split) -> PhrasePairDataset:
+        source_filename, target_filename = f"{split}.source", f"{split}.target"
+        return self._load_marklike("onemark", source_filename, target_filename)
+
     def _load_marklike(self, dataset_name: str, source_filename: str, target_filename: str):
         dataset_dir = self.data_root / "datasets" / dataset_name
         source_lines = (dataset_dir / source_filename).read_text(self.encoding).splitlines()
