@@ -215,7 +215,28 @@ def filter_dataset(dataset: PhrasePairDataset, source_predicates: PredicateSet, 
                 subset_count += 1
                 print(source, file=sfile)
                 print(target, file=tfile)
-    return Result(superset_count, subset_count, (source_file, target_file))
+    result = Result(superset_count, subset_count, (source_file, target_file))
+    return result
+
+def create_subset(dataset_spec: str, output_dir: Optional[Path], shuffle_seed: int, size: int) -> Result:
+    assert shuffle_seed is not None, "must specify shuffle seed as --shuffle argument"
+    dataset_name, split = dataset_spec.split(":", maxsplit=1)
+    resolver = DatasetResolver()
+    output_dir = output_dir or (resolver.data_root / "datasets" / dataset_name)
+    full_dataset = resolver.by_name(dataset_name, split)
+    rng = Random(shuffle_seed)
+    subset = full_dataset.shuffle(rng).slice(0, size)
+    filename_stem = f"{split}_r{shuffle_seed}_s{size}"
+    source_file = output_dir / f"{filename_stem}.source"
+    target_file = output_dir / f"{filename_stem}.target"
+    with open(source_file, "w") as sfile:
+        with open(target_file, "w") as tfile:
+            for source, target in tqdm(subset, total=len(subset), file=sys.stdout):
+                print(source, file=sfile)
+                print(target, file=tfile)
+    result = Result(len(full_dataset), len(subset), (source_file, target_file))
+    print(f"{dataset_name} {split}: {result.superset:6d} -> {result.subset:6d}; {[f.name for f in result.files]} written in {output_dir}")
+    return result
 
 
 def create_dataset(dataset_name: str, output_dir: Optional[Path] = None, overwrite: bool = False) -> int:
@@ -245,7 +266,7 @@ def main() -> int:
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("-d", "--dataset", metavar="NAME", action='append', required=True)
     parser.add_argument("-s", "--split", default="train", metavar="SPLIT", choices=('train', 'valid', 'test'), help="train, valid, or test")
-    mode_choices = ("summary", "tokens", "juxtapose", "create")
+    mode_choices = ("summary", "tokens", "juxtapose", "create", "subset")
     parser.add_argument("-m", "--mode", choices=mode_choices, default="summary", metavar="MODE", help=f"one of {mode_choices}")
     half_choices = ("source", "target")
     parser.add_argument("--half", metavar="HALF", choices=half_choices, default="target", help=f"one of {half_choices}")
@@ -255,6 +276,8 @@ def main() -> int:
     parser.add_argument("--min-tokens", type=int, default=0)
     parser.add_argument("-o", "--output", metavar="DIR", type=Path, help="output directory for create mode")
     parser.add_argument("--overwrite", action='store_true', help="overwrite existing dataset in create mode")
+    parser.add_argument("--size", type=int, metavar="N", help="size of subset")
+    parser.add_argument("--shuffle", type=int, metavar="N", help="random seed for subset shuffle")
     args = parser.parse_args()
     data_root = args.data_root
     resolver = DatasetResolver(data_root)
@@ -303,7 +326,9 @@ def main() -> int:
             table = Table(dataset.phrase_pairs, headers=headers)
             table.write(fmt="simple_grid")
     elif args.mode == "create":
-        return create_dataset(args.name)
+        return create_dataset(args.name, output_dir=args.output, overwrite=args.overwrite)
+    elif args.mode == "subset":
+        create_subset(args.name, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
     else:
         raise NotImplementedError("unsupported mode")
     return 0

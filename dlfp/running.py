@@ -25,6 +25,7 @@ import dlfp.utils
 import dlfp.common
 import dlfp.models
 import dlfp.translate
+from dlfp.datasets import DatasetResolver
 from dlfp.models import Seq2SeqTransformer
 from dlfp.results import AccuracyResult
 from dlfp.translate import Node
@@ -261,7 +262,7 @@ class Runner:
                  eval_config: EvalConfig) -> AccuracyResult:
         r = self.create_runnable(dataset_name, h, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
-        dataset = getattr(r.superset, eval_config.split)
+        dataset = DatasetResolver().by_name(dataset_name or r.superset.train.name, eval_config.split)
         dataset = self._prepare_dataset(dataset, limit=eval_config.limit, shuffle_seed=eval_config.shuffle_seed)
         output_file.parent.mkdir(exist_ok=True, parents=True)
         nodes_folder = eval_config.nodes_folder
