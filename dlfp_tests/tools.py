@@ -10,11 +10,12 @@ from random import Random
 
 import torch
 
-from dlfp.datasets import DatasetResolver
-from dlfp.utils import Specials
-from dlfp.utils import Bilinguist
 import dlfp.utils
 import dlfp.common
+import dlfp.models
+from dlfp.datasets import DatasetResolver
+from dlfp.utils import Restored
+from dlfp.utils import Bilinguist
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import LanguageCache
 from dlfp.utils import Split
@@ -111,3 +112,23 @@ def _cache_dir() -> Path:
 
 def get_testdata_dir() -> Path:
     return dlfp.common.get_repo_root() / "dlfp_tests" / "testdata"
+
+
+def load_restored_cruciform(checkpoint_file: Path, device: str, dataset_name: str = "easymark"):
+    restored = Restored.from_file(checkpoint_file, device=device)
+    train_dataset = DatasetResolver().by_name(dataset_name, "train")
+    cache = LanguageCache()
+    source = cache.get(train_dataset, "clue", "spacy", "en_core_web_sm")
+    target = cache.get(train_dataset, "answer", "spacy", "en_core_web_sm")
+    bilinguist = Bilinguist(source, target)
+    ok, train_hp, model_hp = dlfp.models.get_hyperparameters(restored)
+    if not ok:
+        raise ValueError(f"could not extract hyperparameters from {checkpoint_file}")
+    model = dlfp.models.create_model(
+        src_vocab_size=len(bilinguist.source.vocab),
+        tgt_vocab_size=len(bilinguist.target.vocab),
+        h=model_hp,
+    ).to(device)
+    model.load_state_dict(restored.model_state_dict)
+    model.eval()
+    return model, bilinguist

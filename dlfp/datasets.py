@@ -66,7 +66,7 @@ class DatasetResolver:
 
 def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:
     cache = LanguageCache()
-    if dataset.name == "benchmark":
+    if dataset.name in {"benchmark", "easymark"}:
         source = cache.get(dataset, "clue", "spacy", "en_core_web_sm")
         target = cache.get(dataset, "answer", "spacy", "en_core_web_sm")
         return source, target

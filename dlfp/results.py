@@ -77,15 +77,6 @@ def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
         if filenames:
             yield Path(root) / sorted(filenames, reverse=True)[0]
 
-def get_hyperparameters(restored: Restored) -> tuple[bool, TrainHyperparametry, ModelHyperparametry]:
-    train_config = (restored.extra or {}).get("train_config", {})
-    train_hp_kwargs = train_config.get("train_hp", {})
-    model_hp_kwargs = train_config.get("model_hp", {})
-    ok = True
-    if not train_hp_kwargs or not model_hp_kwargs:
-        ok = False
-    return ok, TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
-
 
 def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
     table_rows = []

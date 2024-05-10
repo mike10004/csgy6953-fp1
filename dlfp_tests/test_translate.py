@@ -7,7 +7,7 @@ from unittest import TestCase
 import torch
 
 import dlfp.translate
-from dlfp.datasets import DatasetResolver
+import dlfp.models
 from dlfp.models import create_model
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import GermanToEnglishNodeNavigator
@@ -16,7 +16,6 @@ from dlfp.translate import Translator
 from dlfp.translate import Attempt
 from dlfp.translate import Node
 import dlfp_tests.tools
-from dlfp.utils import LanguageCache
 from dlfp.utils import Restored
 from dlfp.utils import Bilinguist
 from dlfp.common import get_repo_root
@@ -92,22 +91,7 @@ class TranslatorTest(TestCase):
                 self._check_output(suggestions, limit=limit)
 
     def _load_restored_cruciform(self):
-        try:
-            restored = Restored.from_file(get_repo_root() / "checkpoints" / "cruciform-checkpoint-epoch009.pt", device=self.device)
-        except FileNotFoundError:
-            self.skipTest("checkpoint file not found")
-        train_dataset = DatasetResolver().benchmark("train")
-        cache = LanguageCache()
-        source = cache.get(train_dataset, "clue", "spacy", "en_core_web_sm")
-        target = cache.get(train_dataset, "answer", "spacy", "en_core_web_sm")
-        bilinguist = Bilinguist(source, target)
-        model = create_model(
-            src_vocab_size=len(bilinguist.source.vocab),
-            tgt_vocab_size=len(bilinguist.target.vocab),
-        ).to(self.device)
-        model.load_state_dict(restored.model_state_dict)
-        model.eval()
-        return model, bilinguist
+        return dlfp_tests.tools.load_restored_cruciform(get_repo_root() / "checkpoints" / "05091745-checkpoint-epoch009.pt", device=self.device)
 
     def test_suggest_cruciform(self):
         with torch.random.fork_rng():

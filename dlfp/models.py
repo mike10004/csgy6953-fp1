@@ -13,7 +13,7 @@ from torch.nn import Transformer
 from torch.optim import Optimizer
 
 import dlfp.common
-
+from dlfp.utils import Restored
 
 class TokenEmbedding(nn.Module):
 
@@ -185,3 +185,13 @@ class TrainHyperparametry(NamedTuple):
             'train_data_shuffle_disabled': int,
         }
         return dlfp.common.nt_from_args(TrainHyperparametry, arguments, types)
+
+
+def get_hyperparameters(restored: Restored) -> tuple[bool, TrainHyperparametry, ModelHyperparametry]:
+    train_config = (restored.extra or {}).get("train_config", {})
+    train_hp_kwargs = train_config.get("train_hp", {})
+    model_hp_kwargs = train_config.get("model_hp", {})
+    ok = True
+    if not train_hp_kwargs or not model_hp_kwargs:
+        ok = False
+    return ok, TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)

@@ -7,6 +7,7 @@ import queue
 from pathlib import Path
 from queue import Queue
 from random import Random
+from typing import Any
 from typing import Callable
 from typing import Iterator
 from typing import NamedTuple
@@ -123,7 +124,7 @@ class ModelManager:
             yield src_phrase, tgt_phrase, suggestions, nodes
 
 
-    def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig'):
+    def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig', metadata: dict[str, Any]):
         trainer = Trainer(self.model, pad_idx=self.bilinguist.source.specials.indexes.pad, device=self.device)
         trainer.optimizer_factory = train_config.train_hp.create_optimizer
         print(f"writing checkpoints to {checkpoints_dir}")
@@ -132,6 +133,7 @@ class ModelManager:
         train_config_dict = train_config.to_jsonable()
         checkpointer.extra = {
             "train_config": train_config_dict,
+            "metadata": metadata,
         }
         with dlfp.common.open_write(checkpoints_dir / "train-config.json") as ofile:
             json.dump(train_config_dict, ofile, indent=2)
@@ -173,6 +175,7 @@ class Runnable(NamedTuple):
     superset: DataSuperset
     bilinguist: Bilinguist
     manager: ModelManager
+    metadata: Optional[dict[str, Any]] = None
 
 
 class EvalConfig(NamedTuple):
@@ -221,7 +224,7 @@ class Runner:
             batch_size=train_config.train_hp.batch_size,
             train_shuffle=not train_config.train_hp.train_data_shuffle_disabled,
         )
-        r.manager.train(loaders, train_config.checkpoints_dir, train_config)
+        r.manager.train(loaders, train_config.checkpoints_dir, train_config, r.metadata)
 
     def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:
         superset = self.resolve_dataset(dataset_name)
@@ -229,7 +232,12 @@ class Runner:
         model = self.create_model(bilinguist, h)
         model = model.to(device)
         model_manager = ModelManager(model, bilinguist, device)
-        return Runnable(superset, bilinguist, model_manager)
+        metadata = {
+            "dataset_name": superset.train.name,
+            "src_vocab_size": len(bilinguist.source.vocab),
+            "tgt_vocab_size": len(bilinguist.target.vocab),
+        }
+        return Runnable(superset, bilinguist, model_manager, metadata)
 
     def run_eval(self,
                  restored: Restored,
@@ -263,14 +271,19 @@ class Runner:
                         pass
         write_csv_thread = Thread(target=write_csv)
         write_csv_thread.start()
+        print(f"split: {eval_config.split} (limit: {eval_config.limit})")
         try:
-            r.manager.evaluate(dataset, max(DEFAULT_RANKS), callback=attempt_q.put, concurrency=eval_config.concurrency, limit=eval_config.limit, shuffle_seed=eval_config.shuffle_seed)
+            r.manager.evaluate(dataset,
+                               max(DEFAULT_RANKS),
+                               callback=attempt_q.put,
+                               concurrency=eval_config.concurrency,
+                               limit=eval_config.limit,
+                               shuffle_seed=eval_config.shuffle_seed)
         finally:
             completed = True
         print("finishing csv writes...", end="")
         write_csv_thread.join()
         print("done")
-        print(f"split: {eval_config.split} (limit: {eval_config.limit})")
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
         table.write()
