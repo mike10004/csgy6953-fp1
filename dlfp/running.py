@@ -13,7 +13,6 @@ from typing import Callable
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
-from typing import Tuple
 from threading import Thread
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
@@ -51,6 +50,14 @@ StringTransform = Callable[[str], str]
 ATTEMPTS_TOP_K = 10
 _log = logging.getLogger(__name__)
 
+class GuessResult(NamedTuple):
+
+    src_phrase: str
+    tgt_phrase: str
+    suggestions: list[Suggestion]
+    nodes: Optional[list[Node]]
+
+
 class ModelManager:
 
     def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
@@ -60,18 +67,18 @@ class ModelManager:
         self.device = device
         self.src_transform: StringTransform = dlfp.common.identity
         self.tgt_transform: StringTransform = dlfp.common.identity
-        self.node_navigator: Optional[NodeNavigator] = None
 
     def evaluate(self,
                  dataset: PhrasePairDataset,
                  suggestion_count: int,
                  callback: Callable[[Attempt], None],
+                 node_navigator: NodeNavigator,
                  hide_progress: bool = False,
                  concurrency: int = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset):
             _log.debug("evaluating dataset of size %s", len(dataset_part))
-            for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
+            for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, node_navigator=node_navigator, limit=None, guesses_per_phrase=suggestion_count)):
                 phrases = [s.phrase for s in suggestions]
                 try:
                     actual_rank = phrases.index(tgt_phrase) + 1
@@ -95,15 +102,22 @@ class ModelManager:
         finally:
             _log.debug("ModelManager.completed = True")
 
-    def print_translations(self, dataset: PhrasePairDataset, limit: int):
-        for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, limit=limit)):
+    def print_translations(self,
+                           dataset: PhrasePairDataset,
+                           limit: int,
+                           node_navigator: NodeNavigator):
+        for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, node_navigator=node_navigator, limit=limit)):
             if index > 0:
                 print()
             print(f"{index: 2d} src: {src_phrase}")
             print(f"{index: 2d} tgt: {tgt_phrase}")
             print(f"{index: 2d} xxx: {suggestions[0].phrase}")
 
-    def _iterate_guesses(self, dataset: PhrasePairDataset, limit: Optional[int] = None, guesses_per_phrase: Optional[int] = None) -> Iterator[Tuple[str, str, list[Suggestion], Optional[list[Node]]]]:
+    def _iterate_guesses(self,
+                         dataset: PhrasePairDataset,
+                         node_navigator: NodeNavigator,
+                         limit: Optional[int] = None,
+                         guesses_per_phrase: Optional[int] = None) -> Iterator[GuessResult]:
         translator = Translator(self.model, self.bilinguist, self.device)
         for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if limit is not None and index >= limit:
@@ -119,10 +133,10 @@ class ModelManager:
                 def _set_nodes(nodes_):
                     nonlocal nodes
                     nodes = nodes_
-                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=self.node_navigator, nodes_callback=_set_nodes)
+                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=node_navigator, nodes_callback=_set_nodes)
                 if not self.tgt_transform is dlfp.common.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
-            yield src_phrase, tgt_phrase, suggestions, nodes
+            yield GuessResult(src_phrase, tgt_phrase, suggestions, nodes)
 
 
     def train(self, loaders: TrainLoaders, checkpoints_dir: Path, train_config: 'TrainConfig', metadata: dict[str, Any]):
@@ -186,12 +200,14 @@ class EvalConfig(NamedTuple):
     nodes_folder: Optional[Path] = None
     limit: Optional[int] = None
     shuffle_seed: Optional[int] = None
+    navigator: Optional[str] = None
 
     @staticmethod
     def from_args(arguments: Optional[list[str]]) -> 'EvalConfig':
         types = {
             'split': str,
             'nodes_folder': Path,
+            'navigator': str,
         }
         return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=int)
 
@@ -239,6 +255,9 @@ class Runner:
             "tgt_vocab_size": len(bilinguist.target.vocab),
         }
         return Runnable(superset, bilinguist, model_manager, metadata)
+
+    def create_navigator(self, navigator_spec: str, dataset_name: str) -> NodeNavigator:
+        raise NotImplementedError("abstract")
 
     @staticmethod
     def _prepare_dataset(dataset: PhrasePairDataset,
@@ -301,7 +320,8 @@ class Runner:
             r.manager.evaluate(dataset,
                                max(DEFAULT_RANKS),
                                callback=attempt_q.put,
-                               concurrency=eval_config.concurrency)
+                               concurrency=eval_config.concurrency,
+                               node_navigator=self.create_navigator(eval_config.navigator, dataset.name))
         finally:
             completed = True
             print("awaiting csv writes complete...", end="")
@@ -319,7 +339,8 @@ class Runner:
         if limit is None:
             limit = len(r.superset.valid)
         r.manager.model.load_state_dict(restored.model_state_dict)
-        r.manager.print_translations(r.superset.valid, limit=limit)
+        node_navigator = self.create_navigator("default", dataset_name)
+        r.manager.print_translations(r.superset.valid, node_navigator=node_navigator, limit=limit)
 
 
 def main(runner: Runner) -> int:

@@ -9,6 +9,8 @@ from dlfp.running import DataSuperset
 from dlfp.running import Runnable
 from dlfp.running import Runner
 from dlfp.translate import CruciformerNodeNavigator
+from dlfp.translate import CruciformerOnemarkNodeNavigator
+from dlfp.translate import NodeNavigator
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
@@ -38,8 +40,13 @@ class CruciformerRunner(Runner):
     def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:
         r = super().create_runnable(dataset_name, h, device)
         r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
-        r.manager.node_navigator = CruciformerNodeNavigator()
         return r
+
+    def create_navigator(self, navigator_spec: str, dataset_name: str) -> NodeNavigator:
+        navigator_type = CruciformerNodeNavigator
+        if dataset_name == "onemark":
+            navigator_type = CruciformerOnemarkNodeNavigator
+        return navigator_type()
 
 
 def main() -> int:

@@ -152,6 +152,15 @@ class CruciformerNodeNavigator(NodeNavigator):
         return self.softmax(next_word_probs)
 
 
+class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
+
+    def __init__(self, max_len: int = 2, max_ranks: Sequence[int] = (100, 1)):
+        super().__init__(max_len, max_ranks)
+
+    def include(self, node: Node) -> bool:
+        return False
+
+
 class Suggestion(NamedTuple):
 
     phrase: str
@@ -200,12 +209,7 @@ class Translator:
             yield from visitor.visit(root)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
-        indexes = indexes.detach().flatten().cpu().numpy()
-        indexes = [idx for idx in indexes if not idx in self.strip_indexes]
-        tokens = self.bilinguist.target.vocab.lookup_tokens(indexes)
-        return (" ".join(tokens)
-                .replace(self.bilinguist.target.specials.tokens.bos, "")
-                .replace(self.bilinguist.target.specials.tokens.eos, ""))
+        return indexes_to_phrase(indexes, self.bilinguist.target.vocab, self.strip_indexes)
 
     def translate(self, src_sentence: str) -> str:
         return self.suggest(src_sentence, count=1)[0].phrase
