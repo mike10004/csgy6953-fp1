@@ -218,9 +218,11 @@ def filter_dataset(dataset: PhrasePairDataset, source_predicates: PredicateSet, 
     result = Result(superset_count, subset_count, (source_file, target_file))
     return result
 
-def create_subset(dataset_spec: str, output_dir: Optional[Path], shuffle_seed: int, size: int) -> Result:
+def create_subset(dataset_name: str, split: Split, output_dir: Optional[Path], shuffle_seed: int, size: int) -> Result:
+    assert dataset_name is not None, "source dataset must be specified"
+    assert split is not None, "source dataset split must be specified"
     assert shuffle_seed is not None, "must specify shuffle seed as --shuffle argument"
-    dataset_name, split = dataset_spec.split(":", maxsplit=1)
+    assert size is not None, "must specify --size argument"
     resolver = DatasetResolver()
     output_dir = output_dir or (resolver.data_root / "datasets" / dataset_name)
     full_dataset = resolver.by_name(dataset_name, split)
@@ -328,7 +330,7 @@ def main() -> int:
     elif args.mode == "create":
         return create_dataset(args.name, output_dir=args.output, overwrite=args.overwrite)
     elif args.mode == "subset":
-        create_subset(args.name, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
+        create_subset(args.dataset, args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
     else:
         raise NotImplementedError("unsupported mode")
     return 0
