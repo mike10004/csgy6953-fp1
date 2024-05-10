@@ -343,6 +343,12 @@ class Runner:
         r.manager.print_translations(r.superset.valid, node_navigator=node_navigator, limit=limit)
 
 
+def get_model_hyperparametry(restored: Restored) -> ModelHyperparametry:
+    ok, _, model_hp = dlfp.models.get_hyperparameters(restored)
+    if not ok:
+        raise ValueError("model hyperparameters not available in restored checkpoint")
+    return model_hp
+
 def main(runner: Runner) -> int:
     parser = ArgumentParser(description=runner.describe(), epilog=f"""\
 Allowed --train-param keys are: {TrainHyperparametry._fields}.
@@ -365,7 +371,6 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     torch.manual_seed(seed)
     runner.dataset_name = args.dataset
     timestamp = dlfp.common.timestamp()
-    model_hp = ModelHyperparametry.from_args(args.model_param)
     try:
         if args.mode == "demo":
             checkpoint_file = args.file
@@ -373,6 +378,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
                 parser.error("checkpoint file must be specified")
                 return 1
             restored = Restored.from_file(checkpoint_file, device=device)
+            model_hp = get_model_hyperparametry(restored)
             runner.run_demo(restored, args.dataset, model_hp, device, args.limit)
             return 0
         elif args.mode == "eval":
@@ -384,6 +390,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             restored = Restored.from_file(checkpoint_file, device=device)
             eval_config = EvalConfig.from_args(args.eval_config)
             output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
+            model_hp = get_model_hyperparametry(restored)
             runner.run_eval(restored,
                             args.dataset,
                             model_hp,
@@ -392,6 +399,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
                             eval_config=eval_config)
             return 0
         elif args.mode == "train":
+            model_hp = ModelHyperparametry.from_args(args.model_param)
             checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
             train_hp = TrainHyperparametry.from_args(args.train_param)
             train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
