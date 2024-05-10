@@ -330,7 +330,8 @@ def main() -> int:
     elif args.mode == "create":
         return create_dataset(args.name, output_dir=args.output, overwrite=args.overwrite)
     elif args.mode == "subset":
-        create_subset(args.dataset, args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
+        assert args.dataset and len(args.dataset) == 1, "exactly one dataset must be specified in subset mode"
+        create_subset(args.dataset[0], args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
     else:
         raise NotImplementedError("unsupported mode")
     return 0
