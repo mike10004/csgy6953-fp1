@@ -6,7 +6,6 @@ import sys
 import queue
 from pathlib import Path
 from queue import Queue
-from typing import Any
 from typing import Callable
 from typing import Iterator
 from typing import NamedTuple
@@ -19,7 +18,6 @@ from concurrent.futures import ThreadPoolExecutor
 import torch
 from torch.optim import Optimizer
 from torch.nn import Module
-from torchtext.vocab import Vocab
 from tqdm import tqdm
 
 import dlfp.utils
@@ -41,9 +39,8 @@ from dlfp.utils import PhrasePairDataset
 from dlfp.utils import Restored
 from dlfp.utils import Split
 from dlfp.common import Table
-from dlfp.metrics import measure_accuracy
-from dlfp.metrics import DEFAULT_RANKS
-from dlfp.utils import Specials
+from dlfp.results import measure_accuracy
+from dlfp.results import DEFAULT_RANKS
 from dlfp.translate import Attempt
 
 StringTransform = Callable[[str], str]
