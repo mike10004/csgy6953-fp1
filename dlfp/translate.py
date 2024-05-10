@@ -133,8 +133,8 @@ class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
 
 class CruciformerNodeNavigator(NodeNavigator):
 
-    def __init__(self, max_len: int = 4, max_ranks: Sequence[int] = (100, 3, 2)):
-        self.max_len = max_len
+    def __init__(self, max_len: int = 6, max_ranks: Sequence[int] = (100, 3, 2)):
+        self.max_len = max_len   # includes bos and eos tokens
         self.max_ranks = tuple([-1] + list(max_ranks))
         assert len(self.max_ranks) > 1
         self.softmax = torch.nn.Softmax(dim=0)
