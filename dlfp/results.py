@@ -17,6 +17,7 @@ import dlfp.common
 from dlfp.common import Table
 from dlfp.models import ModelHyperparametry
 from dlfp.running import TrainHyperparametry
+from dlfp.utils import EpochResult
 from dlfp.utils import Restored
 
 _log = logging.getLogger(__name__)
@@ -111,6 +112,14 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "
     return Table(table_rows, headers=all_columns)
 
 
+def create_loss_table(checkpoint_file: Path) -> Table:
+    rows = []
+    checkpoint = Restored.from_file(checkpoint_file, device='cpu')
+    for epoch_result in checkpoint.epoch_results:
+        rows.append(epoch_result.to_row())
+    return Table(rows, headers=EpochResult.headers())
+
+
 def main() -> int:
     parser = ArgumentParser()
     parser.add_argument("-f", "--file", metavar="PATH", type=Path, help="file or directory pathname, depending on mode")
@@ -126,15 +135,14 @@ def main() -> int:
     }.get(args.format, args.format)
     if args.mode == "accuracy":
         table = create_accuracy_table(args.file)
-        table.write_file(args.output, fmt=output_format)
     elif args.mode == "checkpoint":
-        raise NotImplementedError(f"not yet supported: {repr(args.mode)}")
+        table = create_loss_table(args.file)
     elif args.mode == "params":
         checkpoints_dir = args.file or (dlfp.common.get_repo_root() / "checkpoints")
         table = create_params_table(checkpoints_dir)
-        table.write_file(args.output, fmt=output_format)
     else:
         raise NotImplementedError(f"bug: unhandled mode {repr(args.mode)}")
+    table.write_file(args.output, fmt=output_format)
     return 0
 
 
