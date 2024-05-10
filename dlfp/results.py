@@ -87,7 +87,7 @@ def get_hyperparameters(restored: Restored) -> tuple[bool, TrainHyperparametry, 
     return ok, TrainHyperparametry(**train_hp_kwargs), ModelHyperparametry(**model_hp_kwargs)
 
 
-def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
+def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
     table_rows = []
     short_names = {
         "transformer_dropout_rate": "tdr",
