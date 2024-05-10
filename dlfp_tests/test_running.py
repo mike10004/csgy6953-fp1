@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-import logging
+
 import os
 import csv
 import glob
+import logging
 import tempfile
 from pathlib import Path
 from unittest import TestCase
 
 import dlfp.models
-from dlfp.datasets import DatasetResolver
+import dlfp.results
 from dlfp.main import CruciformerRunner
 from dlfp.running import EvalConfig
 from dlfp.running import TrainHyperparametry
 import dlfp_tests.tools
 from dlfp.common import get_repo_root
-from dlfp.running import Runnable
 from dlfp.utils import Restored
 
 dlfp_tests.tools.suppress_cuda_warning()
@@ -47,7 +47,7 @@ class RunnableTest(TestCase):
         with tempfile.TemporaryDirectory(prefix="fp1") as tempdir:
             output_file = Path(tempdir) / "output.csv"
             _log.debug("run_eval starting")
-            runner.run_eval(restored, "easymark", model_hp, device, output_file, eval_config)
+            result = runner.run_eval(restored, "easymark", model_hp, device, output_file, eval_config)
             _log.debug("run_eval complete")
             with open(output_file, "r") as ifile:
                 attempts = list(csv.DictReader(ifile))
@@ -55,4 +55,5 @@ class RunnableTest(TestCase):
             nodes_folder = Path(glob.glob(os.path.join(output_file.parent, "*-nodes"))[0])
             nodes_files = sorted(nodes_folder.iterdir())
             self.assertEqual(limit, len(nodes_files))
-            print(nodes_files[0].read_text())
+            # print(nodes_files[0].read_text())
+        self.assertListEqual(sorted(result.rank_acc_count.keys()), list(dlfp.results.DEFAULT_RANKS))

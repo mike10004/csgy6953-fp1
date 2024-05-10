@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 import sys
 import argparse
 import logging
@@ -9,8 +10,11 @@ from random import Random
 from typing import Iterator
 from typing import NamedTuple
 from typing import Sequence
+from typing import Optional
+from typing import Collection
 
 import tabulate
+from tqdm import tqdm
 
 from dlfp.common import Table
 from dlfp.utils import Language
@@ -148,13 +152,100 @@ class TokenAnalysis(NamedTuple):
         )
 
 
+class PredicateSet:
+
+    def __init__(self,
+                 max_tokens: Optional[int] = None,
+                 prohibited_substrings: Collection[str] = None,
+                 require_regex_match: Optional[str] = None):
+        self.max_tokens = max_tokens
+        self.prohibited_substrings = frozenset(prohibited_substrings or ())
+        self.require_regex_match = require_regex_match
+
+    def required_length(self, tokenized: Tokenized) -> bool:
+        return self.max_tokens is None or (len(tokenized.tokens) <= self.max_tokens)
+
+    def regex_match(self, tokenized: Tokenized) -> bool:
+        if not self.require_regex_match:
+            return True
+        return re.fullmatch(self.require_regex_match, tokenized.phrase) is not None
+
+    def no_prohibited_substrings(self, tokenized: Tokenized) -> bool:
+        for substring in self.prohibited_substrings:
+            if substring in tokenized.phrase:
+                return False
+        return True
+
+    def all(self, tokenized: Tokenized) -> bool:
+        predicates = [
+            self.required_length,
+            self.no_prohibited_substrings,
+            self.regex_match,
+        ]
+        return all(map(lambda predicate: predicate(tokenized), predicates))
+
+
+class Result(NamedTuple):
+
+    superset: int
+    subset: int
+    files: tuple[Path, Path]
+
+    def removed(self) -> int:
+        return self.superset - self.subset
+
+
+def filter_dataset(dataset: PhrasePairDataset, source_predicates: PredicateSet, target_predicates: PredicateSet, output_prefix: str) -> Result:
+    source_file = Path(output_prefix + "source")
+    target_file = Path(output_prefix + "target")
+    src_language, tgt_language = get_languages(dataset)
+    for file in [source_file, target_file]:
+        file.parent.mkdir(parents=True, exist_ok=True)
+    superset_count, subset_count = 0, 0
+    with open(source_file, "w") as sfile:
+        with open(target_file, "w") as tfile:
+            for source, target in tqdm(dataset, total=len(dataset), file=sys.stdout):
+                superset_count += 1
+                source_tokenized = Tokenized(source, src_language.tokenizer(source))
+                if not source_predicates.all(source_tokenized):
+                    continue
+                target_tokenized = Tokenized(target, tgt_language.tokenizer(target))
+                if not target_predicates.all(target_tokenized):
+                    continue
+                subset_count += 1
+                print(source, file=sfile)
+                print(target, file=tfile)
+    return Result(superset_count, subset_count, (source_file, target_file))
+
+
+def create_dataset(dataset_name: str, output_dir: Optional[Path] = None, overwrite: bool = False) -> int:
+    output_dir = output_dir or (DatasetResolver().data_root / "datasets" / dataset_name)
+    if not overwrite and output_dir.exists():
+        _log.error("overwrite=False and output dir already exists: %s", output_dir)
+        return 2
+    resolver = DatasetResolver()
+    splits: list[Split] = ["train", "valid", "test"]
+    source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
+    target_predicates = PredicateSet(max_tokens=4, require_regex_match=r'^[a-z ]+$')
+    if dataset_name == "easymark":
+        for split in splits:
+            dataset = resolver.benchmark(split)
+            output_prefix = str(output_dir / f"{split}.")
+            result = filter_dataset(dataset, source_predicates, target_predicates, output_prefix)
+            print(f"{split:5}: {result.superset:6d} -> {result.subset:6d}; {[f.name for f in result.files]} written in {output_dir}")
+    else:
+        _log.error("unsupported dataset: %s", repr(dataset_name))
+        return 1
+    return 0
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
     parser.add_argument("--data-root", type=Path)
     parser.add_argument("-d", "--dataset", metavar="NAME", action='append', required=True)
     parser.add_argument("-s", "--split", default="train", metavar="SPLIT", choices=('train', 'valid', 'test'), help="train, valid, or test")
-    mode_choices = ("summary", "tokens", "juxtapose")
+    mode_choices = ("summary", "tokens", "juxtapose", "create")
     parser.add_argument("-m", "--mode", choices=mode_choices, default="summary", metavar="MODE", help=f"one of {mode_choices}")
     half_choices = ("source", "target")
     parser.add_argument("--half", metavar="HALF", choices=half_choices, default="target", help=f"one of {half_choices}")
@@ -162,6 +253,8 @@ def main() -> int:
     tokens_choices = ("random", "longest", "shortest")
     parser.add_argument("--sample", choices=tokens_choices, metavar="SAMPLE", default="random", help=f"how to sample from dataset; one of {tokens_choices}")
     parser.add_argument("--min-tokens", type=int, default=0)
+    parser.add_argument("-o", "--output", metavar="DIR", type=Path, help="output directory for create mode")
+    parser.add_argument("--overwrite", action='store_true', help="overwrite existing dataset in create mode")
     args = parser.parse_args()
     data_root = args.data_root
     resolver = DatasetResolver(data_root)
@@ -209,6 +302,8 @@ def main() -> int:
             headers = dataset.language_pair
             table = Table(dataset.phrase_pairs, headers=headers)
             table.write(fmt="simple_grid")
+    elif args.mode == "create":
+        return create_dataset(args.name)
     else:
         raise NotImplementedError("unsupported mode")
     return 0

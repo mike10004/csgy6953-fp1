@@ -16,7 +16,7 @@ from typing import Sequence
 import dlfp.common
 from dlfp.common import Table
 from dlfp.models import ModelHyperparametry
-from dlfp.running import TrainHyperparametry
+from dlfp.models import TrainHyperparametry
 from dlfp.utils import EpochResult
 from dlfp.utils import Restored
 
@@ -47,6 +47,8 @@ def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> Accur
     ranks = ranks or DEFAULT_RANKS
     ranks = list(sorted(ranks, reverse=True))
     rank_acc_count = defaultdict(int)
+    for rank in ranks:
+        rank_acc_count[rank] = 0
     attempt_count = 0
     with open(attempt_file, "r") as ifile:
         csv_reader = csv.DictReader(ifile)

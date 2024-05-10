@@ -26,6 +26,7 @@ import dlfp.common
 import dlfp.models
 import dlfp.translate
 from dlfp.models import Seq2SeqTransformer
+from dlfp.results import AccuracyResult
 from dlfp.translate import Node
 from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
@@ -257,7 +258,7 @@ class Runner:
                  h: ModelHyperparametry,
                  device: str,
                  output_file: Path,
-                 eval_config: EvalConfig):
+                 eval_config: EvalConfig) -> AccuracyResult:
         r = self.create_runnable(dataset_name, h, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, eval_config.split)
@@ -302,12 +303,13 @@ class Runner:
                                concurrency=eval_config.concurrency)
         finally:
             completed = True
-            print("awaiting evaluate thread join...", end="")
+            print("awaiting csv writes complete...", end="")
             csv_thread.join()
             print("done")
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
         table.write()
+        return result
 
     def run_demo(self, restored: Restored, dataset_name: str, h: ModelHyperparametry, device: str, limit: int = ...):
         r = self.create_runnable(dataset_name, h, device)
