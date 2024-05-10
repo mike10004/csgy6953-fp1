@@ -85,7 +85,10 @@ class Table(NamedTuple):
             print(content, file=sink)
 
 
-def nt_from_args(nt_type: Type[T], arguments: Optional[list[str]], types: Optional[dict[str, Callable]] = None) -> T:
+def nt_from_args(nt_type: Type[T],
+                 arguments: Optional[list[str]],
+                 types: Optional[dict[str, Callable]] = None,
+                 default_type: Callable = float) -> T:
     # noinspection PyProtectedMember
     fields = nt_type._fields
     types = types or {}
@@ -94,7 +97,7 @@ def nt_from_args(nt_type: Type[T], arguments: Optional[list[str]], types: Option
         key, value = arg.split('=', maxsplit=1)
         if not key in fields:
             raise ValueError(f"{nt_type.__name__}: invalid argument key {repr(key)}; allowed keys are {fields}")
-        value_type = types.get(key, float)
+        value_type = types.get(key, default_type)
         try:
             value = value_type(value)
         except ValueError:

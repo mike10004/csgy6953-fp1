@@ -175,6 +175,23 @@ class Runnable(NamedTuple):
     manager: ModelManager
 
 
+class EvalConfig(NamedTuple):
+
+    split: Split = "valid"
+    concurrency: Optional[int] = None
+    nodes_folder: Optional[Path] = None
+    limit: Optional[int] = None
+    shuffle_seed: Optional[int] = None
+
+    @staticmethod
+    def from_args(arguments: Optional[list[str]]) -> 'EvalConfig':
+        types = {
+            'split': str,
+            'nodes_folder': Path,
+        }
+        return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=int)
+
+
 class Runner:
 
     def describe(self) -> str:
@@ -220,12 +237,10 @@ class Runner:
                  h: ModelHyperparametry,
                  device: str,
                  output_file: Path,
-                 split: Split = "valid",
-                 concurrency: Optional[int] = None,
-                 nodes_folder: Optional[Path] = None):
+                 eval_config: EvalConfig):
         r = self.create_runnable(dataset_name, h, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
-        dataset = getattr(r.superset, split)
+        dataset = getattr(r.superset, eval_config.split)
         output_file.parent.mkdir(exist_ok=True, parents=True)
         completed = False
         attempt_q = Queue()
@@ -238,7 +253,10 @@ class Runner:
                     try:
                         attempt_: Attempt = attempt_q.get(timeout=0.25)
                         csv_writer.writerow(attempt_.to_row())
-                        if nodes_folder is not None:
+                        if eval_config.nodes_folder is not None:
+                            nodes_folder = eval_config.nodes_folder
+                            if str(nodes_folder) == "auto":
+                                nodes_folder = output_file.parent / f"{output_file.stem}-nodes"
                             dlfp.translate.write_nodes(nodes_folder, attempt_, r.bilinguist.target.vocab, r.bilinguist.target.specials)
                         attempt_index += 1
                     except queue.Empty:
@@ -246,13 +264,13 @@ class Runner:
         write_csv_thread = Thread(target=write_csv)
         write_csv_thread.start()
         try:
-            r.manager.evaluate(dataset, max(DEFAULT_RANKS), callback=attempt_q.put, concurrency=concurrency)
+            r.manager.evaluate(dataset, max(DEFAULT_RANKS), callback=attempt_q.put, concurrency=eval_config.concurrency, limit=eval_config.limit, shuffle_seed=eval_config.shuffle_seed)
         finally:
             completed = True
         print("finishing csv writes...", end="")
         write_csv_thread.join()
         print("done")
-        print("split:", split)
+        print(f"split: {eval_config.split} (limit: {eval_config.limit})")
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
         table.write()
@@ -273,18 +291,16 @@ Allowed --train-param keys are: {TrainHyperparametry._fields}.
 Allowed --model-param keys are: {ModelHyperparametry._fields}.\
 """)
     parser.add_argument("-m", "--mode", metavar="MODE", choices=("train", "eval", "demo"), default="train", help="'train', 'eval', or 'demo' (print some outputs)")
-    parser.add_argument("-o", "--output", metavar="DIR", type=Path, help="output root directory")
+    parser.add_argument("-o", "--output", metavar="PATH", type=Path, help="output file or root directory")
     parser.add_argument("-f", "--file", metavar="FILE", help="checkpoint file for eval mode")
     parser.add_argument("-t", "--train-param", metavar="K=V", action='append', help="set training hyperparameter")
     parser.add_argument("-p", "--model-param", metavar="K=V", action='append', help="set model hyperparameter")
     parser.add_argument("--limit", type=int, default=..., metavar="N", help="demo mode phrase limit")
     parser.add_argument("-d", "--dataset", metavar="NAME", help="specify dataset name")
-    split_choices = ("train", "valid", "test")
-    parser.add_argument("-s", "--split", metavar="SPLIT", choices=split_choices, help="eval mode dataset split")
-    parser.add_argument("--concurrency", type=int, help="eval mode concurrency")
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
-    parser.add_argument("--nodes", metavar="DIR", type=Path, help="in eval mode, write node data to DIR")
     parser.add_argument("--optimizer", action='store_true', help="train mode: save optimizer state in checkpoint")
+    parser.add_argument("-e", "--eval-config")
+    parser.add_argument()
     args = parser.parse_args()
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
@@ -308,12 +324,14 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             return 1
         checkpoint_file = Path(checkpoint_file)
         restored = Restored.from_file(checkpoint_file, device=device)
-        split = args.split or "valid"
-        output_file = (args.output or Path.cwd()) / "evaluations" / f"{checkpoint_file.stem}_{split}_{timestamp}.csv"
-        nodes_folder = args.nodes
-        if nodes_folder is not None and str(nodes_folder) == "auto":
-            nodes_folder = output_file.parent / f"{output_file.stem}-nodes"
-        runner.run_eval(restored, args.dataset, model_hp, device, output_file, split=split, concurrency=args.concurrency, nodes_folder=nodes_folder)
+        eval_config = EvalConfig.from_args(args.eval_config)
+        output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
+        runner.run_eval(restored,
+                        args.dataset,
+                        model_hp,
+                        device,
+                        output_file,
+                        eval_config=eval_config)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
