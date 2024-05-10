@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
 
 import csv
+import tempfile
+from pathlib import Path
 from unittest import TestCase
 import torch
 
+import dlfp.translate
 from dlfp.datasets import DatasetResolver
 from dlfp.models import create_model
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import GermanToEnglishNodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.translate import Translator
+from dlfp.translate import Attempt
+from dlfp.translate import Node
 import dlfp_tests.tools
 from dlfp.utils import LanguageCache
 from dlfp.utils import Restored
@@ -110,7 +115,7 @@ class TranslatorTest(TestCase):
             with torch.no_grad():
                 model, bilinguist = self._load_restored_cruciform()
                 navigator = CruciformerNodeNavigator(max_ranks=(3, 2, 1))
-                translator = Translator(model, self.deen_bilinguist, self.device)
+                translator = Translator(model, bilinguist, self.device)
                 for src_phrase in [
                     "Pound of verse",
                     "Puts on",
@@ -124,6 +129,52 @@ class TranslatorTest(TestCase):
                         suggestions = translator.suggest(src_phrase, count=limit, navigator=navigator)
                         # self.assertGreater(len(suggestions), 10)
                         print(src_phrase, len(suggestions), suggestions)
+
+    def test_suggest_nodes_cruciform(self):
+        with tempfile.TemporaryDirectory() as tempdir:
+            tempdir = Path(tempdir)
+            nodes_folder = tempdir / "nodes"
+            with torch.random.fork_rng():
+                torch.random.manual_seed(0)
+                with torch.no_grad():
+                    model, bilinguist = self._load_restored_cruciform()
+                    navigator = CruciformerNodeNavigator(max_ranks=(100, 3, 2, 1))
+                    translator = Translator(model, bilinguist, self.device)
+                    for src_phrase in [
+                        "Pound of verse",
+                    ]:
+                        with self.subTest(src_phrase):
+                            nodes: list[Node] = []
+                            for node in translator.suggest_nodes(src_phrase, navigator=navigator):
+                                nodes.append(node)
+                            attempt = Attempt(0, src_phrase, "SOMETHING", 123, len(nodes), (), nodes)
+                            dlfp.translate.write_nodes(nodes_folder, attempt, bilinguist.target.vocab, bilinguist.target.specials)
+                            node_count = len(nodes)
+                            print(node_count, "nodes")
+            nodes_files = list(nodes_folder.iterdir())
+            for file in nodes_files:
+                print(file)
+            self.assertEqual(1, len(nodes_files))
+            with open(nodes_files[0], "r") as ifile:
+                csv_reader = csv.reader(ifile)
+                _ = next(csv_reader)
+                node_rows = list(csv_reader)
+            self.assertEqual(node_count, len(node_rows))
+
+    def test_suggest_nodes_cruciform_one(self):
+            with torch.random.fork_rng():
+                torch.random.manual_seed(0)
+                with torch.no_grad():
+                    model, bilinguist = self._load_restored_cruciform()
+                    navigator = CruciformerNodeNavigator(max_ranks=(1, 2, 1, 1))
+                    translator = Translator(model, bilinguist, self.device)
+                    src_phrase  = "Pound of verse"
+                    for complete_node in translator.suggest_nodes(src_phrase, navigator=navigator):
+                        print()
+                        lineage = complete_node.lineage()
+                        for node_index, node in enumerate(lineage):
+                            print(node_index, node.current_word, node.current_word_token(bilinguist.target.vocab))
+
 
     def test_greedy_suggest(self, verbose: bool = False):
         with torch.random.fork_rng():

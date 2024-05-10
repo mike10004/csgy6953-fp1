@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 
+import csv
 from collections import deque
+from pathlib import Path
+from typing import Any
+from typing import Optional
 from typing import Callable
 from typing import Collection
 from typing import Iterator
@@ -11,6 +15,7 @@ import torch
 from torch import Tensor
 from torchtext.vocab import Vocab
 
+import dlfp.common
 from dlfp.utils import Specials
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import Bilinguist
@@ -156,6 +161,13 @@ class Suggestion(NamedTuple):
         return suggestion.probability
 
 
+def indexes_to_phrase(indexes: Tensor, vocab: Vocab, strip_indexes: Collection[int]) -> str:
+    indexes = indexes.detach().flatten().cpu().numpy()
+    indexes = [idx for idx in indexes if not idx in strip_indexes]
+    tokens = vocab.lookup_tokens(indexes)
+    return " ".join(tokens)
+
+
 class Translator:
 
     def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
@@ -260,13 +272,50 @@ class NodeVisitor:
         next_words = next_words[:max_rank]
         next_words_probs = next_words_probs[:max_rank]
         for next_word, next_prob in zip(next_words, next_words_probs):
+            child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
+            child = Node(child_ys, next_prob)
             if next_word == self.parent.bilinguist.target.specials.indexes.eos:
-                child = Node(ys, next_prob, complete=True)
-                node.add_child(child)
+                child.complete = True
+            node.add_child(child)
+            if self.navigator.include(child):
                 yield from self.visit(child)
-            else:
-                child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
-                child = Node(child_ys, next_prob)
-                node.add_child(child)
-                if self.navigator.include(child):
-                    yield from self.visit(child)
+
+
+class Attempt(NamedTuple):
+
+    attempt_index: int
+    source: str
+    target: str
+    rank: int
+    suggestion_count: int
+    top: tuple[str, ...]
+    nodes: Optional[list[Node]] = None
+
+    @staticmethod
+    def headers(top_k: int) -> list[str]:
+        return list(Attempt._fields[:-1]) + [f"top_{i+1}" for i in range(top_k)]
+
+    def to_row(self) -> list[Any]:
+        return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
+
+
+def write_nodes(nodes_folder: Path,
+                attempt: Attempt,
+                target_vocab: Vocab,
+                specials: Specials):
+    answer = dlfp.utils.normalize_answer_upper(attempt.target)
+    filename = f"{attempt.attempt_index:06d}-{answer}-rank{attempt.rank}-nodes{len(attempt.nodes)}.csv"
+    strip_indexes = {specials.indexes.bos, specials.indexes.eos}
+    with dlfp.common.open_write(nodes_folder / filename, newline="") as ofile:
+        csv_writer = csv.writer(ofile)
+        csv_writer.writerow(["seq_len", "guess", "cumu_prob", "word", "prob", "..."])
+        for node in attempt.nodes:
+            lineage = node.lineage()
+            guess = dlfp.translate.indexes_to_phrase(node.y.flatten(), target_vocab, strip_indexes)
+            guess = dlfp.utils.normalize_answer_upper(guess)
+            row = [len(lineage), guess, node.cumulative_probability()]
+            for n in lineage:
+                row.append(n.current_word_token(target_vocab))
+                row.append(n.prob)
+            csv_writer.writerow(row)
+

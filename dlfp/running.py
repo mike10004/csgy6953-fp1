@@ -25,6 +25,7 @@ from tqdm import tqdm
 import dlfp.utils
 import dlfp.common
 import dlfp.models
+import dlfp.translate
 from dlfp.models import Seq2SeqTransformer
 from dlfp.translate import Node
 from dlfp.translate import NodeNavigator
@@ -42,27 +43,11 @@ from dlfp.utils import Split
 from dlfp.common import Table
 from dlfp.metrics import measure_accuracy
 from dlfp.metrics import DEFAULT_RANKS
+from dlfp.utils import Specials
+from dlfp.translate import Attempt
 
 StringTransform = Callable[[str], str]
 ATTEMPTS_TOP_K = 10
-
-
-class Attempt(NamedTuple):
-
-    index: int
-    source: str
-    target: str
-    rank: int
-    suggestion_count: int
-    top: tuple[str, ...]
-    nodes: Optional[list[Node]] = None
-
-    @staticmethod
-    def headers(top_k: int) -> list[str]:
-        return list(Attempt._fields[:-1]) + [f"top_{i+1}" for i in range(top_k)]
-
-    def to_row(self) -> list[Any]:
-        return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
 
 
 class ModelManager:
@@ -271,7 +256,7 @@ class Runner:
                         attempt_: Attempt = attempt_q.get(timeout=0.25)
                         csv_writer.writerow(attempt_.to_row())
                         if nodes_folder is not None:
-                            self.write_nodes(nodes_folder, attempt_, attempt_index, r.bilinguist.target.vocab)
+                            dlfp.translate.write_nodes(nodes_folder, attempt_, r.bilinguist.target.vocab, r.bilinguist.target.specials)
                         attempt_index += 1
                     except queue.Empty:
                         pass
@@ -288,20 +273,6 @@ class Runner:
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
         table.write()
-
-    def write_nodes(self, nodes_folder: Path, attempt: Attempt, attempt_index: int, target_vocab: Vocab):
-        answer = dlfp.utils.normalize_answer_upper(attempt.target)
-        filename = f"{attempt_index:06d}-{answer}-{len(attempt.nodes)}.csv"
-        with dlfp.common.open_write(nodes_folder / filename, newline="") as ofile:
-            csv_writer = csv.writer(ofile)
-            csv_writer.writerow(["seq_len", "cumu_prob", "word", "prob"])
-            for node in attempt.nodes:
-                lineage = node.lineage()
-                row = [len(lineage), node.cumulative_probability()]
-                for n in lineage:
-                    row.append(n.current_word_token(target_vocab))
-                    row.append(n.prob)
-            csv_writer.writerow(row)
 
     def run_demo(self, restored: Restored, dataset_name: str, h: ModelHyperparametry, device: str, limit: int = ...):
         r = self.create_runnable(dataset_name, h, device)
@@ -355,7 +326,10 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
         restored = Restored.from_file(checkpoint_file, device=device)
         split = args.split or "valid"
         output_file = (args.output or Path.cwd()) / "evaluations" / f"{checkpoint_file.stem}_{split}_{timestamp}.csv"
-        runner.run_eval(restored, args.dataset, model_hp, device, output_file, split=split, concurrency=args.concurrency, nodes_folder=args.nodes)
+        nodes_folder = args.nodes
+        if nodes_folder is not None and str(nodes_folder) == "auto":
+            nodes_folder = output_file.parent / f"{output_file.stem}-nodes"
+        runner.run_eval(restored, args.dataset, model_hp, device, output_file, split=split, concurrency=args.concurrency, nodes_folder=nodes_folder)
         return 0
     elif args.mode == "train":
         checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
