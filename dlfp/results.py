@@ -40,7 +40,7 @@ class AccuracyResult(NamedTuple):
             count = self.rank_acc_count[rank]
             proportion = count / self.attempt_count
             table.append([rank, count, proportion * 100.0])
-        return Table(table, *self.table_headers())
+        return Table(table, self.table_headers())
 
 
 def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> AccuracyResult:

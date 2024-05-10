@@ -4,6 +4,7 @@ import csv
 import json
 import sys
 import queue
+import logging
 from pathlib import Path
 from queue import Queue
 from random import Random
@@ -46,7 +47,7 @@ from dlfp.translate import Attempt
 
 StringTransform = Callable[[str], str]
 ATTEMPTS_TOP_K = 10
-
+_log = logging.getLogger(__name__)
 
 class ModelManager:
 
@@ -64,11 +65,10 @@ class ModelManager:
                  suggestion_count: int,
                  callback: Callable[[Attempt], None],
                  hide_progress: bool = False,
-                 concurrency: int = None,
-                 limit: Optional[int] = None,
-                 shuffle_seed: Optional[int] = None):
+                 concurrency: int = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset):
+            _log.debug("evaluating dataset of size %s", len(dataset_part))
             for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, limit=None, guesses_per_phrase=suggestion_count)):
                 phrases = [s.phrase for s in suggestions]
                 try:
@@ -76,23 +76,22 @@ class ModelManager:
                 except ValueError:
                     actual_rank = float("nan")
                 if callback is not None:
+                    _log.debug("invoking callback with attempt %s", index)
                     callback(Attempt(index, src_phrase, tgt_phrase, actual_rank, len(phrases), tuple(phrases[:ATTEMPTS_TOP_K]), nodes))
                 progress_bar.update(1)
-        if limit is not None:
-            rng = None
-            if shuffle_seed is None or shuffle_seed >= 0:
-                rng = Random(shuffle_seed)
-            if rng is not None:
-                dataset = dataset.shuffle(rng)
-            dataset = dataset.slice(0, limit)
-        if concurrency is not None:
-            partitioning = dataset.partition(concurrency)
-            with ThreadPoolExecutor(max_workers=concurrency) as executor:
-                for partitioning_item in partitioning:
-                    partitioning_item: PhrasePairDataset
-                    executor.submit(perform, partitioning_item)
-        else:
-            perform(dataset)
+            _log.debug("evaluate: perform: finished")
+        try:
+            if concurrency is not None:
+                partitioning = dataset.partition(concurrency)
+                with ThreadPoolExecutor(max_workers=concurrency) as executor:
+                    for partitioning_item in partitioning:
+                        partitioning_item: PhrasePairDataset
+                        executor.submit(perform, partitioning_item)
+                    _log.debug("awaiting thread pool executor %s works to finish", len(partitioning))
+            else:
+                perform(dataset)
+        finally:
+            _log.debug("ModelManager.completed = True")
 
     def print_translations(self, dataset: PhrasePairDataset, limit: int):
         for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, limit=limit)):
@@ -239,6 +238,19 @@ class Runner:
         }
         return Runnable(superset, bilinguist, model_manager, metadata)
 
+    @staticmethod
+    def _prepare_dataset(dataset: PhrasePairDataset,
+                         limit: Optional[int],
+                         shuffle_seed: Optional[int]) -> PhrasePairDataset:
+        if limit is not None:
+            rng = None
+            if shuffle_seed is None or shuffle_seed >= 0:
+                rng = Random(shuffle_seed)
+            if rng is not None:
+                dataset = dataset.shuffle(rng)
+            dataset = dataset.slice(0, limit)
+        return dataset
+
     def run_eval(self,
                  restored: Restored,
                  dataset_name: str,
@@ -249,41 +261,50 @@ class Runner:
         r = self.create_runnable(dataset_name, h, device)
         r.manager.model.load_state_dict(restored.model_state_dict)
         dataset = getattr(r.superset, eval_config.split)
+        dataset = self._prepare_dataset(dataset, limit=eval_config.limit, shuffle_seed=eval_config.shuffle_seed)
         output_file.parent.mkdir(exist_ok=True, parents=True)
+        nodes_folder = eval_config.nodes_folder
+        if nodes_folder is not None:
+            if str(nodes_folder) == "auto":
+                nodes_folder = output_file.parent / f"{output_file.stem}-nodes"
         completed = False
         attempt_q = Queue()
         def write_csv():
+            _log.debug("write attempts csv file starting: %s", output_file.as_posix())
             with open(output_file, "w", newline="", encoding="utf-8") as ofile:
                 csv_writer = csv.writer(ofile)
                 csv_writer.writerow(Attempt.headers(ATTEMPTS_TOP_K))
-                attempt_index = 0
-                while (not completed) or attempt_q:
+                def _process(a: Attempt):
+                    nonlocal nodes_folder
+                    csv_writer.writerow(a.to_row())
+                    if nodes_folder is not None:
+                        dlfp.translate.write_nodes(nodes_folder, a, r.bilinguist.target.vocab, r.bilinguist.target.specials)
+                while not completed:
                     try:
                         attempt_: Attempt = attempt_q.get(timeout=0.25)
-                        csv_writer.writerow(attempt_.to_row())
-                        if eval_config.nodes_folder is not None:
-                            nodes_folder = eval_config.nodes_folder
-                            if str(nodes_folder) == "auto":
-                                nodes_folder = output_file.parent / f"{output_file.stem}-nodes"
-                            dlfp.translate.write_nodes(nodes_folder, attempt_, r.bilinguist.target.vocab, r.bilinguist.target.specials)
-                        attempt_index += 1
+                        _process(attempt_)
                     except queue.Empty:
                         pass
-        write_csv_thread = Thread(target=write_csv)
-        write_csv_thread.start()
+                _log.debug("queue loop terminated: attempt_q.qsize=%s", attempt_q.qsize())
+                # concurrent operation could result in completed=True but queue still has items
+                while attempt_q.qsize() > 0:
+                    try:
+                        _process(attempt_q.get(block=False))
+                    except queue.Empty:
+                        break
+        csv_thread = Thread(target=write_csv, daemon=True)
+        csv_thread.start()
         print(f"split: {eval_config.split} (limit: {eval_config.limit})")
         try:
             r.manager.evaluate(dataset,
                                max(DEFAULT_RANKS),
                                callback=attempt_q.put,
-                               concurrency=eval_config.concurrency,
-                               limit=eval_config.limit,
-                               shuffle_seed=eval_config.shuffle_seed)
+                               concurrency=eval_config.concurrency)
         finally:
             completed = True
-        print("finishing csv writes...", end="")
-        write_csv_thread.join()
-        print("done")
+            print("awaiting evaluate thread join...", end="")
+            csv_thread.join()
+            print("done")
         result = measure_accuracy(output_file, DEFAULT_RANKS)
         table = result.to_table()
         table.write()

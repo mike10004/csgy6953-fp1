@@ -3,6 +3,7 @@
 import warnings
 from configparser import ConfigParser
 from pathlib import Path
+from typing import NamedTuple
 from typing import Optional
 from typing import Callable
 from typing import TypeVar
@@ -114,7 +115,15 @@ def get_testdata_dir() -> Path:
     return dlfp.common.get_repo_root() / "dlfp_tests" / "testdata"
 
 
-def load_restored_cruciform(checkpoint_file: Path, device: str, dataset_name: str = "easymark"):
+class RestoredContainer(NamedTuple):
+
+    model: dlfp.models.Seq2SeqTransformer
+    bilinguist: Bilinguist
+    model_hp: dlfp.models.ModelHyperparametry
+
+
+
+def load_restored_cruciform(checkpoint_file: Path, device: str, dataset_name: str = "easymark") -> RestoredContainer:
     restored = Restored.from_file(checkpoint_file, device=device)
     train_dataset = DatasetResolver().by_name(dataset_name, "train")
     cache = LanguageCache()
@@ -131,4 +140,4 @@ def load_restored_cruciform(checkpoint_file: Path, device: str, dataset_name: st
     ).to(device)
     model.load_state_dict(restored.model_state_dict)
     model.eval()
-    return model, bilinguist
+    return RestoredContainer(model, bilinguist, model_hp)
