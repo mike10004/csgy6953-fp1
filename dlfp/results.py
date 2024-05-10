@@ -80,7 +80,7 @@ def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
             yield Path(root) / sorted(filenames, reverse=True)[0]
 
 
-def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
+def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("dataset", "emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
     table_rows = []
     short_names = {
         "transformer_dropout_rate": "tdr",
@@ -90,6 +90,7 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("emb_si
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
         try:
             restored = Restored.from_file(checkpoint_file, device="cpu")
+            metadata = (restored.extra or {}).get("metadata", {})
             ok, train_hp, model_hp = dlfp.models.get_hyperparameters(restored)
             if not ok:
                 _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
@@ -97,6 +98,7 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("emb_si
             train_hp: TrainHyperparametry
             model_hp: ModelHyperparametry
             merged = {}
+            merged.update(metadata)
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())
             table_rows.append([rel_file] + [merged[k] for k in columns])
