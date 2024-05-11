@@ -3,22 +3,30 @@
 import csv
 import tempfile
 from pathlib import Path
+from random import Random
 from unittest import TestCase
+
+import numpy as np
 import torch
+from torch import Tensor
 
 import dlfp.translate
 import dlfp.models
 from dlfp.models import create_model
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import GermanToEnglishNodeNavigator
+from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.translate import Translator
 from dlfp.translate import Attempt
 from dlfp.translate import Node
+from dlfp.translate import NodeVisitor
+from dlfp.translate import CruciformerCharmarkNodeNavigator
 import dlfp_tests.tools
 from dlfp.utils import Restored
 from dlfp.utils import Bilinguist
 from dlfp.common import get_repo_root
+from dlfp.utils import SpecialIndexes
 
 dlfp_tests.tools.suppress_cuda_warning()
 
@@ -186,8 +194,8 @@ class TranslatorTest(TestCase):
                 print(f"{len(completes)} nodes completed; {visited} visited")
                 root = completes[0].lineage()[0]
                 print(root)
-                for child in root.children:
-                    print(child)
+                # for child in root.children:
+                #     print(child)
                 print()
                 self.assertIsNone(root.parent)
                 assigned: list[Suggestion] = []
@@ -234,3 +242,85 @@ class TranslatorTest(TestCase):
         softmax = torch.nn.Softmax(dim=-1)
         s = softmax(torch.tensor([[1, 4.5, 4.6]]))
         print(s)
+        self.assertAlmostEqual(s[0][1], s[0][2], delta=0.5)
+
+
+class PseudoGeneratorNodeVisitor(NodeVisitor):
+
+    def __init__(self, max_len: int, navigator: NodeNavigator):
+        # noinspection PyTypeChecker
+        parent: Translator = None
+        # noinspection PyTypeChecker
+        memory: Tensor = None
+        super().__init__(parent, max_len, memory, navigator)
+        self.rng = Random(18462)
+        self.special_indexes = SpecialIndexes()
+        self.special_chars = {
+            self.special_indexes.bos: "<",
+            self.special_indexes.eos: ">",
+            self.special_indexes.pad: "_",
+            self.special_indexes.unk: "?",
+        }
+        self.tgt_vocab = [self.special_indexes.eos] + list(range(4, 4 + 26))
+        assert len(self.tgt_vocab) == 27, f"expect vocab length 27, got {len(self.tgt_vocab)} in {self.tgt_vocab}"
+        assert len(set(self.tgt_vocab)) == len(self.tgt_vocab), f"expect uniques in {self.tgt_vocab}"
+
+    def _is_eos(self, index: int) -> bool:
+        return index == self.special_indexes.eos
+
+    def to_char(self, index: int) -> str:
+        ch = self.special_chars.get(index, None)
+        if ch is not None:
+            return ch
+        index -= 4  #
+        return chr(index + 65)
+
+    def to_word(self, node: Node):
+        indexes = node.y.flatten().numpy().tolist()
+        return "".join(map(self.to_char, indexes))
+
+    def _generate_next(self, node: Node) -> tuple[Tensor, Tensor]:
+        candidates = list(self.tgt_vocab)
+        self.rng.shuffle(candidates)
+        probs = torch.linspace(1.0, 1e-6, steps=len(candidates))
+        return torch.tensor(candidates, dtype=torch.int64), probs
+
+class NodeVisitorTest(TestCase):
+
+    def test_visit(self):
+        required_len = 5
+        navigator = CruciformerCharmarkNodeNavigator(required_len)
+        visitor = PseudoGeneratorNodeVisitor(required_len, navigator)
+        indexes = SpecialIndexes()
+        root = Node(torch.tensor([[indexes.bos]]), 1.0, False)
+        complete = []
+        visited_count = 0
+        for node in visitor.visit(root):
+            if visited_count > 1_000_000:
+                break
+            if node.complete:
+                self.assertEqual(required_len, node.sequence_length())
+                complete.append(node)
+                if len(complete) >= 100:
+                    break
+            visited_count += 1
+        print(visited_count, 'visited')
+        print(len(complete), 'complete')
+
+        for node in complete:
+            answer = visitor.to_word(node)
+            print(answer)
+            self.assertEqual(required_len, len(answer))
+
+    def test_suggestion_count(self):
+        for required_len in range(5, 19):
+            with self.subTest(required_len=required_len):
+                count = 1
+                for i in range(required_len):
+                    try:
+                        factor = dlfp.translate.DEFAULT_CHARMARK_MAX_RANKS[i]
+                    except IndexError:
+                        factor = 1
+                    count *= factor
+                print(f"{required_len:2d} -> {count:7d}")
+                self.assertLess(count, 5_000_000)

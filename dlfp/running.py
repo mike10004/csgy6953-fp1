@@ -36,6 +36,7 @@ from dlfp.train import Trainer
 from dlfp.models import ModelHyperparametry
 from dlfp.models import TrainHyperparametry
 from dlfp.translate import Translator
+from dlfp.translate import NodeVisitorFactory
 from dlfp.utils import Checkpointer
 from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
@@ -58,6 +59,11 @@ class GuessResult(NamedTuple):
     nodes: Optional[list[Node]]
 
 
+class NodeStrategy(NamedTuple):
+
+    navigator: NodeNavigator
+    visitor_factory: NodeVisitorFactory
+
 class ModelManager:
 
     def __init__(self, model: Cruciformer, bilinguist: Bilinguist, device: str):
@@ -72,13 +78,13 @@ class ModelManager:
                  dataset: PhrasePairDataset,
                  suggestion_count: int,
                  callback: Callable[[Attempt], None],
-                 node_navigator: NodeNavigator,
+                 node_strategy: NodeStrategy,
                  hide_progress: bool = False,
                  concurrency: int = None):
         progress_bar = tqdm(file=sys.stdout, total=len(dataset), disable=hide_progress)
         def perform(dataset_part: PhrasePairDataset):
             _log.debug("evaluating dataset of size %s", len(dataset_part))
-            for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, node_navigator=node_navigator, limit=None, guesses_per_phrase=suggestion_count)):
+            for index, (src_phrase, tgt_phrase, suggestions, nodes) in enumerate(self._iterate_guesses(dataset_part, node_strategy=node_strategy, limit=None, guesses_per_phrase=suggestion_count)):
                 phrases = [s.phrase for s in suggestions]
                 try:
                     actual_rank = phrases.index(tgt_phrase) + 1
@@ -105,8 +111,8 @@ class ModelManager:
     def print_translations(self,
                            dataset: PhrasePairDataset,
                            limit: int,
-                           node_navigator: NodeNavigator):
-        for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, node_navigator=node_navigator, limit=limit)):
+                           node_strategy: NodeStrategy):
+        for index, (src_phrase, tgt_phrase, suggestions, _) in enumerate(self._iterate_guesses(dataset, node_strategy=node_strategy, limit=limit)):
             if index > 0:
                 print()
             print(f"{index: 2d} src: {src_phrase}")
@@ -115,10 +121,11 @@ class ModelManager:
 
     def _iterate_guesses(self,
                          dataset: PhrasePairDataset,
-                         node_navigator: NodeNavigator,
+                         node_strategy: NodeStrategy,
                          limit: Optional[int] = None,
                          guesses_per_phrase: Optional[int] = None) -> Iterator[GuessResult]:
         translator = Translator(self.model, self.bilinguist, self.device)
+        translator.node_visitor_factory = node_strategy.visitor_factory
         for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if limit is not None and index >= limit:
                 break
@@ -133,7 +140,7 @@ class ModelManager:
                 def _set_nodes(nodes_):
                     nonlocal nodes
                     nodes = nodes_
-                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=node_navigator, nodes_callback=_set_nodes)
+                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=node_strategy.navigator, nodes_callback=_set_nodes)
                 if not self.tgt_transform is dlfp.common.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
             yield GuessResult(src_phrase, tgt_phrase, suggestions, nodes)
@@ -204,16 +211,17 @@ class EvalConfig(NamedTuple):
     nodes_folder: Optional[Path] = None
     limit: Optional[int] = None
     shuffle_seed: Optional[int] = None
-    navigator: Optional[str] = None
+    node_strategy: Optional[str] = None
 
     @staticmethod
     def from_args(arguments: Optional[list[str]]) -> 'EvalConfig':
         types = {
-            'split': str,
+            'concurrency': int,
+            'limit': int,
+            'shuffle_seed': int,
             'nodes_folder': Path,
-            'navigator': str,
         }
-        return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=int)
+        return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=str)
 
 
 class Runner:
@@ -260,7 +268,7 @@ class Runner:
         }
         return Runnable(superset, bilinguist, model_manager, metadata)
 
-    def create_navigator(self, navigator_spec: str, dataset_name: str) -> NodeNavigator:
+    def create_node_strategy(self, node_strategy_spec: str, dataset_name: str) -> NodeStrategy:
         raise NotImplementedError("abstract")
 
     @staticmethod
@@ -325,7 +333,7 @@ class Runner:
                                max(DEFAULT_RANKS),
                                callback=attempt_q.put,
                                concurrency=eval_config.concurrency,
-                               node_navigator=self.create_navigator(eval_config.navigator, dataset.name))
+                               node_strategy=self.create_node_strategy(eval_config.node_strategy, dataset.name))
         finally:
             completed = True
             print("awaiting csv writes complete...", end="")
@@ -343,8 +351,8 @@ class Runner:
         if limit is None:
             limit = len(r.superset.valid)
         r.manager.model.load_state_dict(restored.model_state_dict)
-        node_navigator = self.create_navigator("default", dataset_name)
-        r.manager.print_translations(r.superset.valid, node_navigator=node_navigator, limit=limit)
+        node_strategy = self.create_node_strategy("default", dataset_name)
+        r.manager.print_translations(r.superset.valid, node_strategy=node_strategy, limit=limit)
 
 
 def get_model_hyperparametry(restored: Restored) -> ModelHyperparametry:

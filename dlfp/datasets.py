@@ -47,9 +47,6 @@ class DatasetResolver:
         language_pair = ('de', 'en')
         # noinspection PyTypeChecker
         items: list[tuple[str, str]] = list(Multi30k(root=str(self.data_root), split=split, language_pair=language_pair))
-        split_stem = {
-            "valid": "val"
-        }.get(split, split)
         src_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"train.de")
         tgt_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"train.en")
         return PhrasePairDataset("multi30k_de_en", items, language_pair, data_hash_pair=(src_hash, tgt_hash))

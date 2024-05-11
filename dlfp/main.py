@@ -8,9 +8,12 @@ from dlfp.models import ModelHyperparametry
 from dlfp.running import DataSuperset
 from dlfp.running import Runnable
 from dlfp.running import Runner
+from dlfp.running import NodeStrategy
+from dlfp.translate import CruciformerCharmarkNodeNavigator
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import CruciformerOnemarkNodeNavigator
-from dlfp.translate import NodeNavigator
+from dlfp.translate import NodeVisitor
+from dlfp.translate import NodeVisitorFactory
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
@@ -46,11 +49,14 @@ class CruciformerRunner(Runner):
         r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
         return r
 
-    def create_navigator(self, navigator_spec: str, dataset_name: str) -> NodeNavigator:
-        navigator_type = CruciformerNodeNavigator
-        if dataset_name == "onemark":
-            navigator_type = CruciformerOnemarkNodeNavigator
-        return navigator_type()
+    def create_node_strategy(self, strategy_spec: str, dataset_name: str) -> NodeStrategy:
+        navigator_type = {
+            "easymark": CruciformerNodeNavigator,
+            "onemark": CruciformerOnemarkNodeNavigator,
+            "charmark": CruciformerCharmarkNodeNavigator,
+        }[dataset_name]
+        visitor_factory: NodeVisitorFactory = NodeVisitor
+        return NodeStrategy(navigator=navigator_type(), visitor_factory=visitor_factory)
 
 
 def main() -> int:
