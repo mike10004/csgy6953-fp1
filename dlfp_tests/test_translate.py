@@ -4,7 +4,6 @@ import csv
 import tempfile
 from pathlib import Path
 from random import Random
-from typing import Iterator
 from unittest import TestCase
 
 import torch
@@ -247,49 +246,7 @@ class TranslatorTest(TestCase):
         self.assertAlmostEqual(s[0][1], s[0][2], delta=0.5)
 
 
-class ExtensibleNodeVisitor(NodeVisitor):
-
-    def __init__(self, parent: Translator, max_len: int, memory: Tensor, navigator: NodeNavigator):
-        self.parent = parent
-        self.max_len = max_len
-        self.memory = memory
-        self.navigator = navigator
-
-    def _generate_next(self, node: Node) -> tuple[Tensor, Tensor]:
-        tgt_mask = (dlfp.utils.generate_square_subsequent_mask(node.y.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
-        out = self.parent.model.decode(node.y, self.memory, tgt_mask)
-        out = out.transpose(0, 1)
-        prob = self.parent.model.generator(out[:, -1])
-        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
-        next_words: Tensor = next_words.flatten()
-        next_words_probs: Tensor = next_words_probs.flatten()
-        return next_words, next_words_probs
-
-    def _is_eos(self, index: int) -> bool:
-        return index == self.parent.bilinguist.target.specials.indexes.eos
-
-    def visit(self, node: Node) -> Iterator[Node]:
-        tgt_sequence_len = node.sequence_length()
-        if tgt_sequence_len >= self.max_len:
-            node.complete = True
-        yield node
-        if node.complete:
-            return
-        next_words, next_words_probs = self._generate_next(node)
-        next_words_probs = self.navigator.normalize_probs(next_words_probs)
-        max_rank = self.navigator.get_max_rank(tgt_sequence_len)
-        next_words = next_words[:max_rank]
-        next_words_probs = next_words_probs[:max_rank]
-        for next_word, next_prob in zip(next_words, next_words_probs):
-            child_ys = torch.cat([node.y, torch.ones(1, 1).type_as(node.y.data).fill_(next_word)], dim=0)
-            child = Node(child_ys, next_prob)
-            if self._is_eos(next_word):
-                child.complete = True
-            if self.navigator.include(child):
-                yield from self.visit(child)
-
-
-class PseudoGeneratorNodeVisitor(ExtensibleNodeVisitor):
+class PseudoGeneratorNodeVisitor(NodeVisitor):
 
     def __init__(self, max_len: int, navigator: NodeNavigator):
         # noinspection PyTypeChecker
@@ -309,7 +266,7 @@ class PseudoGeneratorNodeVisitor(ExtensibleNodeVisitor):
         assert len(self.tgt_vocab) == 27, f"expect vocab length 27, got {len(self.tgt_vocab)} in {self.tgt_vocab}"
         assert len(set(self.tgt_vocab)) == len(self.tgt_vocab), f"expect uniques in {self.tgt_vocab}"
 
-    def _is_eos(self, index: int) -> bool:
+    def _is_eos_index(self, index: int) -> bool:
         return index == self.special_indexes.eos
 
     def to_char(self, index: int) -> str:

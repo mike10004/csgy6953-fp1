@@ -9,7 +9,6 @@ from typing import Callable
 from typing import Collection
 from typing import Iterator
 from typing import NamedTuple
-from typing import Protocol
 from typing import Sequence
 
 import torch
@@ -286,6 +285,20 @@ class NodeVisitor:
         self.memory = memory
         self.navigator = navigator
 
+    def _is_eos_index(self, index: int) -> bool:
+        return index == self.parent.bilinguist.target.specials.indexes.eos
+
+    def _generate_next(self, node: Node) -> tuple[Tensor, Tensor]:
+        ys = node.y
+        tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
+        out = self.parent.model.decode(ys, self.memory, tgt_mask)
+        out = out.transpose(0, 1)
+        prob = self.parent.model.generator(out[:, -1])
+        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
+        next_words: Tensor = next_words.flatten()
+        next_words_probs: Tensor = next_words_probs.flatten()
+        return next_words, next_words_probs
+
     def visit(self, node: Node) -> Iterator[Node]:
         ys = node.y
         tgt_sequence_len = node.sequence_length()
@@ -294,13 +307,7 @@ class NodeVisitor:
         yield node
         if node.complete:
             return
-        tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
-        out = self.parent.model.decode(ys, self.memory, tgt_mask)
-        out = out.transpose(0, 1)
-        prob = self.parent.model.generator(out[:, -1])
-        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
-        next_words: Tensor = next_words.flatten()
-        next_words_probs: Tensor = next_words_probs.flatten()
+        next_words, next_words_probs = self._generate_next(node)
         next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
         next_words = next_words[:max_rank]
@@ -308,7 +315,7 @@ class NodeVisitor:
         for next_word, next_prob in zip(next_words, next_words_probs):
             child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
             child = Node(child_ys, next_prob)
-            if next_word == self.parent.bilinguist.target.specials.indexes.eos:
+            if self._is_eos_index(next_word):
                 child.complete = True
             node.add_child(child)
             if self.navigator.include(child):
