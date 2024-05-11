@@ -37,7 +37,6 @@ from dlfp.train import Trainer
 from dlfp.models import ModelHyperparametry
 from dlfp.models import TrainHyperparametry
 from dlfp.translate import Translator
-from dlfp.translate import NodeVisitorFactory
 from dlfp.utils import Checkpointer
 from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
@@ -63,7 +62,6 @@ class GuessResult(NamedTuple):
 class NodeStrategy(NamedTuple):
 
     navigator: NodeNavigator
-    visitor_factory: NodeVisitorFactory
 
 class ModelManager:
 
@@ -126,7 +124,6 @@ class ModelManager:
                          limit: Optional[int] = None,
                          guesses_per_phrase: Optional[int] = None) -> Iterator[GuessResult]:
         translator = Translator(self.model, self.bilinguist, self.device)
-        translator.node_visitor_factory = node_strategy.visitor_factory
         for index, (src_phrase, tgt_phrase) in enumerate(dataset):
             if limit is not None and index >= limit:
                 break

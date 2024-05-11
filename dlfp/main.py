@@ -14,8 +14,6 @@ from dlfp.running import NodeStrategy
 from dlfp.translate import CruciformerCharmarkNodeNavigator
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import CruciformerOnemarkNodeNavigator
-from dlfp.translate import NodeVisitor
-from dlfp.translate import NodeVisitorFactory
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
@@ -57,8 +55,7 @@ class CruciformerRunner(Runner):
             "onemark": CruciformerOnemarkNodeNavigator,
             "charmark": CruciformerCharmarkNodeNavigator,
         }[dataset_name]
-        visitor_factory: NodeVisitorFactory = NodeVisitor
-        return NodeStrategy(navigator=navigator_type(), visitor_factory=visitor_factory)
+        return NodeStrategy(navigator=navigator_type())
 
 
 def main(argv1: Optional[Sequence[str]] = None) -> int:

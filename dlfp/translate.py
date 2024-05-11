@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
+from collections import deque
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -40,6 +41,7 @@ class Node:
         self.current_word = flat_y[-1].item()
         self._sequence_length = flat_y.shape[0]
         self.parent = None
+        self.children = []
         self.complete = complete
         if isinstance(prob, Tensor):
             prob = prob.item()
@@ -51,6 +53,10 @@ class Node:
     def sequence_length(self) -> int:
         return self._sequence_length
 
+    def add_child(self, child: 'Node'):
+        child.parent = self
+        self.children.append(child)
+
     def lineage(self) -> list['Node']:
         path_to_root = []
         current = self
@@ -60,8 +66,7 @@ class Node:
         return list(reversed(path_to_root))
 
     def __repr__(self):
-        complete_infix = "c" if self.complete else "i"
-        return f"Node({self.y.flatten().cpu().numpy().tolist()},p={self.prob:.4e},{complete_infix})"
+        return f"Node({self.y.flatten().cpu().numpy().tolist()},c={len(self.children)})"
 
     def cumulative_probability(self) -> float:
         nodes = self.lineage()
@@ -70,6 +75,14 @@ class Node:
         for node in nodes:
             p *= node.prob
         return p
+
+    def bfs(self) -> Iterator['Node']:
+        queue = deque([self])
+        while queue:
+            current = queue.popleft()
+            yield current
+            for child in current.children:
+                queue.append(child)
 
 
 
@@ -146,6 +159,9 @@ class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
     def __init__(self, max_len: int = 2, max_ranks: Sequence[int] = (100, 1)):
         super().__init__(max_len, max_ranks)
 
+    def include(self, node: Node) -> bool:
+        return True
+
 
 DEFAULT_CHARMARK_MAX_RANKS = (
     12, 10, 10, 10,
@@ -199,7 +215,6 @@ class Translator:
         self.bilinguist = bilinguist
         specials = Specials.create()
         self.strip_indexes = {specials.indexes.bos, specials.indexes.eos}
-        self.node_visitor_factory = NodeVisitor
 
     def greedy_decode(self, src_phrase: PhraseEncoding) -> Tensor:
         for node in self.greedy_suggest(src_phrase):
@@ -219,7 +234,7 @@ class Translator:
             memory = model.encode(src, src_mask).to(self.device)
             ys = torch.ones(1, 1).fill_(start_symbol).type(torch.long).to(self.device)
             root = Node(ys, prob=1.0)
-            visitor = self.node_visitor_factory(self, max_len, memory, navigator)
+            visitor = NodeVisitor(self, max_len, memory, navigator)
             yield from visitor.visit(root)
 
     def indexes_to_phrase(self, indexes: Tensor) -> str:
@@ -271,36 +286,31 @@ class NodeVisitor:
         self.memory = memory
         self.navigator = navigator
 
-    def _generate_next(self, node: Node) -> tuple[Tensor, Tensor]:
-        tgt_mask = (generate_square_subsequent_mask(node.y.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
-        out = self.parent.model.decode(node.y, self.memory, tgt_mask)
-        out = out.transpose(0, 1)
-        prob = self.parent.model.generator(out[:, -1])
-        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
-        next_words: Tensor = next_words.flatten()
-        next_words_probs: Tensor = next_words_probs.flatten()
-        return next_words, next_words_probs
-
-    def _is_eos(self, index: int) -> bool:
-        return index == self.parent.bilinguist.target.specials.indexes.eos
-
     def visit(self, node: Node) -> Iterator[Node]:
+        ys = node.y
         tgt_sequence_len = node.sequence_length()
         if tgt_sequence_len >= self.max_len:
             node.complete = True
         yield node
         if node.complete:
             return
-        next_words, next_words_probs = self._generate_next(node)
+        tgt_mask = (generate_square_subsequent_mask(ys.size(0), device=self.parent.device).type(torch.bool)).to(self.parent.device)
+        out = self.parent.model.decode(ys, self.memory, tgt_mask)
+        out = out.transpose(0, 1)
+        prob = self.parent.model.generator(out[:, -1])
+        next_words_probs, next_words = torch.topk(prob, k=prob.shape[1], dim=1)
+        next_words: Tensor = next_words.flatten()
+        next_words_probs: Tensor = next_words_probs.flatten()
         next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
         next_words = next_words[:max_rank]
         next_words_probs = next_words_probs[:max_rank]
         for next_word, next_prob in zip(next_words, next_words_probs):
-            child_ys = torch.cat([node.y, torch.ones(1, 1).type_as(node.y.data).fill_(next_word)], dim=0)
+            child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
             child = Node(child_ys, next_prob)
-            if self._is_eos(next_word):
+            if next_word == self.parent.bilinguist.target.specials.indexes.eos:
                 child.complete = True
+            node.add_child(child)
             if self.navigator.include(child):
                 yield from self.visit(child)
 
@@ -342,10 +352,3 @@ def write_nodes(nodes_folder: Path,
                 row.append(n.current_word_token(target_vocab))
                 row.append(n.prob)
             csv_writer.writerow(row)
-
-
-
-class NodeVisitorFactory(Protocol):
-
-    def __call__(self, parent: Translator, max_len: int, memory: Tensor, navigator: NodeNavigator) -> NodeVisitor: ...
-
