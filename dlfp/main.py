@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import sys
+from typing import Optional
+from typing import Sequence
 
 import dlfp.running
 from dlfp.datasets import DatasetResolver
@@ -41,7 +43,7 @@ class CruciformerRunner(Runner):
         cache = LanguageCache()
         assert ("clue", "answer") == superset.train.language_pair
         source = cache.get(superset.train, "clue", superset.src_tokenizer_name, superset.src_tokenizer_language)
-        target = cache.get(superset.train, "answer", superset.src_tokenizer_name, superset.src_tokenizer_language)
+        target = cache.get(superset.train, "answer", superset.tgt_tokenizer_name, superset.tgt_tokenizer_language)
         return Bilinguist(source, target)
 
     def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:
@@ -59,8 +61,8 @@ class CruciformerRunner(Runner):
         return NodeStrategy(navigator=navigator_type(), visitor_factory=visitor_factory)
 
 
-def main() -> int:
-    return dlfp.running.main(CruciformerRunner())
+def main(argv1: Optional[Sequence[str]]) -> int:
+    return dlfp.running.main(CruciformerRunner(), argv1=argv1)
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ from typing import Optional
 from threading import Thread
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
+from typing import Sequence
 
 import torch
 from tqdm import tqdm
@@ -237,22 +238,27 @@ class Runner:
 
     # noinspection PyMethodMayBeStatic
     def create_model(self, bilinguist: Bilinguist, h: ModelHyperparametry) -> Cruciformer:
+        src_vocab_size = len(bilinguist.source.vocab)
+        tgt_vocab_size = len(bilinguist.target.vocab)
         model = dlfp.models.create_model(
-            src_vocab_size=len(bilinguist.source.vocab),
-            tgt_vocab_size=len(bilinguist.target.vocab),
+            src_vocab_size=src_vocab_size,
+            tgt_vocab_size=tgt_vocab_size,
             h=h,
         )
         return model
 
-    def run_train(self, train_config: TrainConfig, device: str):
-        r = self.create_runnable(train_config.dataset_name, train_config.model_hp, device)
-        loaders = TrainLoaders.from_datasets(
+    def _to_loaders(self, r: Runnable, train_config: TrainConfig):
+        return TrainLoaders.from_datasets(
             r.superset.train,
             r.superset.valid,
             collate_fn=r.bilinguist.collate,
             batch_size=train_config.train_hp.batch_size,
             train_shuffle=not train_config.train_hp.train_data_shuffle_disabled,
         )
+
+    def run_train(self, train_config: TrainConfig, device: str):
+        r = self.create_runnable(train_config.dataset_name, train_config.model_hp, device)
+        loaders = self._to_loaders(r, train_config)
         r.manager.train(loaders, train_config.checkpoints_dir, train_config, r.metadata)
 
     def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:
@@ -361,7 +367,7 @@ def get_model_hyperparametry(restored: Restored) -> ModelHyperparametry:
         raise ValueError("model hyperparameters not available in restored checkpoint")
     return model_hp
 
-def main(runner: Runner) -> int:
+def main(runner: Runner, argv1: Optional[Sequence[str]] = None) -> int:
     parser = ArgumentParser(description=runner.describe(), epilog=f"""\
 Allowed --train-param keys are: {TrainHyperparametry._fields}.
 Allowed --model-param keys are: {ModelHyperparametry._fields}.\
@@ -376,7 +382,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
     parser.add_argument("--optimizer", action='store_true', help="train mode: save optimizer state in checkpoint")
     parser.add_argument("-e", "--eval-config", metavar="K=V", action='append', help=f"set eval mode option; keys are {EvalConfig._fields}")
-    args = parser.parse_args()
+    args = parser.parse_args(argv1)
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
     seed = 0
@@ -412,7 +418,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             return 0
         elif args.mode == "train":
             model_hp = ModelHyperparametry.from_args(args.model_param)
-            checkpoints_dir = Path(args.output or ".") / f"checkpoints/{timestamp}"
+            checkpoints_dir = (args.output or Path.cwd()) / "checkpoints" / "timestamp"
             train_hp = TrainHyperparametry.from_args(args.train_param)
             train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
             print(json.dumps(train_config.to_jsonable(), indent=2))

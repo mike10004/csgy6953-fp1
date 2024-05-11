@@ -6,12 +6,14 @@ import torch.random
 from torch.utils.data import DataLoader
 
 import dlfp.models
+from dlfp.datasets import DatasetResolver
 from dlfp.main import CruciformerRunner
 from dlfp.models import ModelHyperparametry
 from dlfp.models import create_model
 import torchsummary
 import dlfp_tests.tools
 from dlfp.train import Trainer
+from dlfp.utils import Bilinguist
 
 dlfp_tests.tools.suppress_cuda_warning()
 
@@ -68,3 +70,22 @@ class ModuleMethodsTest(TestCase):
                 args = [src, tgt_input, src_mask, tgt_mask, src_padding_mask, tgt_padding_mask, src_padding_mask]
                 # model(*args)
                 torchsummary.summary(model, input_data=args)
+
+    def test_charmark(self):
+        train_dataset = DatasetResolver().charmark("train")
+        src_lang, tgt_lang = dlfp.datasets.get_languages(train_dataset)
+        self.assertEqual(30, len(tgt_lang.vocab))
+        bilinguist = Bilinguist(src_lang, tgt_lang)
+        device = dlfp_tests.tools.get_device()
+        model_hp = ModelHyperparametry(batch_first=False)
+        model = create_model(
+            src_vocab_size=len(bilinguist.source.vocab),
+            tgt_vocab_size=len(bilinguist.target.vocab),
+            h=model_hp,
+        ).to(device)
+        tgt_tok_emb_weight_shape = model.state_dict()["tgt_tok_emb.embedding.weight"].shape
+        self.assertTupleEqual((30, 512), tgt_tok_emb_weight_shape)
+        # for name, parameters in model.state_dict().items():
+        #     print(name, parameters.shape)
+
+
