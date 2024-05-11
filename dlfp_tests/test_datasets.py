@@ -3,11 +3,13 @@
 from random import Random
 from unittest import TestCase
 
+import dlfp.datasets
 import dlfp_tests.tools
 from dlfp.datasets import DatasetResolver
 from dlfp.datasets import PredicateSet
 from dlfp.datasets import Tokenized
 from dlfp.utils import LanguageCache
+from dlfp.utils import SpecialIndexes
 
 dlfp_tests.tools.suppress_cuda_warning()
 
@@ -40,3 +42,12 @@ class PredicateSetTest(TestCase):
         for b in bad:
             with self.subTest():
                 self.assertFalse(p.regex_match(Tokenized(b, [])))
+
+
+class ModuleMethodsTest(TestCase):
+
+    def test_get_languages(self):
+        dataset = DatasetResolver().charmark("train")
+        clue_lang, answer_lang = dlfp.datasets.get_languages(dataset)
+        self.assertEqual(26 + len(SpecialIndexes()), len(answer_lang.vocab))
+
