@@ -61,7 +61,7 @@ class CruciformerRunner(Runner):
         return NodeStrategy(navigator=navigator_type(), visitor_factory=visitor_factory)
 
 
-def main(argv1: Optional[Sequence[str]]) -> int:
+def main(argv1: Optional[Sequence[str]] = None) -> int:
     return dlfp.running.main(CruciformerRunner(), argv1=argv1)
 
 
