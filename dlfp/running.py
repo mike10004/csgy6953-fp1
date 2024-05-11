@@ -428,7 +428,9 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             return 0
         elif args.mode == "train":
             model_hp = ModelHyperparametry.from_args(args.model_param)
-            checkpoints_dir = (args.output or Path.cwd()) / "checkpoints" / "timestamp"
+            checkpoints_dir = (args.output or Path.cwd()) / "checkpoints" / timestamp
+            if not args.output and checkpoints_dir.exists():
+                raise ValueError(f"auto-named checkpoints dir already exists: {checkpoints_dir}")
             train_hp = TrainHyperparametry.from_args(args.train_param)
             train_config = TrainConfig(args.dataset, checkpoints_dir, train_hp, model_hp, retain_all_checkpoints=args.retain, save_optimizer=args.optimizer)
             print(json.dumps(train_config.to_jsonable(), indent=2))
