@@ -161,6 +161,10 @@ class DataSuperset(NamedTuple):
 
     train: PhrasePairDataset
     valid: PhrasePairDataset
+    src_tokenizer_name: str
+    src_tokenizer_language: str
+    tgt_tokenizer_name: str
+    tgt_tokenizer_language: str
 
 
 class TrainConfig(NamedTuple):

@@ -28,13 +28,17 @@ class CruciformerRunner(Runner):
             raise ValueError(f"dataset name must be specified for Cruciformer training; supported: {SUPPORTED_DATASETS}")
         train = resolver.by_name(dataset_name, split='train')
         valid = resolver.by_name(dataset_name, split='valid')
-        return DataSuperset(train, valid)
+        src_tokenizer_name, src_tokenizer_language = "spacy", "en_core_web_sm"
+        tgt_tokenizer_name, tgt_tokenizer_language = "spacy", "en_core_web_sm"
+        if dataset_name == "charmark":
+            tgt_tokenizer_name, tgt_tokenizer_language = "dlfp", "character"
+        return DataSuperset(train, valid, src_tokenizer_name, src_tokenizer_language, tgt_tokenizer_name, tgt_tokenizer_language)
 
     def create_bilinguist(self, superset: DataSuperset) -> Bilinguist:
         cache = LanguageCache()
         assert ("clue", "answer") == superset.train.language_pair
-        source = cache.get(superset.train, "clue", "spacy", "en_core_web_sm")
-        target = cache.get(superset.train, "answer", "spacy", "en_core_web_sm")
+        source = cache.get(superset.train, "clue", superset.src_tokenizer_name, superset.src_tokenizer_language)
+        target = cache.get(superset.train, "answer", superset.src_tokenizer_name, superset.src_tokenizer_language)
         return Bilinguist(source, target)
 
     def create_runnable(self, dataset_name: str, h: ModelHyperparametry, device: str) -> Runnable:

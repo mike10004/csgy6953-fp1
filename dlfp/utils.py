@@ -24,7 +24,6 @@ import torch.nn.utils.rnn
 from torchtext.vocab import Vocab
 from torch import nn
 from torch import Tensor
-from torch import Size
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
 
@@ -187,7 +186,7 @@ class Restored(NamedTuple):
         checkpoint = torch.load(str(checkpoint_file), map_location=device)
         return Restored.from_checkpoint(checkpoint)
 
-    def model_param_shapes(self) -> dict[str, tuple]:
+    def model_param_shapes(self) -> dict[str, tuple[int, ...]]:
         # torch.Size([93559, 512]) src_tok_emb.embedding.weight
         # torch.Size([55145, 512]) tgt_tok_emb.embedding.weight
         d = {}
@@ -297,14 +296,27 @@ class Language(NamedTuple):
         return func
 
 
+def tokenize_characters(text: str) -> list[str]:
+    return list(text)
+
+
 class LanguageCache:
 
     def __init__(self, cache_dir: Optional[Path] = None):
         self.cache_dir = cache_dir or (dlfp.common.get_repo_root() / "data" / "cache" / "vocab")
         self.specials = Specials.create()
 
-    def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str) -> Language:
+    @staticmethod
+    def get_tokenizer(tokenizer_name: str, tokenizer_language: str) -> Tokenizer:
+        if tokenizer_name == "dlfp":
+            if tokenizer_language == "character":
+                return tokenize_characters  # tokenize 'ABC' as ('A', 'B', 'C')
+            raise ValueError("unrecognized tokenizer language")
         tokenizer = torchtext.data.utils.get_tokenizer(tokenizer=tokenizer_name, language=tokenizer_language)
+        return tokenizer
+
+    def get(self, dataset: PhrasePairDataset, dataset_language: str, tokenizer_name: str, tokenizer_language: str) -> Language:
+        tokenizer = self.get_tokenizer(tokenizer_name, tokenizer_language)
         directory = self.cache_dir / tokenizer_name / tokenizer_language
         language_index = dataset.language_pair.index(dataset_language)
         phrases = [phrase_pair[language_index] for phrase_pair in dataset]
@@ -376,5 +388,3 @@ def normalize_answer(answer: str, alphabet: str = "abcdefghijklmnopqrstuvwxyz") 
 
 def normalize_answer_upper(answer: str) -> str:
     return normalize_answer(answer).upper()
-
-

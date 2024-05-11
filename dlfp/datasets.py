@@ -7,6 +7,7 @@ import logging
 from collections import defaultdict
 from pathlib import Path
 from random import Random
+from typing import Callable
 from typing import Iterator
 from typing import NamedTuple
 from typing import Sequence
@@ -16,6 +17,7 @@ from typing import Collection
 import tabulate
 from tqdm import tqdm
 
+import dlfp.common
 from dlfp.common import Table
 from dlfp.utils import Language
 from dlfp.utils import LanguageCache
@@ -67,6 +69,10 @@ class DatasetResolver:
         source_filename, target_filename = f"{split}.source", f"{split}.target"
         return self._load_marklike("onemark", source_filename, target_filename)
 
+    def charmark(self, split: Split) -> PhrasePairDataset:
+        source_filename, target_filename = f"{split}.source", f"{split}.target"
+        return self._load_marklike("charmark", source_filename, target_filename)
+
     @staticmethod
     def _md5sum_file(pathname: Path) -> str:
         h = hashlib.md5()
@@ -92,6 +98,10 @@ class DatasetResolver:
 
 def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:
     cache = LanguageCache()
+    if dataset.name == "charmark":
+        source = cache.get(dataset, "clue", "spacy", "en_core_web_sm")
+        target = cache.get(dataset, "answer", "dlfp", "character")
+        return source, target
     if dataset.name in {"benchmark", "easymark"}:
         source = cache.get(dataset, "clue", "spacy", "en_core_web_sm")
         target = cache.get(dataset, "answer", "spacy", "en_core_web_sm")
@@ -217,7 +227,12 @@ class Result(NamedTuple):
         return self.superset - self.subset
 
 
-def filter_dataset(dataset: PhrasePairDataset, source_predicates: PredicateSet, target_predicates: PredicateSet, output_prefix: str) -> Result:
+def filter_dataset(dataset: PhrasePairDataset,
+                   source_predicates: PredicateSet,
+                   target_predicates: PredicateSet,
+                   output_prefix: str,
+                   tgt_transform: Callable[[str], str] = None) -> Result:
+    tgt_transform = tgt_transform or dlfp.common.identity
     source_file = Path(output_prefix + "source")
     target_file = Path(output_prefix + "target")
     src_language, tgt_language = get_languages(dataset)
@@ -236,7 +251,7 @@ def filter_dataset(dataset: PhrasePairDataset, source_predicates: PredicateSet, 
                     continue
                 subset_count += 1
                 print(source, file=sfile)
-                print(target, file=tfile)
+                print(tgt_transform(target), file=tfile)
     result = Result(superset_count, subset_count, (source_file, target_file))
     return result
 
@@ -263,12 +278,16 @@ def create_subset(dataset_name: str, split: Split, output_dir: Optional[Path], s
     return result
 
 
-def create_benchmark_variation(resolver: DatasetResolver, source_predicates: PredicateSet, target_predicates: PredicateSet, output_dir: Path):
+def create_benchmark_variation(resolver: DatasetResolver,
+                               source_predicates: PredicateSet,
+                               target_predicates: PredicateSet,
+                               output_dir: Path,
+                               tgt_transform: Callable[[str], str] = None):
     splits: list[Split] = ["train", "valid", "test"]
     for split in splits:
         dataset = resolver.benchmark(split)
         output_prefix = str(output_dir / f"{split}.")
-        result = filter_dataset(dataset, source_predicates, target_predicates, output_prefix)
+        result = filter_dataset(dataset, source_predicates, target_predicates, output_prefix, tgt_transform=tgt_transform)
         print(f"{split:5}: {result.superset:6d} -> {result.subset:6d}; {[f.name for f in result.files]} written in {output_dir}")
 
 
@@ -282,10 +301,14 @@ def create_dataset(dataset_name: str, output_dir: Optional[Path] = None, overwri
         source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
         target_predicates = PredicateSet(max_tokens=4, require_regex_match=r'^[a-z ]+$')
         create_benchmark_variation(resolver, source_predicates, target_predicates, output_dir)
-    if dataset_name == "onemark":
+    elif dataset_name == "onemark":
         source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
         target_predicates = PredicateSet(max_tokens=1, require_regex_match=r'^[a-z ]+$')
         create_benchmark_variation(resolver, source_predicates, target_predicates, output_dir)
+    elif dataset_name == "charmark":
+        source_predicates = PredicateSet(prohibited_substrings={"-Across", "-Down", "-across", "-down"})
+        target_predicates = PredicateSet(max_tokens=1, require_regex_match=r'^[a-z ]+$')
+        create_benchmark_variation(resolver, source_predicates, target_predicates, output_dir, tgt_transform=lambda s: s.upper())
     else:
         _log.error("unsupported dataset: %s", repr(dataset_name))
         return 1
