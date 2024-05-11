@@ -50,8 +50,8 @@ class DatasetResolver:
         split_stem = {
             "valid": "val"
         }.get(split, split)
-        src_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"{split_stem}.de")
-        tgt_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"{split_stem}.en")
+        src_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"train.de")
+        tgt_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"train.en")
         return PhrasePairDataset("multi30k_de_en", items, language_pair, data_hash_pair=(src_hash, tgt_hash))
 
     def benchmark(self, split: Split) -> PhrasePairDataset:
@@ -81,9 +81,10 @@ class DatasetResolver:
         return md5sum
 
     def _read_marklike(self, datafile: Path) -> tuple[list[str], str]:  # lines, hash
+        train_datafile = datafile.parent / f"train{datafile.suffix}"
         text = datafile.read_text(self.encoding)
         lines = text.splitlines()
-        md5sum = self._md5sum_file(datafile)
+        md5sum = self._md5sum_file(train_datafile)
         return lines, md5sum
 
     def _load_marklike(self, dataset_name: str, source_filename: str, target_filename: str):
