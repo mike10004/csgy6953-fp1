@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+from typing import Any
 from typing import Optional
 from typing import Sequence
 
@@ -14,6 +15,7 @@ from dlfp.running import NodeStrategy
 from dlfp.translate import CruciformerCharmarkNodeNavigator
 from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import CruciformerOnemarkNodeNavigator
+from dlfp.translate import NodeNavigator
 from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
@@ -49,13 +51,32 @@ class CruciformerRunner(Runner):
         r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
         return r
 
-    def create_node_strategy(self, strategy_spec: str, dataset_name: str) -> NodeStrategy:
-        navigator_type = {
-            "easymark": CruciformerNodeNavigator,
-            "onemark": CruciformerOnemarkNodeNavigator,
-            "charmark": CruciformerCharmarkNodeNavigator,
+    @staticmethod
+    def parse_navigator_kwargs(strategy_spec: Optional[str]) -> dict[str, Any]:
+        if not strategy_spec:
+            return {}
+        types = {
+            "max_ranks": lambda spec: [int(t) for t in spec.split(",")]
+        }
+        parts = strategy_spec.split(";")
+        kwargs = {}
+        for part in parts:
+            k, v = part.split("=", maxsplit=1)
+            typer = types.get(k, str)
+            v = typer(v)
+            kwargs[k] = v
+        return kwargs
+
+    def create_node_strategy(self, strategy_spec: Optional[str], dataset_name: str) -> NodeStrategy:
+        navigator_kwargs = self.parse_navigator_kwargs(strategy_spec)
+        navigator_factory_fn = {
+            "easymark": CruciformerNodeNavigator.factory,
+            "onemark": CruciformerOnemarkNodeNavigator.factory,
+            "charmark": CruciformerCharmarkNodeNavigator.factory,
         }[dataset_name]
-        return NodeStrategy(navigator=navigator_type())
+        def _factory(tgt_phrase: str) -> NodeNavigator:
+            return navigator_factory_fn(tgt_phrase, navigator_kwargs)
+        return NodeStrategy(navigator_factory=_factory)
 
 
 def main(argv1: Optional[Sequence[str]] = None) -> int:

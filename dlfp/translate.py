@@ -152,6 +152,10 @@ class CruciformerNodeNavigator(NodeNavigator):
     def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
         return self.softmax(next_word_probs)
 
+    @classmethod
+    def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerNodeNavigator':
+        return cls(**kwargs)
+
 
 class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
 
@@ -170,11 +174,16 @@ DEFAULT_CHARMARK_MAX_RANKS = (
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
-    def __init__(self, required_len, max_ranks: Sequence[int] = None):
+    def __init__(self, required_len: int, max_ranks: Sequence[int] = None):
         max_ranks = max_ranks or DEFAULT_CHARMARK_MAX_RANKS
         super().__init__(required_len, max_ranks)
         self.required_len = required_len
         self.eos_index = SpecialIndexes().eos
+
+    @classmethod
+    def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerCharmarkNodeNavigator':
+        # +2 for bos and eos tokens
+        return CruciformerCharmarkNodeNavigator(len(tgt_phrase) + 2, **kwargs)
 
     def get_max_len(self, input_len: int) -> int:
         return self.required_len
@@ -337,7 +346,7 @@ class Attempt(NamedTuple):
         return list(Attempt._fields[:-1]) + [f"top_{i+1}" for i in range(top_k)]
 
     def to_row(self) -> list[Any]:
-        return [self.index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
+        return [self.attempt_index, self.source, self.target, self.rank, self.suggestion_count] + list(self.top)
 
 
 def write_nodes(nodes_folder: Path,

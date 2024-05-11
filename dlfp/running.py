@@ -16,7 +16,9 @@ from typing import Optional
 from threading import Thread
 from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
+from typing import Protocol
 from typing import Sequence
+from typing import Type
 
 import torch
 from tqdm import tqdm
@@ -59,9 +61,19 @@ class GuessResult(NamedTuple):
     nodes: Optional[list[Node]]
 
 
+class NodeNavigatorFactory(Protocol):
+
+    def __call__(self, tgt_phrase: str) -> NodeNavigator: ...
+
+
 class NodeStrategy(NamedTuple):
 
-    navigator: NodeNavigator
+    navigator_factory: NodeNavigatorFactory
+
+    def construct(self, tgt_phrase: str) -> NodeNavigator:
+        return self.navigator_factory(tgt_phrase)
+
+
 
 class ModelManager:
 
@@ -138,7 +150,8 @@ class ModelManager:
                 def _set_nodes(nodes_):
                     nonlocal nodes
                     nodes = nodes_
-                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=node_strategy.navigator, nodes_callback=_set_nodes)
+                navigator = node_strategy.navigator_factory(tgt_phrase)
+                suggestions = translator.suggest(src_phrase, count=guesses_per_phrase, navigator=navigator, nodes_callback=_set_nodes)
                 if not self.tgt_transform is dlfp.common.identity:
                     suggestions = [Suggestion(self.tgt_transform(s.phrase), s.probability) for s in suggestions]
             yield GuessResult(src_phrase, tgt_phrase, suggestions, nodes)
@@ -271,7 +284,7 @@ class Runner:
         }
         return Runnable(superset, bilinguist, model_manager, metadata)
 
-    def create_node_strategy(self, node_strategy_spec: str, dataset_name: str) -> NodeStrategy:
+    def create_node_strategy(self, node_strategy_spec: Optional[str], dataset_name: str) -> NodeStrategy:
         raise NotImplementedError("abstract")
 
     @staticmethod
