@@ -45,7 +45,12 @@ class DatasetResolver:
         language_pair = ('de', 'en')
         # noinspection PyTypeChecker
         items: list[tuple[str, str]] = list(Multi30k(root=str(self.data_root), split=split, language_pair=language_pair))
-        return PhrasePairDataset("multi30k_de_en", items, language_pair)
+        split_stem = {
+            "valid": "val"
+        }.get(split, split)
+        src_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"{split_stem}.de")
+        tgt_hash = self._md5sum_file(self.data_root / "datasets" / "Multi30k" / f"{split_stem}.en")
+        return PhrasePairDataset("multi30k_de_en", items, language_pair, data_hash_pair=(src_hash, tgt_hash))
 
     def benchmark(self, split: Split) -> PhrasePairDataset:
         stem = {
@@ -62,13 +67,17 @@ class DatasetResolver:
         source_filename, target_filename = f"{split}.source", f"{split}.target"
         return self._load_marklike("onemark", source_filename, target_filename)
 
-    def _read_marklike(self, datafile: Path) -> tuple[list[str], str]:  # lines, hash
-        data = datafile.read_bytes()
-        text = data.decode(self.encoding)
-        lines = text.splitlines()
+    @staticmethod
+    def _md5sum_file(pathname: Path) -> str:
         h = hashlib.md5()
-        h.update(data)
+        h.update(pathname.read_bytes())
         md5sum = h.hexdigest()
+        return md5sum
+
+    def _read_marklike(self, datafile: Path) -> tuple[list[str], str]:  # lines, hash
+        text = datafile.read_text(self.encoding)
+        lines = text.splitlines()
+        md5sum = self._md5sum_file(datafile)
         return lines, md5sum
 
     def _load_marklike(self, dataset_name: str, source_filename: str, target_filename: str):

@@ -121,9 +121,9 @@ class TranslatorTest(TestCase):
             with torch.random.fork_rng():
                 torch.random.manual_seed(0)
                 with torch.no_grad():
-                    model, bilinguist = self._load_restored_cruciform()
+                    rc = self._load_restored_cruciform()
                     navigator = CruciformerNodeNavigator(max_ranks=(100, 3, 2, 1))
-                    translator = Translator(model, bilinguist, self.device)
+                    translator = Translator(rc.model, rc.bilinguist, self.device)
                     for src_phrase in [
                         "Pound of verse",
                     ]:
@@ -132,7 +132,7 @@ class TranslatorTest(TestCase):
                             for node in translator.suggest_nodes(src_phrase, navigator=navigator):
                                 nodes.append(node)
                             attempt = Attempt(0, src_phrase, "SOMETHING", 123, len(nodes), (), nodes)
-                            dlfp.translate.write_nodes(nodes_folder, attempt, bilinguist.target.vocab, bilinguist.target.specials)
+                            dlfp.translate.write_nodes(nodes_folder, attempt, rc.bilinguist.target.vocab, rc.bilinguist.target.specials)
                             node_count = len(nodes)
                             print(node_count, "nodes")
             nodes_files = list(nodes_folder.iterdir())
@@ -149,15 +149,15 @@ class TranslatorTest(TestCase):
             with torch.random.fork_rng():
                 torch.random.manual_seed(0)
                 with torch.no_grad():
-                    model, bilinguist = self._load_restored_cruciform()
+                    rc = self._load_restored_cruciform()
                     navigator = CruciformerNodeNavigator(max_ranks=(1, 2, 1, 1))
-                    translator = Translator(model, bilinguist, self.device)
+                    translator = Translator(rc.model, rc.bilinguist, self.device)
                     src_phrase  = "Pound of verse"
                     for complete_node in translator.suggest_nodes(src_phrase, navigator=navigator):
                         print()
                         lineage = complete_node.lineage()
                         for node_index, node in enumerate(lineage):
-                            print(node_index, node.current_word, node.current_word_token(bilinguist.target.vocab))
+                            print(node_index, node.current_word, node.current_word_token(rc.bilinguist.target.vocab))
 
 
     def test_greedy_suggest(self, verbose: bool = False):
