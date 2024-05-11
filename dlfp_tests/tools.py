@@ -122,13 +122,10 @@ class RestoredContainer(NamedTuple):
     model_hp: dlfp.models.ModelHyperparametry
 
 
-
 def load_restored_cruciform(checkpoint_file: Path, device: str, dataset_name: str = "easymark") -> RestoredContainer:
     restored = Restored.from_file(checkpoint_file, device=device)
     train_dataset = DatasetResolver().by_name(dataset_name, "train")
-    cache = LanguageCache()
-    source = cache.get(train_dataset, "clue", "spacy", "en_core_web_sm")
-    target = cache.get(train_dataset, "answer", "spacy", "en_core_web_sm")
+    source, target = dlfp.datasets.get_languages(train_dataset)
     bilinguist = Bilinguist(source, target)
     ok, train_hp, model_hp = dlfp.models.get_hyperparameters(restored)
     if not ok:

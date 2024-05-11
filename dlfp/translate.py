@@ -93,6 +93,12 @@ class NodeNavigator:
     def get_max_rank(self, tgt_sequence_len: int) -> int:
         return 1
 
+    def notify(self, node: Node):
+        pass
+
+    def consider(self, node: Node, next_word: int, next_prob: float) -> bool:
+        return True
+
     def include(self, node: Node) -> bool:
         return True
 
@@ -187,6 +193,12 @@ class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
     def get_max_len(self, input_len: int) -> int:
         return self.required_len
+
+    def consider(self, node: Node, next_word: int, next_prob: float) -> bool:
+        if next_word == self.eos_index:
+            if (node.sequence_length() + 1) < self.required_len:
+                return False
+        return super().consider(node, next_word, next_prob)
 
     def include(self, node: Node) -> bool:
         # don't offer nodes that represent incomplete words but are already at the required length
@@ -314,14 +326,18 @@ class NodeVisitor:
         if tgt_sequence_len >= self.max_len:
             node.complete = True
         yield node
+        self.navigator.notify(node)
         if node.complete:
             return
         next_words, next_words_probs = self._generate_next(node)
         next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
-        next_words = next_words[:max_rank]
-        next_words_probs = next_words_probs[:max_rank]
+        num_considered = 0
         for next_word, next_prob in zip(next_words, next_words_probs):
+            if num_considered >= max_rank:
+                break
+            if not self.navigator.consider(node, next_word, next_prob):
+                continue
             child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
             child = Node(child_ys, next_prob)
             if self._is_eos_index(next_word):
@@ -329,6 +345,7 @@ class NodeVisitor:
             node.add_child(child)
             if self.navigator.include(child):
                 yield from self.visit(child)
+            num_considered += 1
 
 
 class Attempt(NamedTuple):

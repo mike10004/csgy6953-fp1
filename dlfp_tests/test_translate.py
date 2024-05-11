@@ -100,6 +100,9 @@ class TranslatorTest(TestCase):
     def _load_restored_cruciform(self):
         return dlfp_tests.tools.load_restored_cruciform(get_repo_root() / "checkpoints" / "05092329-checkpoint-epoch009.pt", device=self.device)
 
+    def _load_restored_cruciform_charmark(self):
+        return dlfp_tests.tools.load_restored_cruciform(get_repo_root() / "checkpoints" / "charmark-test-checkpoint.pt", device=self.device, dataset_name="charmark")
+
     def test_suggest_cruciform(self):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
@@ -153,19 +156,18 @@ class TranslatorTest(TestCase):
             self.assertEqual(node_count, len(node_rows))
 
     def test_suggest_nodes_cruciform_one(self):
-            with torch.random.fork_rng():
-                torch.random.manual_seed(0)
-                with torch.no_grad():
-                    rc = self._load_restored_cruciform()
-                    navigator = CruciformerNodeNavigator(max_ranks=(1, 2, 1, 1))
-                    translator = Translator(rc.model, rc.bilinguist, self.device)
-                    src_phrase  = "Pound of verse"
-                    for complete_node in translator.suggest_nodes(src_phrase, navigator=navigator):
-                        print()
-                        lineage = complete_node.lineage()
-                        for node_index, node in enumerate(lineage):
-                            print(node_index, node.current_word, node.current_word_token(rc.bilinguist.target.vocab))
-
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                rc = self._load_restored_cruciform()
+                navigator = CruciformerNodeNavigator(max_ranks=(1, 2, 1, 1))
+                translator = Translator(rc.model, rc.bilinguist, self.device)
+                src_phrase  = "Pound of verse"
+                for complete_node in translator.suggest_nodes(src_phrase, navigator=navigator):
+                    print()
+                    lineage = complete_node.lineage()
+                    for node_index, node in enumerate(lineage):
+                        print(node_index, node.current_word, node.current_word_token(rc.bilinguist.target.vocab))
 
     def test_greedy_suggest(self, verbose: bool = False):
         # from dlfp.translate2 import Translator as Translator2
@@ -229,6 +231,23 @@ class TranslatorTest(TestCase):
                 self.assertEqual(len(expecteds), len(assigned), "lengths of lists")
                 self.assertGreater(index, 100)
 
+    def test_charmark_suggest(self):
+        with torch.random.fork_rng():
+            torch.random.manual_seed(0)
+            with torch.no_grad():
+                rc = self._load_restored_cruciform_charmark()
+                translator = Translator(rc.model, rc.bilinguist, self.device)
+                src_phrases  = [
+                    ("Exactitude", "RIGOR"),
+                    ("Swag", "LOOT"),
+                ]
+                for src_phrase, tgt_phrase in src_phrases:
+                    with self.subTest(src_phrase):
+                        navigator = VerboseCharmarkNavigator(required_len=len(tgt_phrase)+2, max_ranks=(3, 2, 1))
+                        nodes = list(translator.suggest_nodes(src_phrase, navigator=navigator))
+                        print(len(nodes), "suggestions")
+                        self.assertGreater(len(nodes), 0)
+
     def test_zip_tensors(self):
         w = torch.tensor([[1, 2, 3]])
         p = torch.tensor([[7.5, 1.3, 9.2]])
@@ -244,6 +263,26 @@ class TranslatorTest(TestCase):
         s = softmax(torch.tensor([[1, 4.5, 4.6]]))
         print(s)
         self.assertAlmostEqual(s[0][1], s[0][2], delta=0.5)
+
+
+class VerboseCharmarkNavigator(CruciformerCharmarkNodeNavigator):
+
+    def notify(self, node: Node):
+        self._print("notify", node.sequence_length(), node)
+
+    # noinspection PyMethodMayBeStatic
+    def _print(self, action: str, current_len: int, *args):
+        print(f"{action:10} {current_len}", *args)
+
+    def consider(self, node: Node, next_word: int, next_prob: float) -> bool:
+        result = super().consider(node, next_word, next_prob)
+        self._print("consider", node.sequence_length(), next_word, result)
+        return result
+
+    def include(self, node: Node) -> bool:
+        result = super().include(node)
+        self._print("include", node.sequence_length() - 1, node.current_word, result)
+        return result
 
 
 class PseudoGeneratorNodeVisitor(NodeVisitor):

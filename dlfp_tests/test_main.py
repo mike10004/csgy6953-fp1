@@ -59,17 +59,21 @@ class ModuleMethodsTest(TestCase):
         with tempfile.TemporaryDirectory() as tempdir:
             tempdir = Path(tempdir)
             results_file = tempdir / "results.csv"
+            limit = 10
             args = [
                 "--mode", "eval",
                 "--dataset", "charmark",
                 "-f", str(checkpoint_file),
                 "--output", str(results_file),
                 "-e", "node_strategy=max_ranks=3,2,1",
-                "-e", "limit=10",
+                "-e", f"limit={limit}",
                 "-e", "shuffle_seed=1001",
             ]
             dlfp.running.main(CruciformerRunner(), args)
-            print(results_file.read_text())
+            text = results_file.read_text()
+            print(text)
+            self.assertEqual(limit + 1, len(text.splitlines()))
+
 
 
 class CruciformerRunnerTest(TestCase):
