@@ -171,11 +171,8 @@ class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
     def include(self, node: Node) -> bool:
         return True
 
-
-DEFAULT_CHARMARK_MAX_RANKS = (
-    12, 10, 10, 10,
-     5,  3,  2,  2,
-     2,  2,  1)
+# top 5 for the first 9 characters, top 1 after that
+DEFAULT_CHARMARK_MAX_RANKS = tuple(([5] * 9) + [1])
 
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
@@ -205,6 +202,7 @@ class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
         if node.sequence_length() >= self.required_len and node.current_word != self.eos_index:
             return False
         # don't offer nodes that represent complete words but are not yet at the required length
+        # (the consider method should prevent this from happening)
         if node.sequence_length() < self.required_len and node.current_word == self.eos_index:
             return False
         return True

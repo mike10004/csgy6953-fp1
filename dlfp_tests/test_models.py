@@ -87,5 +87,3 @@ class ModuleMethodsTest(TestCase):
         self.assertTupleEqual((30, 512), tgt_tok_emb_weight_shape)
         # for name, parameters in model.state_dict().items():
         #     print(name, parameters.shape)
-
-
