@@ -19,7 +19,7 @@ class ModuleMethodsTest(TestCase):
 
     def test_hyperparameters(self):
         cr = CruciformerRunner()
-        bl = cr.create_bilinguist(cr.resolve_dataset())
+        bl = cr.create_bilinguist(cr.resolve_dataset("easymark"))
         src_vocab_size = len(bl.source.vocab)
         tgt_vocab_size = len(bl.target.vocab)
         table = []
@@ -42,7 +42,7 @@ class ModuleMethodsTest(TestCase):
 
     def test_shapes(self):
         cr = CruciformerRunner()
-        dataset = cr.resolve_dataset()
+        dataset = cr.resolve_dataset("easymark")
         bl = cr.create_bilinguist(dataset)
         with torch.random.fork_rng():
             torch.random.manual_seed(13251)

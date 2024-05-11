@@ -19,7 +19,7 @@ import dlfp.common
 from dlfp.utils import Specials
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import Bilinguist
-from dlfp.models import Seq2SeqTransformer
+from dlfp.models import Cruciformer
 
 
 class PhraseEncoding(NamedTuple):
@@ -180,7 +180,7 @@ def indexes_to_phrase(indexes: Tensor, vocab: Vocab, strip_indexes: Collection[i
 
 class Translator:
 
-    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
+    def __init__(self, model: Cruciformer, bilinguist: Bilinguist, device: str):
         self.device = device
         self.model = model
         self.bilinguist = bilinguist

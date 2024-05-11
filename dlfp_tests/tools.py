@@ -117,7 +117,7 @@ def get_testdata_dir() -> Path:
 
 class RestoredContainer(NamedTuple):
 
-    model: dlfp.models.Seq2SeqTransformer
+    model: dlfp.models.Cruciformer
     bilinguist: Bilinguist
     model_hp: dlfp.models.ModelHyperparametry
 

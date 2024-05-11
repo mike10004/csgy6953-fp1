@@ -7,7 +7,7 @@ from torch import Tensor
 from torch.utils.data import DataLoader
 
 from dlfp.models import ModelHyperparametry
-from dlfp.models import Seq2SeqTransformer
+from dlfp.models import Cruciformer
 from dlfp.models import create_model
 from dlfp.train import Trainer
 from dlfp.train import TrainLoaders
@@ -62,7 +62,7 @@ class TrainerTest(TestCase):
             self.assertAlmostEqual(expected_mean_loss, mean_loss, delta=0.001)
 
 
-def get_weight_sample(model: Seq2SeqTransformer, trainer: Trainer, tensor_pair) -> Tensor:
+def get_weight_sample(model: Cruciformer, trainer: Trainer, tensor_pair) -> Tensor:
     model.eval()
     source, target = tensor_pair
     src_mask, tgt_mask, src_padding_mask, tgt_padding_mask = trainer.create_mask(source, target)

@@ -25,7 +25,7 @@ import dlfp.common
 import dlfp.models
 import dlfp.translate
 from dlfp.datasets import DatasetResolver
-from dlfp.models import Seq2SeqTransformer
+from dlfp.models import Cruciformer
 from dlfp.results import AccuracyResult
 from dlfp.translate import Node
 from dlfp.translate import NodeNavigator
@@ -60,7 +60,7 @@ class GuessResult(NamedTuple):
 
 class ModelManager:
 
-    def __init__(self, model: Seq2SeqTransformer, bilinguist: Bilinguist, device: str):
+    def __init__(self, model: Cruciformer, bilinguist: Bilinguist, device: str):
         self.device = device
         self.model = model
         self.bilinguist = bilinguist
@@ -224,7 +224,7 @@ class Runner:
         raise NotImplementedError("abstract")
 
     # noinspection PyMethodMayBeStatic
-    def create_model(self, bilinguist: Bilinguist, h: ModelHyperparametry) -> Seq2SeqTransformer:
+    def create_model(self, bilinguist: Bilinguist, h: ModelHyperparametry) -> Cruciformer:
         model = dlfp.models.create_model(
             src_vocab_size=len(bilinguist.source.vocab),
             tgt_vocab_size=len(bilinguist.target.vocab),

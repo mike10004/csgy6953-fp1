@@ -2,6 +2,7 @@
 
 import os
 import math
+import logging
 from random import Random
 from typing import Iterable
 from typing import Any
@@ -23,17 +24,19 @@ import torch.nn.utils.rnn
 from torchtext.vocab import Vocab
 from torch import nn
 from torch import Tensor
+from torch import Size
 from torch.optim import Optimizer
 from torch.utils.data.dataset import Dataset
 
 import dlfp.common
 
+_log = logging.getLogger(__name__)
 T = TypeVar("T")
 Pathish = Union[Path, str]
 Split = Literal["train", "valid", "test"]
 Tokenizer = Callable[[str], Sequence[str]]
 TextTransform = Callable[[str], Tensor]
-
+PhrasePair = tuple[str, str]
 
 
 
@@ -90,13 +93,18 @@ class Specials(NamedTuple):
                           torch.tensor(token_ids),
                           torch.tensor([self.indexes.eos])))
 
-class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
+class PhrasePairDataset(Dataset[PhrasePair], Iterable[PhrasePair]):
 
-    def __init__(self, name: str, phrase_pairs: Sequence[Tuple[str, str]], language_pair: Tuple[str, str]):
+    def __init__(self,
+                 name: str,
+                 phrase_pairs: Sequence[PhrasePair],
+                 language_pair: tuple[str, str],
+                 data_hash_pair: tuple[str, str] = None):
         super().__init__()
         self.name = name
         self.phrase_pairs = tuple(phrase_pairs)
         self.language_pair = language_pair
+        self.data_hash_pair = data_hash_pair
 
     def __getitem__(self, index) -> Tuple[str, str]:
         return self.phrase_pairs[index]
@@ -120,10 +128,10 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
     def shuffle(self, rng: Random) -> 'PhrasePairDataset':
         phrase_pairs = list(self.phrase_pairs)
         rng.shuffle(phrase_pairs)
-        return PhrasePairDataset(self.name, phrase_pairs, self.language_pair)
+        return PhrasePairDataset(self.name, phrase_pairs, self.language_pair, self.data_hash_pair)
 
     def slice(self, start_inclusive: int, stop_exclusive: int) -> 'PhrasePairDataset':
-        return PhrasePairDataset(self.name, self.phrase_pairs[start_inclusive:stop_exclusive], self.language_pair)
+        return PhrasePairDataset(self.name, self.phrase_pairs[start_inclusive:stop_exclusive], self.language_pair, self.data_hash_pair)
 
     def partition(self, count: int) -> list['PhrasePairDataset']:
         partition_size = int(math.ceil(len(self) / count))
@@ -141,7 +149,7 @@ class PhrasePairDataset(Dataset[Tuple[str, str]], Iterable[Tuple[str, str]]):
         for clue, answer in self.phrase_pairs:
             norm_answer = normalize_answer(answer)
             phrase_pairs.append((clue, norm_answer))
-        return PhrasePairDataset(new_name, phrase_pairs, self.language_pair)
+        return PhrasePairDataset(new_name, phrase_pairs, self.language_pair, data_hash_pair=None)
 
 
 class EpochResult(NamedTuple):
@@ -178,6 +186,15 @@ class Restored(NamedTuple):
     def from_file(checkpoint_file: Path, device=None) -> 'Restored':
         checkpoint = torch.load(str(checkpoint_file), map_location=device)
         return Restored.from_checkpoint(checkpoint)
+
+    def model_param_shapes(self) -> dict[str, tuple]:
+        # torch.Size([93559, 512]) src_tok_emb.embedding.weight
+        # torch.Size([55145, 512]) tgt_tok_emb.embedding.weight
+        d = {}
+        for key, param in self.model_state_dict.items():
+            if isinstance(param, Tensor):
+                d[key] = tuple(param.shape)
+        return d
 
 
 class Checkpointable(NamedTuple):
@@ -290,14 +307,19 @@ class LanguageCache:
         tokenizer = torchtext.data.utils.get_tokenizer(tokenizer=tokenizer_name, language=tokenizer_language)
         directory = self.cache_dir / tokenizer_name / tokenizer_language
         language_index = dataset.language_pair.index(dataset_language)
-        vocab_file = directory / f"{dataset.name}-{dataset_language}.vocab.pt"
+        phrases = [phrase_pair[language_index] for phrase_pair in dataset]
+        if not dataset.data_hash_pair:
+            _log.info("dataset lacks hashes; not using cache")
+            vocab = self.build_vocab(phrases, tokenizer)
+            return self.to_language(dataset_language, vocab, tokenizer)
+        data_hash = dataset.data_hash_pair[language_index]
+        vocab_file = directory / f"{dataset.name}-{dataset_language}.vocab.{data_hash}.pt"
         try:
             vocab = torch.load(str(vocab_file))
         except FileNotFoundError:
             vocab = None
         if vocab is not None:
             return self.to_language(dataset_language, vocab, tokenizer)
-        phrases = [phrase_pair[language_index] for phrase_pair in dataset]
         vocab = self.build_vocab(phrases, tokenizer)
         vocab.set_default_index(self.specials.indexes.unk)
         vocab_file.parent.mkdir(exist_ok=True, parents=True)

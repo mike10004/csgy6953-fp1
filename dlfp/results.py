@@ -74,18 +74,29 @@ def create_accuracy_table(attempts_file: Path) -> Table:
 
 
 def collect_checkpoint_files(checkpoints_dir: Path) -> Iterator[Path]:
-    for root, _, filenames in os.walk(checkpoints_dir):
-        filenames = [filename for filename in filenames if filename.endswith(".pt")]
-        if filenames:
-            yield Path(root) / sorted(filenames, reverse=True)[0]
+    root_entries = list(Path(checkpoints_dir).iterdir())
+    def _is_checkpoint_file(p: Path) -> bool:
+        return p.name.endswith(".pt")
+    root_checkpoint_files = [f for f in root_entries if _is_checkpoint_file(f)]
+    yield from iter(root_checkpoint_files)
+    checkpoint_file_dirs = [d for d in root_entries if d.is_dir()]
+    for checkpoint_dir in checkpoint_file_dirs:
+        checkpoint_files = [f for f in checkpoint_dir.iterdir() if _is_checkpoint_file(f)]
+        if checkpoint_files:
+            yield sorted(checkpoint_files, reverse=True)[0]  # assumes latest checkpoint is best
 
 
-def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("dataset_name", "emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")) -> Table:
+DEFAULT_COLUMNS = ("dataset_name", "src_tok_emb.embedding.weight", "tgt_tok_emb.embedding.weight", "emb_size", "lr", "transformer_dropout_rate", "input_dropout_rate")
+
+def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = None) -> Table:
+    columns = columns or DEFAULT_COLUMNS
     table_rows = []
     short_names = {
         "transformer_dropout_rate": "tdr",
         "input_dropout_rate": "idr",
         "dataset_name": "dataset",
+        "src_tok_emb.embedding.weight": "s_emb_sz",
+        "tgt_tok_emb.embedding.weight": "t_emb_sz",
     }
     for checkpoint_file in sorted(collect_checkpoint_files(checkpoints_dir)):
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
@@ -96,9 +107,11 @@ def create_params_table(checkpoints_dir: Path, columns: Sequence[str] = ("datase
             if not ok:
                 _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
                 continue
+            param_sizes = {k:v[0] for k, v in restored.model_param_shapes().items()}
             train_hp: TrainHyperparametry
             model_hp: ModelHyperparametry
             merged = {}
+            merged.update(param_sizes)
             merged.update(metadata)
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())

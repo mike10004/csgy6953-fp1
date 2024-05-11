@@ -91,15 +91,15 @@ class TranslatorTest(TestCase):
                 self._check_output(suggestions, limit=limit)
 
     def _load_restored_cruciform(self):
-        return dlfp_tests.tools.load_restored_cruciform(get_repo_root() / "checkpoints" / "05091745-checkpoint-epoch009.pt", device=self.device)
+        return dlfp_tests.tools.load_restored_cruciform(get_repo_root() / "checkpoints" / "05092329-checkpoint-epoch009.pt", device=self.device)
 
     def test_suggest_cruciform(self):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             with torch.no_grad():
-                model, bilinguist = self._load_restored_cruciform()
+                rc = self._load_restored_cruciform()
                 navigator = CruciformerNodeNavigator(max_ranks=(3, 2, 1))
-                translator = Translator(model, bilinguist, self.device)
+                translator = Translator(rc.model, rc.bilinguist, self.device)
                 for src_phrase in [
                     "Pound of verse",
                     "Puts on",

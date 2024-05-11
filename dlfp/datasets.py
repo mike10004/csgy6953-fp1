@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import hashlib
 import re
 import sys
 import argparse
@@ -62,14 +62,23 @@ class DatasetResolver:
         source_filename, target_filename = f"{split}.source", f"{split}.target"
         return self._load_marklike("onemark", source_filename, target_filename)
 
+    def _read_marklike(self, datafile: Path) -> tuple[list[str], str]:  # lines, hash
+        data = datafile.read_bytes()
+        text = data.decode(self.encoding)
+        lines = text.splitlines()
+        h = hashlib.md5()
+        h.update(data)
+        md5sum = h.hexdigest()
+        return lines, md5sum
+
     def _load_marklike(self, dataset_name: str, source_filename: str, target_filename: str):
         dataset_dir = self.data_root / "datasets" / dataset_name
-        source_lines = (dataset_dir / source_filename).read_text(self.encoding).splitlines()
-        target_lines = (dataset_dir / target_filename).read_text(self.encoding).splitlines()
+        source_lines, source_hash = self._read_marklike(dataset_dir / source_filename)
+        target_lines, target_hash = self._read_marklike(dataset_dir / target_filename)
         if len(source_lines) != len(target_lines):
             _log.warning(f"source/target length mismatch: {len(source_lines)} != {len(target_lines)}")
         phrase_pairs = list(zip(source_lines, target_lines))
-        return PhrasePairDataset(dataset_name, phrase_pairs, language_pair=("clue", "answer"))
+        return PhrasePairDataset(dataset_name, phrase_pairs, language_pair=("clue", "answer"), data_hash_pair=(source_hash, target_hash))
 
 
 def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:

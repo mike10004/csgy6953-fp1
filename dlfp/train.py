@@ -11,7 +11,7 @@ from torch import Tensor
 from torch.optim import Optimizer
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from dlfp.models import Seq2SeqTransformer
+from dlfp.models import Cruciformer
 from dlfp.utils import Checkpointable
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import generate_square_subsequent_mask
@@ -50,12 +50,12 @@ class TrainLoaders(NamedTuple):
 
 class Trainer:
 
-    def __init__(self, model: Seq2SeqTransformer, pad_idx: int, device: str, loss_fn: LossFunction = None):
+    def __init__(self, model: Cruciformer, pad_idx: int, device: str, loss_fn: LossFunction = None):
         self.model = model
         self.device = device
         self.loss_fn = loss_fn or torch.nn.CrossEntropyLoss(ignore_index=pad_idx)
         self.pad_idx = pad_idx
-        self.optimizer_factory: Callable[[Seq2SeqTransformer], Optimizer] = create_optimizer
+        self.optimizer_factory: Callable[[Cruciformer], Optimizer] = create_optimizer
         self.hide_progress_train = False
         self.hide_progress_other = True
         self.tqdm_file = sys.stdout

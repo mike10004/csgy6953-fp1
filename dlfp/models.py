@@ -69,7 +69,7 @@ class PositionalEncoding(nn.Module):
         return self.dropout(token_embedding + self.pos_embedding[:token_embedding.size(0), :])
 
 
-class Seq2SeqTransformer(nn.Module):
+class Cruciformer(nn.Module):
 
     """Transformer model.
 
@@ -88,7 +88,7 @@ class Seq2SeqTransformer(nn.Module):
                  pe_dropout_rate: float = 0.1,
                  input_dropout_rate: float = 0.0,
                  batch_first: bool = False):
-        super(Seq2SeqTransformer, self).__init__()
+        super(Cruciformer, self).__init__()
         self.input_dropout = Dropout(input_dropout_rate)
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
@@ -153,7 +153,7 @@ class ModelHyperparametry(NamedTuple):
 def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametry = None):
     h = h or ModelHyperparametry()
 
-    transformer = Seq2SeqTransformer(
+    transformer = Cruciformer(
         src_vocab_size=src_vocab_size,
         tgt_vocab_size=tgt_vocab_size,
         num_encoder_layers=h.num_encoder_layers,
