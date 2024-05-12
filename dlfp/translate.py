@@ -171,22 +171,31 @@ class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
     def include(self, node: Node) -> bool:
         return True
 
-# top 5 for the first 9 characters, top 1 after that
-DEFAULT_CHARMARK_MAX_RANKS = tuple(([5] * 9) + [1])
+DEFAULT_CHARMARK_MAX_RANKS = (2,)
+
+
+def probnorm_translate_and_scale(probs: Tensor) -> Tensor:
+    raise NotImplementedError()
 
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
-    def __init__(self, required_len: int, max_ranks: Sequence[int] = None):
+    def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Callable[[Tensor], Tensor] = None):
         max_ranks = max_ranks or DEFAULT_CHARMARK_MAX_RANKS
         super().__init__(required_len, max_ranks)
         self.required_len = required_len
-        self.eos_index = SpecialIndexes().eos
+        indexes = SpecialIndexes()
+        self.eos_index = indexes.eos
+        self.unconsidered = {indexes.bos, indexes.pad, indexes.unk}
+        self.probnorm = probnorm or self.softmax
 
     @classmethod
     def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerCharmarkNodeNavigator':
         # +2 for bos and eos tokens
         return CruciformerCharmarkNodeNavigator(len(tgt_phrase) + 2, **kwargs)
+
+    def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
+        return self.probnorm(next_word_probs)
 
     def get_max_len(self, input_len: int) -> int:
         return self.required_len
@@ -195,6 +204,8 @@ class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
         if next_word == self.eos_index:
             if (node.sequence_length() + 1) < self.required_len:
                 return False
+        if next_word in self.unconsidered:
+            return False
         return super().consider(node, next_word, next_prob)
 
     def include(self, node: Node) -> bool:
