@@ -20,7 +20,7 @@ from dlfp.utils import Bilinguist
 from dlfp.utils import LanguageCache
 
 
-SUPPORTED_DATASETS = ("easymark", "onemark")
+SUPPORTED_DATASETS = ("easymark", "onemark", "charmark")
 
 class CruciformerRunner(Runner):
 
