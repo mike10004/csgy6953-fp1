@@ -4,6 +4,8 @@ import csv
 import tempfile
 from pathlib import Path
 from random import Random
+from typing import Optional
+from typing import Sequence
 from unittest import TestCase
 
 import torch
@@ -243,7 +245,7 @@ class TranslatorTest(TestCase):
                 ]
                 for src_phrase, tgt_phrase in src_phrases:
                     with self.subTest(src_phrase):
-                        navigator = VerboseCharmarkNavigator(required_len=len(tgt_phrase)+2, max_ranks=(3, 2, 1))
+                        navigator = VerboseCharmarkNavigator(required_len=len(tgt_phrase)+2, max_ranks=(3, 2, 1), quiet=True)
                         nodes = list(translator.suggest_nodes(src_phrase, navigator=navigator))
                         print(len(nodes), "suggestions")
                         self.assertGreater(len(nodes), 0)
@@ -267,12 +269,17 @@ class TranslatorTest(TestCase):
 
 class VerboseCharmarkNavigator(CruciformerCharmarkNodeNavigator):
 
+    def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Optional[str] = None, quiet: bool = False):
+        super().__init__(required_len, max_ranks=max_ranks, probnorm=probnorm)
+        self.quiet = quiet
+
     def notify(self, node: Node):
         self._print("notify", node.sequence_length(), node)
 
     # noinspection PyMethodMayBeStatic
     def _print(self, action: str, current_len: int, *args):
-        print(f"{action:10} {current_len}", *args)
+        if not self.quiet:
+            print(f"{action:10} {current_len}", *args)
 
     def consider(self, node: Node, next_word: int, next_prob: float) -> bool:
         result = super().consider(node, next_word, next_prob)
