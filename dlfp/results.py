@@ -144,11 +144,12 @@ class Exported(NamedTuple):
     checkpoint_index: int
     min_valid_loss: float
     min_valid_loss_epoch: int
+    final_valid_loss: float
 
     @staticmethod
     def summarize(exporteds: Sequence['Exported'], export_dir: Path, checkpoints_dir: Optional[Path] = None):
         table_rows = []
-        headers = ["index", "checkpoint file", "min valid loss", "min valid loss epoch"]
+        headers = ["index", "checkpoint file", "min vl", "min vl epoch", "final vl"]
         valid_losses = [exported.min_valid_loss for exported in exporteds]
         min_min_valid_loss_idx = np.argmin(valid_losses)
         for exported_idx, exported in enumerate(exporteds):
@@ -158,7 +159,7 @@ class Exported(NamedTuple):
             pathname = str(pathname)
             if exported_idx == min_min_valid_loss_idx:
                 pathname = "*" + pathname
-            table_rows.append([exported.checkpoint_index, pathname, exported.min_valid_loss, exported.min_valid_loss_epoch])
+            table_rows.append([exported.checkpoint_index, pathname, exported.min_valid_loss, exported.min_valid_loss_epoch, exported.final_valid_loss])
         table = Table(table_rows, headers)
         out_filename_stem = f"summary-{dlfp.common.timestamp()}"
         for tablefmt in ["csv", "simple_grid"]:
@@ -177,8 +178,10 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
     try:
         min_valid_loss_epoch = np.argmin(valid_losses)
         min_valid_loss = valid_losses[min_valid_loss_epoch]
+        final_valid_loss = valid_losses[-1]
     except (ValueError, IndexError):
         min_valid_loss = float("inf")
+        final_valid_loss = float("inf")
         min_valid_loss_epoch = -1
     with dlfp.common.open_write(_prefix("info.json", 0)) as ofile:
         json.dump(info, ofile, indent=2)
@@ -189,7 +192,7 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
             args_file = eval_file.parent / f"{eval_file.name}.args.txt"
             if args_file.is_file():
                 shutil.copyfile(args_file, dst_file.parent / f"{dst_file.name}.args.txt")
-    return Exported(checkpoint_file, index, min_valid_loss, min_valid_loss_epoch)
+    return Exported(checkpoint_file, index, min_valid_loss, min_valid_loss_epoch, final_valid_loss)
 
 
 def create_params_table(checkpoints_dir: Path,
