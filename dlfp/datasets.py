@@ -21,6 +21,7 @@ import dlfp.common
 from dlfp.common import Table
 from dlfp.utils import Language
 from dlfp.utils import LanguageCache
+from dlfp.utils import PhrasePair
 from dlfp.utils import PhrasePairDataset
 from dlfp.common import get_repo_root
 from dlfp.utils import Split
@@ -253,7 +254,12 @@ def filter_dataset(dataset: PhrasePairDataset,
     result = Result(superset_count, subset_count, (source_file, target_file))
     return result
 
-def create_subset(dataset_name: str, split: Split, output_dir: Optional[Path], shuffle_seed: int, size: int) -> Result:
+def create_subset(dataset_name: str,
+                  split: Split,
+                  output_dir: Optional[Path],
+                  shuffle_seed: int,
+                  size: int,
+                  predicate: Callable[[PhrasePair], bool] = None) -> Result:
     assert dataset_name is not None, "source dataset must be specified"
     assert split is not None, "source dataset split must be specified"
     assert shuffle_seed is not None, "must specify shuffle seed as --shuffle argument"
@@ -261,9 +267,14 @@ def create_subset(dataset_name: str, split: Split, output_dir: Optional[Path], s
     resolver = DatasetResolver()
     output_dir = output_dir or (resolver.data_root / "datasets" / dataset_name)
     full_dataset = resolver.by_name(dataset_name, split)
-    rng = Random(shuffle_seed)
-    subset = full_dataset.shuffle(rng).slice(0, size)
+    filtered_dataset = full_dataset
     filename_stem = f"{split}_r{shuffle_seed}_s{size}"
+    if predicate is not None:
+        filtered_dataset = full_dataset.filter(predicate)
+        max_target_length = getattr(predicate, "max_target_length")
+        filename_stem = f"{filename_stem}_t{max_target_length}"
+    rng = Random(shuffle_seed)
+    subset = filtered_dataset.shuffle(rng).slice(0, size)
     source_file = output_dir / f"{filename_stem}.source"
     target_file = output_dir / f"{filename_stem}.target"
     with open(source_file, "w") as sfile:
@@ -313,6 +324,15 @@ def create_dataset(dataset_name: str, output_dir: Optional[Path] = None, overwri
     return 0
 
 
+def create_target_length_predicate(target_length: Optional[int]) -> Optional[Callable[[PhrasePair], bool]]:
+    if not target_length:
+        return
+    def predicate(phrase_pair: PhrasePair) -> bool:
+        return len(phrase_pair[1]) <= target_length
+    predicate.max_target_length = target_length
+    return predicate
+
+
 def main() -> int:
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser()
@@ -331,6 +351,7 @@ def main() -> int:
     parser.add_argument("--overwrite", action='store_true', help="overwrite existing dataset in create mode")
     parser.add_argument("--size", type=int, metavar="N", help="size of subset")
     parser.add_argument("--shuffle", type=int, metavar="N", help="random seed for subset shuffle")
+    parser.add_argument("--max-target-length", type=int, metavar="N", help="in subset mode, apply target length predicate")
     args = parser.parse_args()
     data_root = args.data_root
     resolver = DatasetResolver(data_root)
@@ -383,7 +404,8 @@ def main() -> int:
         return create_dataset(args.dataset[0], output_dir=args.output, overwrite=args.overwrite)
     elif args.mode == "subset":
         assert args.dataset and len(args.dataset) == 1, "exactly one dataset must be specified in subset mode"
-        create_subset(args.dataset[0], args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size)
+        predicate = create_target_length_predicate(args.max_target_length)
+        create_subset(args.dataset[0], args.split, output_dir=args.output, shuffle_seed=args.shuffle, size=args.size, predicate=predicate)
     else:
         raise NotImplementedError("unsupported mode")
     return 0

@@ -150,6 +150,10 @@ class PhrasePairDataset(Dataset[PhrasePair], Iterable[PhrasePair]):
             phrase_pairs.append((clue, norm_answer))
         return PhrasePairDataset(new_name, phrase_pairs, self.language_pair, data_hash_pair=None)
 
+    def filter(self, predicate: Callable[[PhrasePair], bool]) -> 'PhrasePairDataset':
+        phrase_pairs = filter(predicate, self.phrase_pairs)
+        return PhrasePairDataset(self.name, phrase_pairs, self.language_pair, self.data_hash_pair)
+
 
 class EpochResult(NamedTuple):
 
