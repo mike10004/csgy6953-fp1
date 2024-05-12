@@ -117,13 +117,6 @@ class TranslatorTest(TestCase):
         ]
         self._test_suggest_cruciform(src_phrases, (3, 2, 1))
 
-    def test_suggest_cruciform_hard(self):
-        return
-        src_phrases = [
-            "Subj. that's for the birds",
-        ]
-        self._test_suggest_cruciform(src_phrases, (100, 3, 2))
-
     def _test_suggest_cruciform(self, src_phrases: list[str], max_ranks: Sequence[int]):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
