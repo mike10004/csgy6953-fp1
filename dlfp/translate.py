@@ -112,6 +112,9 @@ class NodeNavigator:
     def is_probability_ascending(self) -> bool:
         return True
 
+    def pretruncate_disabled(self) -> bool:
+        return False
+
 
 class MultiRankNodeNavigator(NodeNavigator):
 
@@ -282,6 +285,9 @@ class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
             return False
         return True
 
+    def pretruncate_disabled(self) -> bool:
+        return True
+
 
 class Suggestion(NamedTuple):
 
@@ -407,6 +413,9 @@ class NodeVisitor:
         next_words, next_words_probs = self._generate_next(node)
         next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
+        if not self.navigator.pretruncate_disabled():
+            next_words = next_words[:max_rank]
+            next_words_probs = next_words_probs[:max_rank]
         num_considered = 0
         next_iterator = zip(next_words, next_words_probs)
         if not self.navigator.is_probability_ascending():
