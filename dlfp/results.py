@@ -161,7 +161,7 @@ class Exported(NamedTuple):
             table_rows.append([exported.checkpoint_index, pathname, exported.min_valid_loss, exported.min_valid_loss_epoch])
         table = Table(table_rows, headers)
         out_filename_stem = f"summary-{dlfp.common.timestamp()}"
-        for tablefmt in ["csv", "grid"]:
+        for tablefmt in ["csv", "simple_grid"]:
             suffix = ".csv" if tablefmt == "csv" else ".txt"
             out_pathname = export_dir / f"{out_filename_stem}{suffix}"
             table.write_file(out_pathname, fmt=tablefmt)
@@ -195,6 +195,7 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
 def create_params_table(checkpoints_dir: Path,
                         *,
                         filename_pattern: Optional[str] = None,
+                        dataset: Optional[str] = None,
                         find_eval_info: bool = False,
                         export_dir: Optional[Path] = None,
                         columns: Sequence[str] = None) -> Table:
@@ -217,6 +218,9 @@ def create_params_table(checkpoints_dir: Path,
             eval_info = None
             restored = Restored.from_file(checkpoint_file, device="cpu")
             metadata = (restored.extra or {}).get("metadata", {})
+            dataset_name = metadata.get("dataset_name", None)
+            if dataset_name and dataset and (dataset != dataset_name):
+                continue
             ok, train_hp, model_hp = dlfp.models.get_hyperparameters(restored)
             if not ok:
                 _log.warning("model/train hyperparameters not found in %s", checkpoint_file.as_posix())
@@ -263,6 +267,7 @@ def main() -> int:
     parser.add_argument("--eval", action='store_true', help="in params mode, find eval info")
     parser.add_argument("--export", metavar="DIR", type=Path, help="export data to DIR")
     parser.add_argument("-p", "--pattern", help="in params mode, filter checkpoint files with filename pattern")
+    parser.add_argument("-d", "--dataset", metavar="NAME", help="in params mode, filter checkpoint files by dataset")
     args = parser.parse_args()
     logging.basicConfig(level="INFO")
     output_format = {
@@ -274,7 +279,7 @@ def main() -> int:
         table = create_loss_table(args.file)
     elif args.mode == "params":
         checkpoints_dir = args.file or (dlfp.common.get_repo_root() / "checkpoints")
-        table = create_params_table(checkpoints_dir, filename_pattern=args.pattern, find_eval_info=args.eval, export_dir=args.export)
+        table = create_params_table(checkpoints_dir, dataset=args.dataset, filename_pattern=args.pattern, find_eval_info=args.eval, export_dir=args.export)
     else:
         raise NotImplementedError(f"bug: unhandled mode {repr(args.mode)}")
     table.write_file(args.output, fmt=output_format)
