@@ -86,10 +86,11 @@ class Cruciformer(nn.Module):
                  dim_feedforward: int = 512,
                  transformer_dropout_rate: float = 0.1,
                  pe_dropout_rate: float = 0.1,
-                 input_dropout_rate: float = 0.0,
                  batch_first: bool = False):
         super(Cruciformer, self).__init__()
-        self.input_dropout = Dropout(input_dropout_rate)
+        # this dropout layer was a mistake, but it is retained with rate=0 in order
+        # to keep state dicts of stored checkpoints consistent
+        self.input_dropout = Dropout(0.0)
         self.transformer = Transformer(d_model=emb_size,
                                        nhead=nhead,
                                        num_encoder_layers=num_encoder_layers,
@@ -134,7 +135,7 @@ class ModelHyperparametry(NamedTuple):
     dim_feedforward: int = 512
     transformer_dropout_rate: float = 0.1
     pe_dropout_rate: float = 0.1
-    input_dropout_rate: float = 0.0
+    input_dropout_rate: float = 0.0  # not actually supported
     batch_first: bool = False
 
     @staticmethod
@@ -163,7 +164,6 @@ def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametr
         dim_feedforward=h.dim_feedforward,
         transformer_dropout_rate=h.transformer_dropout_rate,
         pe_dropout_rate=h.pe_dropout_rate,
-        input_dropout_rate=h.input_dropout_rate,
         batch_first=h.batch_first,
     )
     for p in transformer.parameters():
