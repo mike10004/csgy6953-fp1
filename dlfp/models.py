@@ -86,6 +86,7 @@ class Cruciformer(nn.Module):
                  dim_feedforward: int = 512,
                  transformer_dropout_rate: float = 0.1,
                  pe_dropout_rate: float = 0.1,
+                 tgt_pos_enc_disabled: bool = False,
                  batch_first: bool = False):
         super(Cruciformer, self).__init__()
         # this dropout layer was a mistake, but it is retained with rate=0 in order
@@ -102,6 +103,7 @@ class Cruciformer(nn.Module):
         self.src_tok_emb = TokenEmbedding(src_vocab_size, emb_size)
         self.tgt_tok_emb = TokenEmbedding(tgt_vocab_size, emb_size)
         self.positional_encoding = PositionalEncoding(emb_size, dropout=pe_dropout_rate)
+        self.tgt_pos_enc_disabled = tgt_pos_enc_disabled
         self.batch_first = batch_first
 
     def forward(self, src: Tensor, trg: Tensor, src_mask: Tensor, tgt_mask: Tensor,
@@ -109,7 +111,9 @@ class Cruciformer(nn.Module):
                 memory_key_padding_mask: Tensor):
         src = self.input_dropout(src)
         src_emb = self.positional_encoding(self.src_tok_emb(src))
-        tgt_emb = self.positional_encoding(self.tgt_tok_emb(trg))
+        tgt_emb = self.tgt_tok_emb(trg)
+        if not self.tgt_pos_enc_disabled:
+            tgt_emb = self.positional_encoding(tgt_emb)
         if self.batch_first:
             src_emb = src_emb.transpose(0, 1)
             tgt_emb = tgt_emb.transpose(0, 1)
@@ -136,6 +140,7 @@ class ModelHyperparametry(NamedTuple):
     transformer_dropout_rate: float = 0.1
     pe_dropout_rate: float = 0.1
     input_dropout_rate: float = 0.0  # not actually supported
+    tgt_pos_enc_disabled: bool = False
     batch_first: bool = False
 
     @staticmethod
@@ -146,6 +151,7 @@ class ModelHyperparametry(NamedTuple):
             'num_encoder_layers': int,
             'num_decoder_layers': int,
             'dim_feedforward': int,
+            'tgt_pos_enc_disabled': int,
             'batch_first': int,
         })
         return h
@@ -164,6 +170,7 @@ def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametr
         dim_feedforward=h.dim_feedforward,
         transformer_dropout_rate=h.transformer_dropout_rate,
         pe_dropout_rate=h.pe_dropout_rate,
+        tgt_pos_enc_disabled=h.tgt_pos_enc_disabled,
         batch_first=h.batch_first,
     )
     for p in transformer.parameters():

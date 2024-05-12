@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+import unittest
 from unittest import TestCase
 import torch
 import torch.random
@@ -52,9 +52,9 @@ class TrainerTest(TestCase):
             expected_mean_loss = 0.4069085568189621
             self.assertAlmostEqual(expected_mean_loss, mean_loss, delta=0.001)
 
-    def _test_train(self, bilinguist: Bilinguist, train_dataset: PhrasePairDataset, valid_dataset: PhrasePairDataset, batch_size: int, epoch_count: int = 2):
+    def _test_train(self, bilinguist: Bilinguist, train_dataset: PhrasePairDataset, valid_dataset: PhrasePairDataset, batch_size: int, model_hp: ModelHyperparametry = None, epoch_count: int = 2):
         device = dlfp_tests.tools.get_device()
-        model_hp = ModelHyperparametry(batch_first=False)
+        model_hp = model_hp or ModelHyperparametry(batch_first=False)
         model = create_model(
             src_vocab_size=len(bilinguist.source.vocab),
             tgt_vocab_size=len(bilinguist.target.vocab),
@@ -69,6 +69,13 @@ class TrainerTest(TestCase):
         return model, trainer
 
     def test_train_charmark(self):
+        self._test_train_charmark()
+
+    @unittest.skip("for demo only")
+    def test_train_charmark_tgt_pos_enc_disabled(self):
+        self._test_train_charmark(ModelHyperparametry(tgt_pos_enc_disabled=True))
+
+    def _test_train_charmark(self, model_hp: ModelHyperparametry = None):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             train_dataset = DatasetResolver().charmark("train")
@@ -78,7 +85,7 @@ class TrainerTest(TestCase):
             batch_size = 16
             train_dataset = dlfp_tests.tools.truncate_dataset(train_dataset, size=batch_size * 20)
             valid_dataset = dlfp_tests.tools.truncate_dataset(valid_dataset, size=batch_size * 2)
-            model, trainer = self._test_train(bilinguist, train_dataset, valid_dataset, batch_size)
+            model, trainer = self._test_train(bilinguist, train_dataset, valid_dataset, batch_size, model_hp=model_hp)
             model.eval()
             loaders = TrainLoaders.from_datasets(train_dataset, valid_dataset, batch_size=batch_size, collate_fn=bilinguist.collate)
             mean_loss = trainer.run(loaders.valid, 'valid')
