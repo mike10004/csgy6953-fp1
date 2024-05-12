@@ -18,7 +18,6 @@ from argparse import ArgumentParser
 from concurrent.futures import ThreadPoolExecutor
 from typing import Protocol
 from typing import Sequence
-from typing import Type
 
 import torch
 from tqdm import tqdm
@@ -377,6 +376,20 @@ def get_model_hyperparametry(restored: Restored) -> ModelHyperparametry:
         raise ValueError("model hyperparameters not available in restored checkpoint")
     return model_hp
 
+
+def write_metadata(metadata_output_file: Path, checkpoint_file: Path, restored: Restored, eval_config: EvalConfig):
+    with dlfp.common.open_write(metadata_output_file) as ofile:
+        def _print(*args, **kwargs):
+            print(*args, **kwargs, file=ofile)
+        _print(sys.argv, file=ofile)
+        _print("===")
+        _print("checkpoint file:", Path(checkpoint_file).as_posix())
+        _print("===")
+        _print(json.dumps(restored.extra or {}, indent=2))
+        _print("===")
+        _print(json.dumps(eval_config._asdict(), indent=2))
+
+
 def main(runner: Runner, argv1: Optional[Sequence[str]] = None) -> int:
     parser = ArgumentParser(description=runner.describe(), epilog=f"""\
 Allowed --train-param keys are: {TrainHyperparametry._fields}.
@@ -418,7 +431,9 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             restored = Restored.from_file(checkpoint_file, device=device)
             eval_config = EvalConfig.from_args(args.eval_config)
             output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
+            metadata_output_file = Path(str(output_file) + ".args.txt")
             model_hp = get_model_hyperparametry(restored)
+            write_metadata(metadata_output_file, checkpoint_file, restored, eval_config)
             runner.run_eval(restored,
                             args.dataset,
                             model_hp,
