@@ -56,7 +56,8 @@ class CruciformerRunner(Runner):
         if not strategy_spec:
             return {}
         types = {
-            "max_ranks": lambda spec: [int(t) for t in spec.split(",")]
+            "max_ranks": lambda spec: [int(t) for t in spec.split(",")],
+            "probnorm": str,
         }
         parts = strategy_spec.split(";")
         kwargs = {}

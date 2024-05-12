@@ -174,20 +174,34 @@ class CruciformerOnemarkNodeNavigator(CruciformerNodeNavigator):
 DEFAULT_CHARMARK_MAX_RANKS = (2,)
 
 
+def probnorm_translate(probs: Tensor) -> Tensor:
+    probs = probs - torch.min(probs)
+    return probs
+
 def probnorm_translate_and_scale(probs: Tensor) -> Tensor:
-    raise NotImplementedError()
+    probs = probnorm_translate(probs)
+    probs = probs / torch.sum(probs)
+    return probs
+
+def parse_probnorm(probnorm: Optional[str]) -> Callable[[Tensor], Tensor]:
+    if not probnorm or probnorm == "softmax":
+        return torch.nn.Softmax(dim=0)
+    return {
+        "translate": probnorm_translate,
+        "scale": probnorm_translate_and_scale,
+    }[probnorm]
 
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
-    def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Callable[[Tensor], Tensor] = None):
+    def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Optional[str] = None):
         max_ranks = max_ranks or DEFAULT_CHARMARK_MAX_RANKS
         super().__init__(required_len, max_ranks)
         self.required_len = required_len
         indexes = SpecialIndexes()
         self.eos_index = indexes.eos
         self.unconsidered = {indexes.bos, indexes.pad, indexes.unk}
-        self.probnorm = probnorm or self.softmax
+        self.probnorm = parse_probnorm(probnorm)
 
     @classmethod
     def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerCharmarkNodeNavigator':
