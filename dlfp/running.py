@@ -381,7 +381,7 @@ def write_metadata(metadata_output_file: Path, checkpoint_file: Path, restored: 
     with dlfp.common.open_write(metadata_output_file) as ofile:
         def _print(*args, **kwargs):
             print(*args, **kwargs, file=ofile)
-        _print(sys.argv, file=ofile)
+        _print(sys.argv)
         _print("===")
         _print("checkpoint file:", Path(checkpoint_file).as_posix())
         _print("===")
