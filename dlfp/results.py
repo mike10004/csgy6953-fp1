@@ -108,7 +108,7 @@ class EvalInfo(NamedTuple):
 
     @staticmethod
     def headers() -> list[str]:
-        return ["evfs", "ndds", "l_eval"]
+        return ["evfs", "ndds"]
 
     def latest_eval_filename(self) -> Optional[str]:
         if self.eval_files:
@@ -118,11 +118,13 @@ class EvalInfo(NamedTuple):
         return {k:v for k, v in zip(self.headers(), self.cells())}
 
     def cells(self) -> list[Any]:
-        return [len(self.eval_files), len(self.node_dirs), self.latest_eval_filename()]
+        return [len(self.eval_files), len(self.node_dirs)]
 
     @staticmethod
     def find(checkpoint_file: Path) -> 'EvalInfo':
         evals_dir = checkpoint_file.parent / "evaluations"
+        if not evals_dir.exists():
+            return EvalInfo([], [])
         entries = list(evals_dir.iterdir())
         eval_files = list(filter(lambda p: p.is_file() and p.name.endswith(".csv"), entries))
         node_dirs = list(filter(lambda p: p.is_dir() and p.name.endswith("-nodes"), entries))
