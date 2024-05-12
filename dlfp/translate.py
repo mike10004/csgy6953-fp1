@@ -10,6 +10,7 @@ from typing import Iterator
 from typing import NamedTuple
 from typing import Sequence
 
+import numpy as np
 import torch
 from torch import Tensor
 from torchtext.vocab import Vocab
@@ -20,6 +21,9 @@ from dlfp.utils import Specials
 from dlfp.utils import generate_square_subsequent_mask
 from dlfp.utils import Bilinguist
 from dlfp.models import Cruciformer
+
+
+ProbEstimator = Callable[[Iterator[float]], float]
 
 
 class PhraseEncoding(NamedTuple):
@@ -63,13 +67,23 @@ class Node:
         complete_infix = "c" if self.complete else "i"
         return f"Node({self.y.flatten().cpu().numpy().tolist()},p={self.prob:.4e},{complete_infix})"
 
-    def cumulative_probability(self) -> float:
+    def cumulative_probability(self, prob_estimator: ProbEstimator = None) -> float:
         nodes = self.lineage()
-        assert len(nodes) > 0
-        p = 1.0
-        for node in nodes:
-            p *= node.prob
+        assert len(nodes) > 0  # always includes self
+        prob_estimator = prob_estimator or _product
+        p = prob_estimator(map(lambda node: node.prob, iter(nodes)))
         return p
+
+
+def _product(probabilities: Iterator[float]) -> float:
+    p = 1.0
+    for component in probabilities:
+        p *= component
+    return p
+
+
+def _mean_estimator(p: Iterator[float]) -> float:
+    return np.mean(list(p))
 
 
 class NodeNavigator:
@@ -91,6 +105,12 @@ class NodeNavigator:
 
     def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
         return next_word_probs
+
+    def calculate_cumulative_probability(self, component_probs: Iterator[float]) -> float:
+        return _product(component_probs)
+
+    def is_probability_ascending(self) -> bool:
+        return True
 
 
 class MultiRankNodeNavigator(NodeNavigator):
@@ -127,11 +147,17 @@ class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
 
 class CruciformerNodeNavigator(NodeNavigator):
 
-    def __init__(self, max_len: int = 6, max_ranks: Sequence[int] = (100, 3, 2)):
+    def __init__(self,
+                 max_len: int = 6,
+                 max_ranks: Sequence[int] = (100, 3, 2),
+                 probnorm: Optional[str] = None,
+                 estimator: Optional[str] = None):
         self.max_len = max_len   # includes bos and eos tokens
         self.max_ranks = tuple([-1] + list(max_ranks))
         assert len(self.max_ranks) > 1
-        self.softmax = torch.nn.Softmax(dim=0)
+        self.probnorm = parse_probnorm(probnorm)
+        self.estimator = parse_estimator(estimator)
+        self._probability_ascending = probnorm != "logsoftmax"
 
     def get_max_rank(self, tgt_sequence_len: int) -> int:
         if tgt_sequence_len >= len(self.max_ranks):
@@ -143,7 +169,13 @@ class CruciformerNodeNavigator(NodeNavigator):
         return self.max_len
 
     def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
-        return self.softmax(next_word_probs)
+        return self.probnorm(next_word_probs)
+
+    def calculate_cumulative_probability(self, component_probs: Iterator[float]) -> float:
+        return super().calculate_cumulative_probability(component_probs)
+
+    def is_probability_ascending(self) -> bool:
+        return self._probability_ascending
 
     @classmethod
     def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerNodeNavigator':
@@ -170,33 +202,64 @@ def probnorm_translate_and_scale(probs: Tensor) -> Tensor:
     probs = probs / torch.sum(probs)
     return probs
 
+
+LOG_SOFTMAX = torch.nn.LogSoftmax(dim=0)
+TANH = torch.nn.Tanh()
+
+def probnorm_tanh(probs: Tensor) -> Tensor:
+    probs = TANH(probs)  # maps values to [-1, 1]
+    return (probs + 1.0) / 2.0
+
+
+def probnorm_logsoftmax(p: Tensor) -> Tensor:
+    p = LOG_SOFTMAX(p)
+    return p
+
+
+def probnorm_unitnorm(p: Tensor, epsilon: float = 1e-8) -> Tensor:
+    p = probnorm_translate(p)
+    # https://stackoverflow.com/a/50415896/2657036
+    return p / (epsilon + torch.sqrt(torch.sum(torch.square(p))))
+
+
 def parse_probnorm(probnorm: Optional[str]) -> Callable[[Tensor], Tensor]:
     if not probnorm or probnorm == "softmax":
         return torch.nn.Softmax(dim=0)
     return {
         "translate": probnorm_translate,
         "scale": probnorm_translate_and_scale,
+        "tanh": probnorm_tanh,
+        "logsoftmax": probnorm_logsoftmax,
+        "unit": probnorm_unitnorm,
     }[probnorm]
+
+
+def _sum_estimator(p: Iterator[float]) -> float:
+    return np.sum(tuple(p))
+
+
+def parse_estimator(estimator: Optional[str]) -> ProbEstimator:
+    if estimator == "mean":
+        return _mean_estimator
+    if estimator == "sum":
+        return _sum_estimator
+    return _product
 
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
     def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Optional[str] = None):
         max_ranks = max_ranks or DEFAULT_CHARMARK_MAX_RANKS
-        super().__init__(required_len, max_ranks)
+        super().__init__(required_len, max_ranks=max_ranks, probnorm=probnorm)
         self.required_len = required_len
         indexes = SpecialIndexes()
         self.eos_index = indexes.eos
         self.unconsidered = {indexes.bos, indexes.pad, indexes.unk}
-        self.probnorm = parse_probnorm(probnorm)
 
     @classmethod
     def factory(cls, tgt_phrase: str, kwargs: dict[str, Any]) -> 'CruciformerCharmarkNodeNavigator':
         # +2 for bos and eos tokens
         return CruciformerCharmarkNodeNavigator(len(tgt_phrase) + 2, **kwargs)
-
-    def normalize_probs(self, next_word_probs: Tensor) -> Tensor:
-        return self.probnorm(next_word_probs)
 
     def get_max_len(self, input_len: int) -> int:
         return self.required_len
@@ -283,14 +346,16 @@ class Translator:
             nodes.append(node)
         if nodes_callback is not None:
             nodes_callback(nodes)
-        suggestions = [self.to_suggestion(node) for node in nodes]
-        suggestions.sort(key=Suggestion.sort_key_by_probability, reverse=True)
+        prob_estimator = None if navigator is None else navigator.calculate_cumulative_probability
+        suggestions = [self.to_suggestion(node, prob_estimator) for node in nodes]
+        reverse = True if navigator is None else navigator.is_probability_ascending()
+        suggestions.sort(key=Suggestion.sort_key_by_probability, reverse=reverse)
         return suggestions[:count]
 
-    def to_suggestion(self, node: Node) -> Suggestion:
+    def to_suggestion(self, node: Node, prob_estimator: ProbEstimator = None) -> Suggestion:
         tgt_indexes = node.y.flatten()
         tgt_phrase = self.indexes_to_phrase(tgt_indexes)
-        s = Suggestion(tgt_phrase, node.cumulative_probability())
+        s = Suggestion(tgt_phrase, node.cumulative_probability(prob_estimator))
         return s
 
     def suggest_nodes(self, src_sentence: str, navigator: NodeNavigator = None) -> Iterator[Node]:
@@ -343,7 +408,10 @@ class NodeVisitor:
         next_words_probs = self.navigator.normalize_probs(next_words_probs)
         max_rank = self.navigator.get_max_rank(tgt_sequence_len)
         num_considered = 0
-        for next_word, next_prob in zip(next_words, next_words_probs):
+        next_iterator = zip(next_words, next_words_probs)
+        if not self.navigator.is_probability_ascending():
+            next_iterator = reversed(list(next_iterator))
+        for next_word, next_prob in next_iterator:
             if num_considered >= max_rank:
                 break
             if not self.navigator.consider(node, next_word, next_prob):

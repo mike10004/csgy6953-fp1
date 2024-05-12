@@ -372,3 +372,23 @@ class NodeVisitorTest(TestCase):
                     count *= factor
                 print(f"{required_len:2d} -> {count:7d}")
                 self.assertLess(count, 5_000_000)
+
+    def test_norm_methods(self, verbose: bool = True):
+        next_words_probs = torch.tensor([ 2.5581,  2.3117,  1.9621,  1.5940,  1.5705,  1.4213,  1.3919,  1.3370,
+         1.1915,  0.7935,  0.6412,  0.6107,  0.3704,  0.3376, -0.0883, -0.2303,
+        -0.4242, -0.6058, -0.6532, -0.6712, -1.2395, -1.5089, -1.9172, -2.0092,
+        -2.2799, -2.3521, -2.6116, -2.8697, -2.9313, -4.9003])
+        norm_functions = [
+            "softmax",
+            "translate",
+            "scale",
+            "tanh",
+            "logsoftmax",
+            "unit",
+        ]
+        for fn_name, fn in list(map(lambda x: (x, dlfp.translate.parse_probnorm(x)), norm_functions)):
+            with self.subTest(fn_name):
+                outcome = fn(next_words_probs)
+                if verbose:
+                    print(outcome)
+                self.assertIsInstance(outcome, Tensor)
