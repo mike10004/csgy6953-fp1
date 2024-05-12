@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import csv
-from collections import deque
 from pathlib import Path
 from typing import Any
 from typing import Optional
@@ -40,7 +39,7 @@ class Node:
         self.current_word = flat_y[-1].item()
         self._sequence_length = flat_y.shape[0]
         self.parent = None
-        self.children = []
+        # self.children = []
         self.complete = complete
         if isinstance(prob, Tensor):
             prob = prob.item()
@@ -52,10 +51,6 @@ class Node:
     def sequence_length(self) -> int:
         return self._sequence_length
 
-    def add_child(self, child: 'Node'):
-        child.parent = self
-        self.children.append(child)
-
     def lineage(self) -> list['Node']:
         path_to_root = []
         current = self
@@ -65,7 +60,8 @@ class Node:
         return list(reversed(path_to_root))
 
     def __repr__(self):
-        return f"Node({self.y.flatten().cpu().numpy().tolist()},c={len(self.children)})"
+        complete_infix = "c" if self.complete else "i"
+        return f"Node({self.y.flatten().cpu().numpy().tolist()},p={self.prob:.4e},{complete_infix})"
 
     def cumulative_probability(self) -> float:
         nodes = self.lineage()
@@ -74,15 +70,6 @@ class Node:
         for node in nodes:
             p *= node.prob
         return p
-
-    def bfs(self) -> Iterator['Node']:
-        queue = deque([self])
-        while queue:
-            current = queue.popleft()
-            yield current
-            for child in current.children:
-                queue.append(child)
-
 
 
 class NodeNavigator:
@@ -363,9 +350,9 @@ class NodeVisitor:
                 continue
             child_ys = torch.cat([ys, torch.ones(1, 1).type_as(ys.data).fill_(next_word)], dim=0)
             child = Node(child_ys, next_prob)
+            child.parent = node
             if self._is_eos_index(next_word):
                 child.complete = True
-            node.add_child(child)
             if self.navigator.include(child):
                 yield from self.visit(child)
             num_considered += 1
