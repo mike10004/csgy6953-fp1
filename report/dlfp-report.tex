@@ -142,18 +142,22 @@ Mapping crossword clues to answers is a sequence-to-sequence translation task, w
 sequences (clues) are generally terse and often contain misdirection, and the target sequences (answers) are
 generally very short relative to the length of the source sequence.
 
-Crossword solving in general is addressed by~\citealp{kulshreshtha2022across} and~\citealp{wallace2022automated},
-both of which efforts implement and evaluate end-to-end algorithms for solving an entire grid.
-[TODO Describe Berkeley method and Benchmark method.]
+The end-to-end task of solving a complete crossword grid is notably tackled in~\citealp{wallace2022automated},
+which produced an algorithm that outperformed humans at the American Crossword Puzzle Tournament in 2021.
+The clue-answering component is a bi-encoder QA model designed to be used iteratively to solve harder clues
+given probable letters from easier crossing answers.
+Contemporaneous work from~\citealp{kulshreshtha2022across} suggests end-to-end crossword grid-solving
+as a benchmark Natural Language Processing algorithm capabilities.
 
-The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem
-tackled in~\citealp{zhang2019multichannel}.
-[TODO Describe MultiRD model/results/baseline.]
+The task this study investigates is limited to answering clues (as opposed to populating a grid),
+which is a type of reverse-dictionary problem addressed in~\citealp{zhang2019multichannel}.
+The authors develop the \textit{MultiRD} model, a bidirectional LSTM model with a ``multi-channel'' approach that
+integrates linguistic analysis (e.g.~morphemes, lexemes, and semantic units).
 
 A statistical approach to answering clues is implemented in~\citealp{baselinesolver}.
 That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to
 clues in a database, and selects answers based on best-matching clues.
-This method is the baseline against which our model results are compared in the test phase.
+That method is the baseline against which our model results are compared in the test phase.
 
 \section{Dataset}
 \label{sec:dataset}
@@ -325,25 +329,33 @@ Urna id volutpat lacus laoreet non curabitur gravida.
 
 The models achieve success in outperforming the baseline, but the baseline is a low bar.
 Comparison to the MultiRD model or even a basic Word2Vec-based algorithm that contemplates semantic content would provide a better gauge of relative performance.
-(Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citealp{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
+(Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citeauthor{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
 
 The initial objectives from the project proposal included attempting to utilize constraints such as target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
-Use of positional encoding to influence output sequence length, as~\citealp{takase2019positional} implemented, seems like a promising way to achieve better accuracy at lower ranks.
+Use of positional encoding to influence output sequence length~\cite{takase2019positional} seems like a promising way to achieve better accuracy at lower ranks.
 The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked
 sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others.
 
 The fundamental model training task proved difficult.
-It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative to datasets for language translation on which transformers have shown robustness.
+It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative
+to datasets for language translation on which transformers have shown robustness.
 Clue-answer pairs are inherently asymmetric in terms of sequence length, whereas language-to-language pairs are more balanced.
-This also points toward consideration of alternative positional encodings for the answer sequences; given their short length, perhaps a sinusoidal encoding is not appropriate.
-(Tests that removed the letter model's positional encoding from the target sequence were performed, but the results were poor.)
+This also points toward consideration of alternative positional encodings for the answer sequences in the letter model;
+given their short length, perhaps a sinusoidal encoding is not appropriate.
+(Tests that completely removed the letter model's positional encoding from the target sequence were performed, but the results were poor.)
+\citeauthor{kulshreshtha2022across} claim that no major transformer architecture supports character-level outputs, so
+this was likely a more complex task than initially assumed.
 
-While reducing model dimensionality and increasing dropout were attempted to introduce regularization, other techniques, such as data augmentation (perhaps by randomly masking some tokens in the clue sequences) are worth trying.
-Scheduling learning rate adjustments differently is also worthy of investigation; \citealp{vaswani2017} schedules the learning rate with a warmup period and gradual decrease.
-They train for many more epochs with a much larger dataset, but nevertheless, schedules more optimal than a constant learning rate are worthy of consideration.
+While reducing model dimensionality and increasing dropout were attempted to introduce regularization, other
+techniques, such as data augmentation (perhaps by randomly masking some tokens in the clue sequences) are worth trying.
+Scheduling learning rate adjustments differently is also worthy of investigation; \citeauthor{vaswani2017} schedule the
+learning rate with a warmup period and gradual decrease.
+They train for many more epochs with a much larger dataset, but even for this dataset, non-constant learning rate
+schedules are worthy of consideration.
 
 Overall, the results herein show that the models did learn effectively, though imperfectly.
-Though there is conclusive evidence that the transformer architecture is optimal for the clue-answering task, relative to other types of encoder-decoder models, several avenues of further research are promising.
+Though there is conclusive evidence that the transformer architecture is optimal for the clue-answering task,
+relative to other types of encoder-decoder models, several avenues of further research are promising.
 
 \bibliography{aaai24}
 
