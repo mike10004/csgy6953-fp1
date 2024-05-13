@@ -108,3 +108,17 @@ def nt_from_args(nt_type: Type[T],
             raise ValueError(f"{nt_type.__name__}: expected token parseable as {value_type} for key {repr(key)}, but got {repr(value)}")
         kwargs[key] = value
     return nt_type(**kwargs)
+
+
+def namedtuple_diff(a: T, b: T = None) -> dict[str, Any]:
+    assert type(a) == type(b)
+    # noinspection PyProtectedMember
+    ad, bd = a._asdict(), b._asdict()
+    diff = {}
+    for k in ad.keys():
+        av, bv = ad[k], bd[k]
+        if isinstance(av, (list, tuple)):
+            av, bv = tuple(av), tuple(bv)
+        if av != bv:
+            diff[k] = bv
+    return diff

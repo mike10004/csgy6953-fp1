@@ -392,3 +392,43 @@ def normalize_answer(answer: str, alphabet: str = "abcdefghijklmnopqrstuvwxyz") 
 
 def normalize_answer_upper(answer: str) -> str:
     return normalize_answer(answer).upper()
+
+
+class EvalConfig(NamedTuple):
+
+    split: Split = "valid"
+    concurrency: Optional[int] = None
+    nodes_folder: Optional[Path] = None
+    limit: Optional[int] = None
+    shuffle_seed: Optional[int] = None
+    node_strategy: Optional[str] = None
+
+    @staticmethod
+    def from_args(arguments: Optional[list[str]]) -> 'EvalConfig':
+        types = {
+            'concurrency': int,
+            'limit': int,
+            'shuffle_seed': int,
+            'nodes_folder': Path,
+        }
+        return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=str)
+
+    def parse_node_strategy(self):
+        return self.parse_navigator_kwargs(self.node_strategy)
+
+    @staticmethod
+    def parse_navigator_kwargs(strategy_spec: Optional[str]) -> dict[str, Any]:
+        if not strategy_spec:
+            return {}
+        types = {
+            "max_ranks": lambda spec: [int(t) for t in spec.split(",")],
+            "probnorm": str,
+        }
+        parts = strategy_spec.split(";")
+        kwargs = {}
+        for part in parts:
+            k, v = part.split("=", maxsplit=1)
+            typer = types.get(k, str)
+            v = typer(v)
+            kwargs[k] = v
+        return kwargs

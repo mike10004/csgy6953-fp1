@@ -17,6 +17,7 @@ from dlfp.translate import CruciformerNodeNavigator
 from dlfp.translate import CruciformerOnemarkNodeNavigator
 from dlfp.translate import NodeNavigator
 from dlfp.utils import Bilinguist
+from dlfp.utils import EvalConfig
 from dlfp.utils import LanguageCache
 
 
@@ -51,25 +52,8 @@ class CruciformerRunner(Runner):
         r.manager.tgt_transform = dlfp.utils.normalize_answer_upper
         return r
 
-    @staticmethod
-    def parse_navigator_kwargs(strategy_spec: Optional[str]) -> dict[str, Any]:
-        if not strategy_spec:
-            return {}
-        types = {
-            "max_ranks": lambda spec: [int(t) for t in spec.split(",")],
-            "probnorm": str,
-        }
-        parts = strategy_spec.split(";")
-        kwargs = {}
-        for part in parts:
-            k, v = part.split("=", maxsplit=1)
-            typer = types.get(k, str)
-            v = typer(v)
-            kwargs[k] = v
-        return kwargs
-
     def create_node_strategy(self, strategy_spec: Optional[str], dataset_name: str) -> NodeStrategy:
-        navigator_kwargs = self.parse_navigator_kwargs(strategy_spec)
+        navigator_kwargs = EvalConfig.parse_navigator_kwargs(strategy_spec)
         navigator_factory_fn = {
             "easymark": CruciformerNodeNavigator.factory,
             "onemark": CruciformerOnemarkNodeNavigator.factory,

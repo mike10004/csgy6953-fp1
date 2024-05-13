@@ -1,0 +1,48 @@
+['/home/ubuntu/ws/fp1/dlfp/__main__.py', '-m', 'eval', '-f', 'checkpoints/20240512-1659/checkpoint-epoch009.pt', '-d', 'onemark', '-e', 'split=valid_r98765_s1000', '-e', 'node_strategy=max_ranks=100,10,2']
+===
+checkpoint file: checkpoints/20240512-1659/checkpoint-epoch009.pt
+===
+{
+  "train_config": {
+    "dataset_name": "onemark",
+    "checkpoints_dir": "/home/ubuntu/ws/fp1/checkpoints/20240512-1659",
+    "train_hp": {
+      "epoch_count": 10,
+      "batch_size": 128,
+      "lr": 0.0001,
+      "betas": [
+        0.9,
+        0.98
+      ],
+      "eps": 1e-09,
+      "train_data_shuffle_disabled": false
+    },
+    "model_hp": {
+      "nhead": 8,
+      "emb_size": 512,
+      "num_encoder_layers": 3,
+      "num_decoder_layers": 3,
+      "dim_feedforward": 512,
+      "transformer_dropout_rate": 0.0,
+      "pe_dropout_rate": 0.1,
+      "input_dropout_rate": 0.0,
+      "batch_first": false
+    },
+    "retain_all_checkpoints": false,
+    "save_optimizer": false
+  },
+  "metadata": {
+    "dataset_name": "onemark",
+    "src_vocab_size": 82395,
+    "tgt_vocab_size": 49369
+  }
+}
+===
+{
+  "split": "valid_r98765_s1000",
+  "concurrency": null,
+  "nodes_folder": null,
+  "limit": null,
+  "shuffle_seed": null,
+  "node_strategy": "max_ranks=100,10,2"
+}

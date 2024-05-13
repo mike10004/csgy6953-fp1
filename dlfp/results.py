@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
-import fnmatch
+
+import os
+import re
 import sys
 import csv
 import json
+import glob
 import shutil
+import fnmatch
 import logging
 from collections import defaultdict
 from pathlib import Path
@@ -23,6 +27,7 @@ from dlfp.models import ModelHyperparametry
 from dlfp.models import TrainHyperparametry
 from dlfp.utils import EpochResult
 from dlfp.utils import Restored
+from dlfp.utils import EvalConfig
 
 _log = logging.getLogger(__name__)
 DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
@@ -61,8 +66,11 @@ def measure_accuracy(attempt_file: Path, ranks: Collection[int] = None) -> Accur
             row: dict[str, str]
             try:
                 actual_rank = int(row["rank"])
-            except ValueError:
-                actual_rank = None
+            except (ValueError, KeyError) as e:
+                if isinstance(e, ValueError):
+                    actual_rank = None
+                else:
+                    raise KeyError(f"{e} not present in {csv_reader.fieldnames}")
             if actual_rank is not None:
                 for rank in ranks:
                     if actual_rank <= rank:
@@ -168,6 +176,7 @@ class Exported(NamedTuple):
             out_pathname = export_dir / f"{out_filename_stem}{suffix}"
             table.write_file(out_pathname, fmt=tablefmt)
 
+
 def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Optional[EvalInfo], export_dir: Path) -> Exported:
     def _prefix(filename: str, subindex: int) -> Path:
         return export_dir / f"{index}-{subindex}-{checkpoint_file.parent.name}-{filename}"
@@ -259,6 +268,102 @@ def create_loss_table(checkpoint_file: Path) -> Table:
     for epoch_result in checkpoint.epoch_results:
         rows.append(epoch_result.to_row())
     return Table(rows, headers=EpochResult.headers())
+
+
+class Evaluation(NamedTuple):
+
+    dataset: str
+    max_ranks: tuple[int, ...]
+    accuracy_result: AccuracyResult
+    probnorm: Optional[str] = None
+
+    @staticmethod
+    def from_attempts_file(attempts_file: Path) -> 'Evaluation':
+        args_file = Path(str(attempts_file) + ".args.txt")
+        accuracy_result = measure_accuracy(attempts_file)
+        if not args_file.is_file():
+            raise ValueError(f"no args file for {attempts_file.name}")
+        eval_config_dict = json.loads(args_file.read_text().split("===")[-1])
+        eval_config = EvalConfig.from_args([f"{k}={v}" for k, v in eval_config_dict.items() if not v is None])
+        node_strat = eval_config.parse_node_strategy()
+        max_ranks = node_strat.get('max_ranks', None)
+        if max_ranks is None:
+            raise ValueError(f"no max ranks identified in args file for {attempts_file}")
+        probnorm = node_strat.get('probnorm', None)
+        return Evaluation(
+            dataset=eval_config.split or _extract_dataset(attempts_file.name),
+            max_ranks=tuple(max_ranks),
+            accuracy_result=accuracy_result,
+            probnorm=probnorm,
+        )
+
+
+class Collated(NamedTuple):
+
+    dataset: str
+    model_hp: ModelHyperparametry
+    train_hp: TrainHyperparametry
+    train_loss: list[float]
+    valid_loss: list[float]
+    evaluations: list[Evaluation]
+
+    @staticmethod
+    def from_info_file(info_file: Path) -> 'Collated':
+        timestamp = _extract_timestamp(info_file.name)
+        attempts_files = map(Path, glob.glob(os.path.join(info_file.parent, f"*-{timestamp}-attempts-*.csv")))
+        evaluations = []
+        for attempts_file in attempts_files:
+            try:
+                evaluation = Evaluation.from_attempts_file(attempts_file)
+                evaluations.append(evaluation)
+            except Exception as e:
+                _log.warning(f"failed to read from {attempts_file} due to {type(e)}: {e}")
+        info = json.loads(info_file.read_text())
+        train_config = info['extra']['train_config']
+        train_hp = TrainHyperparametry(**(train_config['train_hp']))
+        model_hp = ModelHyperparametry(**(train_config['model_hp']))
+        loss = info['loss']
+        train_loss, valid_loss = loss['train'], loss['valid']
+        metadata = info['extra']['metadata']
+        dataset = metadata.get('dataset_name', '<unidentified>')
+        return Collated(
+            dataset,
+            model_hp,
+            train_hp,
+            train_loss,
+            valid_loss,
+            evaluations,
+        )
+
+    def nondefault_hyperparameters(self) -> dict[str, Any]:
+        d = {}
+        d.update(dlfp.common.namedtuple_diff(ModelHyperparametry(), self.model_hp))
+        d.update(dlfp.common.namedtuple_diff(TrainHyperparametry(), self.train_hp))
+        return d
+
+    def write(self, output_dir: Path):
+        raise NotImplementedError()
+
+
+def _extract_timestamp(info_filename: str) -> str:
+    m = re.fullmatch(r'^(\d+-\d+-)?(\d{8}-\d{4,6})-info\.json$', info_filename)
+    if m is None:
+        raise ValueError(f"unexpected filename convention: {repr(info_filename)}")
+    return m.group(2)
+
+
+def _extract_dataset(attempts_filename: str) -> str:
+    m = re.fullmatch(r'^.*-epoch\d+_(\w+)_\d{8}-\d{4,6}\.csv$', attempts_filename)
+    if m is None:
+        raise ValueError(f"unexpected filename convention: {repr(attempts_filename)}")
+    return m.group(1)
+
+
+def collate_all(export_dir: Path, collated_dir: Path):
+    info_files = list(map(Path, glob.glob(os.path.join(export_dir, "*-info.json"))))
+    collateds = [Collated.from_info_file(info_file) for info_file in info_files]
+    for collated in collateds:
+        collated.write(collated_dir)
 
 
 def main() -> int:

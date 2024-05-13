@@ -42,11 +42,11 @@ from dlfp.utils import Checkpointer
 from dlfp.utils import EpochResult
 from dlfp.utils import PhrasePairDataset
 from dlfp.utils import Restored
-from dlfp.utils import Split
 from dlfp.common import Table
 from dlfp.results import measure_accuracy
 from dlfp.results import DEFAULT_RANKS
 from dlfp.translate import Attempt
+from dlfp.utils import EvalConfig
 
 StringTransform = Callable[[str], str]
 ATTEMPTS_TOP_K = 10
@@ -212,26 +212,6 @@ class Runnable(NamedTuple):
     bilinguist: Bilinguist
     manager: ModelManager
     metadata: Optional[dict[str, Any]] = None
-
-
-class EvalConfig(NamedTuple):
-
-    split: Split = "valid"
-    concurrency: Optional[int] = None
-    nodes_folder: Optional[Path] = None
-    limit: Optional[int] = None
-    shuffle_seed: Optional[int] = None
-    node_strategy: Optional[str] = None
-
-    @staticmethod
-    def from_args(arguments: Optional[list[str]]) -> 'EvalConfig':
-        types = {
-            'concurrency': int,
-            'limit': int,
-            'shuffle_seed': int,
-            'nodes_folder': Path,
-        }
-        return dlfp.common.nt_from_args(EvalConfig, arguments, types=types, default_type=str)
 
 
 class Runner:

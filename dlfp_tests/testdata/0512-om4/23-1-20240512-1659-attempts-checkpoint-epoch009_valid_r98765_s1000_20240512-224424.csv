@@ -1,0 +1,1001 @@
+attempt_index,source,target,rank,suggestion_count,top,top_1,top_2,top_3,top_4,top_5,top_6,top_7,top_8,top_9,top_10
+0,One component of a data plan,TEXT,nan,2,PAR,PRO
+1,Pixar title character,NEMO,1,2,NEMO,LOU
+2,Plot of land,TRACT,nan,2,EDEN,ACRE
+3,Names in someone's honor,DEDICATES,nan,2,ELF,SLAV
+4,Batman's home,GOTHAM,nan,2,ERIN,ITALIA
+5,"Thailand, before 1939",SIAM,nan,2,LAOS,IRAN
+6,Calf muscle,SOLEUS,nan,2,REP,NTH
+7,Bewitched,RAPT,nan,2,MET,HAS
+8,Back to?,FRO,nan,2,AFT,RETRO
+9,Bangkok resident,THAI,1,2,THAI,ARAB
+10,Jewel,GEM,nan,2,AMP,MENU
+11,"Breakfast, lunch or dinner",MEAL,nan,2,TACO,STEW
+12,Shakespearean duel overseer,OSRIC,nan,2,ASCAP,RAYE
+13,Slowpoke,TURTLE,nan,2,EASE,SASS
+14,Didn't stop,WENT,nan,2,RAN,SAT
+15,Waste carrier,SEWER,nan,2,TAR,ENAMEL
+16,Talkativeness,LOQUACITY,nan,2,WAN,ASHEN
+17,One meter start?,HEXA,nan,2,TELE,TOE
+18,Grassy plain,LLANO,1,2,LLANO,SEA
+19,Washroom tub,BASIN,nan,2,TENT,SPA
+20,Party times,EVES,2,2,ERAS,EVES
+21,"Jersey Shore county, appropriately",OCEAN,nan,2,ASP,ELK
+22,U.S.N. clerk: Abbr.,YEO,nan,2,LTS,SENS
+23,Belief,CREDO,nan,2,DIN,TON
+24,Euro dispenser,BANCO,nan,2,SONAR,VAN
+25,"""Who?,"" e.g.",QUERY,nan,2,ADAGE,OATER
+26,Operatives,AGENTS,nan,2,WAN,ASHEN
+27,Naval chart abbr.,STR,nan,2,USS,EST
+28,Word in many Catholic church names,LADY,nan,2,NEE,SHE
+29,Throw a barb at,ZING,nan,2,RILE,SEAR
+30,"""Sketches by ___"" (1836 book)",BOZ,nan,2,ILSA,GAL
+31,One headed for a hitching post?,ELOPER,nan,2,SCAB,UMP
+32,Covered,COATED,nan,2,GOT,ENDED
+33,Underground systems,METROS,nan,2,REEFS,SLOTHS
+34,Cotton press output,BALE,nan,2,ACIDS,PESTS
+35,"""Here's a thought ...""",SAY,nan,2,ALAS,YES
+36,Pub pints,ALES,1,2,ALES,OARS
+37,Where a kookaburra lives,OUTBACK,nan,2,PIER,ZOO
+38,Bridge,JOIN,nan,2,ACE,EAST
+39,Playful aquatic mammal,OTTER,1,2,OTTER,ORCA
+40,Cop,THIEVE,nan,2,TRY,PAN
+41,Homer's neighbor,NED,nan,2,RIO,ERIN
+42,Player at home,STEREO,nan,2,SEA,MAINE
+43,Sports org. with a tour,PGA,1,2,PGA,USO
+44,Expensive coat?,GILT,nan,2,FUR,OTTER
+45,"""Rockaria!"" band, briefly",ELO,1,2,ELO,SNL
+46,Bit of shattered glass,SHARD,nan,2,ASH,AROMA
+47,Wood in Lucius Malfoy's wand,ELM,nan,2,OTTER,ORCA
+48,Choose,OPT,nan,2,GET,KNOW
+49,"""Let us _____""",PRAY,nan,2,ITS,THAT
+50,Beaker,GLASS,nan,2,SPED,RAN
+51,BlackBerry nos.,TELS,nan,2,CCS,PTS
+52,How crowds move,ENMASSE,nan,2,MEEK,AGOG
+53,"""30 Rock"" star Fey",TINA,1,2,TINA,LANA
+54,Dyeing plant,ANIL,nan,2,ALOE,MOSS
+55,Gives an order,RANKS,nan,2,OKS,AWES
+56,"One-quarter of an H, in Morse code",DIT,nan,2,ERA,EMAIL
+57,Ornate architectural style,BAROQUE,nan,2,DECO,IONIC
+58,Physicist Fermi,ENRICO,nan,2,APSE,IRAN
+59,Off! ingredient,DEET,nan,2,NEON,ALOE
+60,Olympic racers,LUGES,nan,2,OBOES,SLEDS
+61,Aromatic salves,BALMS,nan,2,IMPS,NEONS
+62,Word on an old gas pump,ETHYL,nan,2,ATOM,ESS
+63,Tiredness,FATIGUE,nan,2,WAN,ASHEN
+64,Atty.-to-be's exam,LSAT,1,2,LSAT,ORAL
+65,Streetcar,TRAM,nan,2,WEE,OLD
+66,Needle,RIB,nan,2,RILE,IRK
+67,Professional runner?,POL,1,2,POL,AIDE
+68,"""Common Sense"" writer",PAINE,nan,2,POE,SAKI
+69,Screen role for Skippy the dog,ASTA,1,2,ASTA,ODIE
+70,Equestrian competition,DRESSAGE,nan,2,MESS,GALA
+71,Something to hang your hat on,PEG,nan,2,REEL,LASSO
+72,Half of a round trip,RETURN,nan,2,EGO,LSD
+73,Goat's call,MAA,nan,2,MEOW,MOO
+74,Detrol prescriber's field,UROLOGY,nan,2,MANE,OIL
+75,Wheels for big wheels,LIMOS,nan,2,LIMO,TRAM
+76,One concerned with el niño,MADRE,nan,2,LUNA,AJAX
+77,Like the month of May?,MERRY,nan,2,HEP,OVER
+78,Granada gold,ORO,2,2,ATLAS,ORO
+79,"Baby seat, say",LAP,2,2,AISLE,LAP
+80,Mem. of the A.B.A.,ATT,nan,2,CSA,ASSN
+81,Theater sound,SHH,nan,2,ROAR,BAM
+82,Prefix with issue,NON,nan,2,TELE,ECO
+83,"Decorated, as a cake",ICED,nan,2,SWAM,SPED
+84,Hotfoot it,SCOOT,nan,2,SNAG,TEAR
+85,"Sieve, essentially",MESH,nan,2,WEED,STEW
+86,Muchacho,NINO,nan,2,TEES,IRONS
+87,___ boom,SONIC,nan,2,SAN,SIS
+88,"""Don't Be Cruel"" vis-à-vis ""Hound Dog""",ASIDE,nan,2,SAL,RITA
+89,Identical,SELFSAME,nan,2,TWIN,ELF
+90,"___ Accords, 1993",OSLO,1,2,OSLO,AMES
+91,Face-saver?,MASK,nan,2,SNOW,ASH
+92,"Beat, but barely",EDGE,1,2,EDGE,FED
+93,Kind of engr.,ELEC,nan,2,INTL,IRREG
+94,Mideast grp.,PLO,2,2,UAR,PLO
+95,P.M. known as the Iron Lady,MEIR,nan,2,PETE,EGAN
+96,Flock members,LAICS,nan,2,KIN,ANTS
+97,Smallest prime,TWO,nan,2,CEE,COUP
+98,Credit to a reliever,SAVE,nan,2,NEON,RNA
+99,Bassoon duet?,REEDS,nan,2,PESO,AGUA
+100,Cameo gem,ONYX,nan,2,OPAL,IRIS
+101,Not quite shut,AJAR,1,2,AJAR,ICED
+102,Cast out,EGESTED,nan,2,ALLOT,DIS
+103,Lion tamer's workplace,CAGE,nan,2,KNEE,LAB
+104,Garden party?,ADAM,nan,2,TEA,BEE
+105,Currency unit taken out of circulation in 1953,RIN,nan,2,EURO,YEN
+106,"Burns and Allen, e.g.",POETS,nan,2,DUO,ORBS
+107,Author Santha Rama ___,RAU,1,2,RAU,KAYE
+108,Snack bar,GRANOLA,nan,2,OLEO,TACO
+109,Swimmer's path,LANE,nan,2,ARC,TAO
+110,Defeat decisively,DRUB,nan,2,ANGEL,ACE
+111,Condo building employees,DOORMEN,nan,2,ALES,ANTS
+112,Like a more-than-full spoonful,HEAPING,nan,2,SOOTY,LURID
+113,Successes,WINS,nan,2,ADS,INS
+114,Gypsy people,ROMA,nan,2,TSARS,ASPS
+115,"""California Suite"" star",ALDA,nan,2,ISAAK,ASTAIRE
+116,Couldn't hide one's astonishment,GAPED,nan,2,ELOPED,NIE
+117,"""_____ Was a Rollin' Stone"" (1972 hit)",PAPA,1,2,PAPA,ELLE
+118,It may be heard after a charge,OLE,nan,2,TONE,ECHO
+119,"""Burger, medium, with fries,"" e.g.",ORDER,1,2,ORDER,ADAGE
+120,"When said three times, a W.W. II movie",TORA,nan,2,EDT,SHA
+121,Philosopher who tutored Nero,SENECA,nan,2,KANT,HUME
+122,Eastern tribe,ERIE,nan,2,OTOE,OTO
+123,Burrowed,TUNNELED,nan,2,WAN,ASHEN
+124,Company that makes the Skyhawk,CESSNA,nan,2,SERTA,AETNA
+125,23rd of 24 letters,PSI,nan,2,NEO,USS
+126,Long-limbed,LEGGY,nan,2,LATE,ALERT
+127,Man first mentioned in Exodus 2,MOSES,nan,2,ORR,AARON
+128,Dangerous bit of precipitation,HAILSTONE,nan,2,SMOG,THORN
+129,W.W. II-era enlistee,WAC,2,2,RAF,WAC
+130,Holiday stamp,SEAL,nan,2,INE,RIP
+131,Quite ready,RIPE,nan,2,ACES,ELITE
+132,Figure in Santa's workshop,ELF,1,2,ELF,IGOR
+133,Many girls' middle names,JOS,nan,2,CASS,MARAT
+134,Instructed,BADE,nan,2,SNIT,OATH
+135,Old,YORE,nan,2,DEAR,APE
+136,Lead-in to line,BASE,nan,2,TELE,ECO
+137,Drug source for ancient executions,HEMLOCK,nan,2,ASP,PANDA
+138,Not change,STANDPAT,nan,2,EVEN,LATE
+139,Lion's kingdom,ANIMALIA,nan,2,NEPAL,MALI
+140,Ticks off,STEAMS,nan,2,NETS,ERODES
+141,Seahawks stadium name before 2011,QWEST,nan,2,IRENE,NED
+142,Polio was his target,SABIN,nan,2,NANA,HUN
+143,Locale of Interstate H1,OAHU,1,2,OAHU,UTAH
+144,Place for a duck,FEN,nan,2,HOSE,EASEL
+145,"First responder, for short",EMT,1,2,EMT,ETS
+146,Microsoft man,GATES,nan,2,DEAN,EMCEE
+147,To whom a caliph prays,ALLAH,nan,2,ALI,ARES
+148,Letters from Greece,TAUS,nan,2,USS,RHOS
+149,Fish hawk,OSPREY,nan,2,ERNE,ASP
+150,"Leaves in a hot rod, with ""out""",PEELS,nan,2,TEA,ONION
+151,Reason to retire,AGE,nan,2,EASE,LIE
+152,Swedish auto,SAAB,2,2,SAS,SAAB
+153,In a mound,HEAPED,nan,2,NAKED,CHIC
+154,Till bill,TEN,1,2,TEN,ONES
+155,"The Liberty Tree, for one",ELM,nan,2,TALE,OIL
+156,Targets of President Taft,TRUSTS,nan,2,ODES,EGOS
+157,"She played Darlene on ""Roseanne""",SARA,nan,2,NAS,PSY
+158,Reveries,DREAMS,nan,2,WAN,ASHEN
+159,Japanese drama,NOH,1,2,NOH,ABBA
+160,Cacao exporter,HAITI,nan,2,IRAN,EIRE
+161,Give a noncommittal answer,HEDGE,nan,2,GASP,REFER
+162,"Transfers, as funds",REMITS,nan,2,DOGIE,APNEA
+163,"June's portrayer in ""Henry & June""",UMA,nan,2,NOLTE,CHER
+164,Opening piece,KNOB,nan,2,ANTE,TEN
+165,How some packages arrive,COD,nan,2,EEE,ELL
+166,Abbr. on some dials,OPER,nan,2,ETC,ASAP
+167,Pinot ___,NOIR,nan,2,LAC,VIN
+168,Diarist Frank,ANNE,nan,2,DAHL,NIN
+169,Lithium and others,METALS,nan,2,MAS,RIOS
+170,Country music's ___ Young Band,ELI,nan,2,NED,MAE
+171,Public transit system,METRO,nan,2,SONAR,OIL
+172,Dance club figs.,DJS,nan,2,DAS,IQS
+173,"She wrote ""Fried Green Tomatoes at the Whistle Stop Cafe""",FLAGG,nan,2,ORFF,BIZET
+174,Anytime,EVER,nan,2,ERRATA,ENDS
+175,"""Get ___!""",REAL,nan,2,THAT,ITS
+176,Modern-___,ERA,nan,2,ACID,KIT
+177,Cheerleader's move,SPLIT,nan,2,YELL,SLAM
+178,Like eyes after an all-nighter,BLEARY,nan,2,AGED,TALL
+179,Battle of Britain fighter,SPITFIRE,nan,2,ERIS,ORIOLE
+180,"""Pronto!""",ASAP,1,2,ASAP,RSVP
+181,Predator,SHARK,nan,2,YOYO,ORCA
+182,General servant,FACTOTUM,nan,2,NANA,LEE
+183,"Beauty's partner, with ""the""",BEAST,nan,2,SEA,OPERA
+184,Paul or Brown,LES,nan,2,ALTO,ISLE
+185,Son of Zeus,ARES,1,2,ARES,ATHENA
+186,"Assail, as a reputation",IMPUGN,nan,2,FRY,PEEPHOLE
+187,Canape picker-upper,SPEAR,nan,2,WASP,PEONY
+188,Eli's halls,YALE,nan,2,ODEA,EMIRS
+189,Makes out,READS,nan,2,HAS,EBBS
+190,Toyota model,SUPRA,nan,2,CREE,TUTU
+191,Biblical twin,ESAU,1,2,ESAU,LOU
+192,Japanese canine,AKITA,nan,2,RAGA,SAGE
+193,Buffet tidbit,CANAPE,nan,2,OAT,OLIVE
+194,"Support, with ""with""",SIDE,nan,2,BRA,TEE
+195,They're coated with red wax,EDAMS,nan,2,ELMS,SPAS
+196,Legal thing,RES,nan,2,UNIT,CASE
+197,Ventriloquist Bergen,EDGAR,nan,2,MOTH,LAPAZ
+198,Anger,SPLEEN,nan,2,RILE,STIR
+199,Faux amateurs,RINGERS,nan,2,IMPS,RODS
+200,Famous duelist,BURR,nan,2,DRACO,CICERO
+201,Left on a map,WEST,nan,2,ACTED,RAN
+202,Baseball Hall-of-Famer Phil,NIEKRO,nan,2,OCHS,EARLE
+203,Football Hall-of-Famer Stautner,ERNIE,1,2,ERNIE,ELSA
+204,"""The ___ should always stand ajar"": Dickinson",SOUL,nan,2,UNTO,NEER
+205,Assayer's specimen,ORE,1,2,ORE,LAVA
+206,Inventeur's need,IDEE,nan,2,TARP,RADAR
+207,Illegal pitching motion,BALK,nan,2,INERTIA,TORT
+208,"Spare, maybe",TIRE,nan,2,RED,TRIM
+209,Deodorant variety,GEL,nan,2,LOAM,AMBER
+210,Depreciate,CHEAPEN,nan,2,NIE,CDROM
+211,Logician's strong point,REASONING,nan,2,HEE,TRA
+212,'Twixt 12 and 20,TEENAGE,nan,2,ETON,EDSELS
+213,Fellahs,MACS,nan,2,WAN,ASHEN
+214,Break a Commandment,SIN,nan,2,SOB,ADORE
+215,"Irving Bacheller's ""___ Holden""",EBEN,nan,2,SLOANE,KEL
+216,Red-ink amount,LOSS,nan,2,TON,ITEM
+217,Destiny,KISMET,nan,2,ARENA,TALE
+218,Stage elevator,RISER,nan,2,ILSA,NIA
+219,Rock's Mötley ___,CRUE,1,2,CRUE,SION
+220,Went like the dickens,SPED,1,2,SPED,RODE
+221,Nevada county or its seat,ELKO,nan,2,TAOS,RENO
+222,Tokyo Rose's real first name,IVA,nan,2,LEON,EDO
+223,"33 1/3, for an LP",RPM,nan,2,LAN,MNO
+224,"George P. ___, 1980s secretary of state",SHULTZ,nan,2,MATEO,PAOLO
+225,Chanteuse Lena,HORNE,nan,2,OLIN,DIAZ
+226,One-named singer who won the 2016 Album of the Year,ADELE,nan,2,OCHS,MONA
+227,Buffaloes,SNOWS,nan,2,DAFT,LOCO
+228,On sale,LESS,nan,2,EVEN,ODD
+229,Like some annual Mediterranean winds,ETESIAN,nan,2,OVAL,ASIAN
+230,Elates,SENDS,nan,2,WAN,ASHEN
+231,"Symbol for a plane angle, in geometry",THETA,nan,2,AORTA,ESS
+232,"Fixes the time on, as a clock",SETS,nan,2,AMINO,ARISTA
+233,Buttoned up,MUM,nan,2,RILE,GOES
+234,Plops down,SITS,nan,2,ERODE,SPEW
+235,"Gold leaf, e.g.",OVERLAY,nan,2,ISLE,TREE
+236,Writes indelibly,INKS,nan,2,SWATS,STIRS
+237,"""___, humbug!""",BAH,1,2,BAH,EWES
+238,Hillock,KNOLL,nan,2,WAN,ASHEN
+239,Mil. training site,OCS,nan,2,EUR,CST
+240,"Splotchy apparel, familiarly",CAMOS,nan,2,DINO,DRE
+241,'60s war zone,NAM,1,2,NAM,EDT
+242,Dairy aisle purchase,EGGS,nan,2,OLEO,SOD
+243,Often-misused irregular verb,LAY,nan,2,ITSELF,SHALT
+244,Out of bed,RISEN,nan,2,SEEN,TENSE
+245,Nash's two-l beast,LLAMA,nan,2,ASP,ORCA
+246,Nothing to write home about?,SECRET,nan,2,TAO,IDEE
+247,Goes on,LASTS,nan,2,AILS,EBBS
+248,Some tides,NEAPS,nan,2,IDEES,KOA
+249,Switch-hitter known as Charlie Hustle,ROSE,nan,2,SMORE,HELGA
+250,Word of caution,FORE,nan,2,SLO,HEE
+251,Gymnast's feat,SCISSORS,nan,2,NAP,PAT
+252,"Capri, e.g.",ISOLA,nan,2,ISLE,TREE
+253,Tactic,PLOY,nan,2,HONE,EDIT
+254,Upper-story room,ATTIC,nan,2,DEN,LOT
+255,Bygone Russian space station,MIR,1,2,MIR,EDSEL
+256,Slumber party sounds,GIGGLES,nan,2,AHS,EWES
+257,Digital problem,HANGNAIL,nan,2,GLARE,ULCER
+258,"""90210"" extra",TEEN,nan,2,STENO,RASTA
+259,___ a plea,COP,nan,2,NOLO,RENEW
+260,Seed cover,ARIL,nan,2,TIARA,TAM
+261,Shawls,SERAPES,nan,2,WAN,ASHEN
+262,Prepare for a rainy day,SAVE,nan,2,EDIT,ARM
+263,"""X-Men"" character with blue fur",BEAST,nan,2,OTTER,EROS
+264,Hype,HOOPLA,nan,2,ROT,SMALL
+265,"""Antony and Cleopatra"" prop",ASP,1,2,ASP,ORCA
+266,Levy,IMPOSE,nan,2,ABOIL,EASED
+267,God who presided over the Aesir,ODIN,2,2,ARES,ODIN
+268,Horticultural problem,EDEMA,nan,2,SMOG,LYE
+269,"Napoleon, e.g.",PASTRY,nan,2,EXILE,HEIR
+270,The sun,SOL,1,2,SOL,ATLAS
+271,Cable inits.,TLC,nan,2,TBS,ESPN
+272,Path of a Hail Mary pass,ARC,1,2,ARC,TAO
+273,Store person: Abbr.,MGR,nan,2,NCO,DDS
+274,Venus de Milo knock-offs?,ARMS,nan,2,OSHEA,TIM
+275,Not in France,PAS,nan,2,UNE,EGAL
+276,Actress Ryan,MEG,nan,2,CHER,NOLAN
+277,Help wanted ad abbr.,EEO,2,2,EOE,EEO
+278,"Cattail, e.g.",REED,nan,2,CHORE,RODENT
+279,Deli offering,SALAMI,nan,2,TACO,OLEO
+280,Pitchfork prong,TINE,1,2,TINE,SEAM
+281,Decorative toy,KITE,nan,2,WOK,HEMP
+282,"Where to watch whales in Massachusetts, with ""the""",CAPE,nan,2,RIO,SPA
+283,___ Taylor (clothing retailer),ANN,1,2,ANN,DEL
+284,"Like Mitch Miller, e.g.",GOATEED,nan,2,ASIAN,NORSE
+285,Muscular jerks,TICS,nan,2,DABS,ETONS
+286,John who married Pocahontas,ROLFE,1,2,ROLFE,URIAH
+287,Blotter abbr.,AKA,nan,2,ETAL,ETC
+288,Comfy bit of footwear,MOC,2,2,PJS,MOC
+289,Title pages?,DEEDS,nan,2,ESS,TAU
+290,Tree swinger,APE,nan,2,BOA,OAK
+291,Money maker,PRO,nan,2,TRAM,ASP
+292,Limit,CAP,nan,2,SCENE,END
+293,Selves,EGOS,nan,2,WAN,ASHEN
+294,"___ Ste. Marie, Mich.",SAULT,nan,2,ONT,ASU
+295,A cappella group part,ALTO,nan,2,ETUDE,TRIO
+296,Pipe joint,TEE,2,2,ELL,TEE
+297,Make inseparable,WELD,nan,2,ANIMATE,DAZE
+298,Jimi Hendrix hairdo,AFRO,1,2,AFRO,FRO
+299,Coot,GEEZER,nan,2,WAN,ASHEN
+300,"""Nobody doesn't like ___ Lee""",SARA,nan,2,NATE,LEX
+301,Lacoste of tennis,RENE,2,2,ETHAN,RENE
+302,Acquire,EARN,nan,2,GET,REAP
+303,Letter opener,SIRS,nan,2,ETA,DOT
+304,Many a fête d'anniversaire attendee,AMIE,nan,2,TEEN,SIS
+305,Closing passage,EPILOG,nan,2,VEE,ELL
+306,Old-fashioned anesthetic,ETHER,1,2,ETHER,ROE
+307,Star in Orion,RIGEL,1,2,RIGEL,ASTARTE
+308,"""Portrait of the Artist"" youth",STEPHEN,nan,2,CHER,ADELE
+309,River crossed by Westminster Bridge,THAMES,nan,2,ISERE,ODER
+310,Big event sites,STADIA,nan,2,EARS,ATRIA
+311,Sense,FEEL,nan,2,SENSE,RILE
+312,Upper limit,LID,nan,2,UNIT,GAS
+313,Prerevolutionary goings-on,UNRESTS,nan,2,IMPS,SNOB
+314,Ripened,AGED,nan,2,LOT,STY
+315,Without foundation,BASELESS,nan,2,ALONE,STERN
+316,Sawbones,DOC,nan,2,LPS,NERDS
+317,Western defense grp.,OAS,nan,2,OPEC,NATO
+318,Fit to be consumed,EATABLE,nan,2,SNIT,NEST
+319,"Jack of ""Twin Peaks""",NANCE,nan,2,RAOUL,HENIE
+320,I.R.S. money,TAX,nan,2,ICBM,PJS
+321,Obsession of el rey Midas,ORO,nan,2,DIOR,BAHAI
+322,Soprano Nellie,MELBA,nan,2,NIA,ILSA
+323,Places for cabins,SHIPS,nan,2,PODIA,ETUIS
+324,"Cassius and company, in ""Julius Caesar""",CABAL,nan,2,MEN,RIOS
+325,Warpath goers,BRAVES,nan,2,AUNTS,SEERS
+326,Texas city named by Russian immigrants,ODESSA,1,2,ODESSA,RIO
+327,"Napping, so to speak",UNAWARE,nan,2,ENOW,RAD
+328,Hungarian city,EGER,nan,2,IMRE,ADEN
+329,Prevarication,LYING,nan,2,LIE,EASE
+330,Current units,AMPS,nan,2,ANODES,TEES
+331,Strike down,SMITE,nan,2,RENEW,ERASE
+332,Job hunter's need,RESUME,nan,2,AMP,MAP
+333,Changes channels rapidly,SURFS,nan,2,EDITS,ADAPTS
+334,Brews,BEERS,nan,2,OAFS,ASSES
+335,"""The Hot Zone"" virus",EBOLA,nan,2,AURA,EGO
+336,Rock video awards,AVAS,nan,2,NOH,IMUS
+337,1936 Olympics hero,OWENS,nan,2,ORR,PELE
+338,Fortitude,GUTS,nan,2,FEAR,NOSE
+339,A hoop may be attached to it,EAR,1,2,EAR,BRA
+340,Cryptanalyst's org.,NSA,nan,2,ASCAP,OSHA
+341,Fed. air quality monitor,EPA,nan,2,OSHA,ATF
+342,"Fight stopper, briefly",TKO,1,2,TKO,APB
+343,Grammatical case,DATIVE,nan,2,LIEN,DNA
+344,Country whose name is occasionally used as an exclamation?,OMAN,nan,2,IRAN,PERU
+345,Global positioning datum: Abbr.,LAT,nan,2,EST,ATT
+346,Laugh sound,HAR,nan,2,ROAR,HEH
+347,Spur part,ROWEL,nan,2,TRAP,SLAT
+348,Alan who was born Alphonso D'Abruzzo,ALDA,1,2,ALDA,NOLTE
+349,Like some unhealthy attachments,OEDIPAL,nan,2,TORIC,LINED
+350,Mag personnel,EDS,1,2,EDS,ETS
+351,Archipelago parts,ISLETS,nan,2,ISLES,SPAS
+352,School on the Thames,ETON,1,2,ETON,REDS
+353,Satisfy,SLAKE,nan,2,RILE,STIR
+354,Big name in Chicago politics,DALEY,nan,2,PEI,RHEE
+355,"Moistens, in a way",DEWS,nan,2,PAD,NIE
+356,Literary inits.,TSE,1,2,TSE,LIU
+357,"Cole Porter's ""___ Do It""",LETS,nan,2,THESE,ONO
+358,Fannie ____ (investment),MAE,1,2,MAE,ELY
+359,Summer hrs. in D.C.,EDT,1,2,EDT,EST
+360,First king of England,EGBERT,nan,2,ELTON,TUT
+361,Tom Clancy subj.,CIA,nan,2,OED,SEN
+362,"""Otello"" composer (born 2/29/1792)",ROSSINI,nan,2,ARNE,ENO
+363,They're pressed for cash,ATMS,nan,2,EARS,EPEES
+364,Made into mush,PUREED,nan,2,OZAWA,OOZED
+365,Disciple of Socrates,PLATO,nan,2,SWALE,MORA
+366,Hostilities,WAR,nan,2,UNS,TYROS
+367,"Post-it, e.g.",NOTE,nan,2,ICON,ASSET
+368,Lead down the aisle,USHER,nan,2,MINI,ALTO
+369,"Arthur Conan Doyle, e.g.",SCOTSMAN,nan,2,SKIT,ELEGY
+370,Volcanic elements,GASES,nan,2,EWES,SERA
+371,"Home to many commuters, for short",BURB,nan,2,ICU,ORS
+372,E.R. employee,EMT,nan,2,CPA,ENT
+373,Intestinal sections,ILEA,nan,2,SLOTHS,ODA
+374,San Antonio-to-Ft. Worth dir.,NNE,2,2,ENE,NNE
+375,"""___ well""",ALLS,nan,2,ITS,TIS
+376,Storms on the road,GEOS,nan,2,EMIRS,UZIS
+377,Gave fits,BEDEVILED,nan,2,BLED,OOZED
+378,Scotch ___,TAPE,nan,2,SODA,ICE
+379,Once called,NEE,1,2,NEE,HERR
+380,Not on the highest shelf,REACHABLE,nan,2,RURAL,ASTERN
+381,Put on,HOAX,nan,2,ADD,ANTE
+382,Whole slew of,ZILLION,nan,2,FEAR,WIT
+383,Singer Barry,LEN,2,2,OSHEA,LEN
+384,Any of six popes,ADRIAN,nan,2,EPOS,ODES
+385,Ineffectual sorts,EUNUCHS,nan,2,LIARS,TOTS
+386,Venomous vipers,ASPS,1,2,ASPS,EDDAS
+387,Pompom's place,TAM,nan,2,TENT,STY
+388,Solomonic,SAGE,nan,2,LOCO,INANE
+389,Yearning,WISTFUL,nan,2,GOT,NUTS
+390,Beat by a whisker,EDGED,nan,2,EPIC,LIE
+391,Group that has its own organ,CHOIR,nan,2,THEME,SKIT
+392,Listing in a browser history,SITE,nan,2,ICON,UNIT
+393,Tippy transportation,CANOE,nan,2,TRAM,SLED
+394,Jan. and Feb.,MOS,nan,2,YRS,COS
+395,Celsius who devised the Celsius scale,ANDERS,nan,2,COHN,MOTT
+396,"Edith who sang ""La Vie en Rose""",PIAF,nan,2,VERA,NORMA
+397,Myopic Mr. ___,MAGOO,1,2,MAGOO,ANNE
+398,Midwest megacampus: Abbr.,OSU,nan,2,CSA,ENG
+399,Key locale: Abbr.,FLA,2,2,EUR,FLA
+400,"""I'll Take ___"" (Bob Hope film)",SWEDEN,nan,2,ITS,WERE
+401,Sirius or XM medium,RADIO,nan,2,STAR,URN
+402,Stupefied state,TRANCE,nan,2,LAOS,PERU
+403,Adds to a blog,POSTS,nan,2,SODS,RENEWS
+404,Checks the growth of,NIPS,nan,2,ENDS,IDS
+405,It might be dropped,NAME,nan,2,EGO,IDEA
+406,"She, overseas",ELLE,nan,2,AMIE,SHE
+407,Indiscriminate,RANDOM,nan,2,ERE,TIL
+408,Place for a pickup line?,CABSTAND,nan,2,NAPE,SILO
+409,"Girl who's ""the flower of my heart""",ADELINE,nan,2,EMMA,TESSA
+410,"Aloe target, perhaps",ECZEMA,nan,2,DIVA,GAL
+411,Dabbling duck,TEAL,nan,2,SLOE,GAR
+412,Whom Shelley wept for,ADONAIS,nan,2,LAMA,EWE
+413,Suffix similar to -ish,ESQUE,nan,2,STER,ETTE
+414,Help for motorcycle daredevils,RAMP,nan,2,DENT,NET
+415,Former French toastee?,ROI,nan,2,ORO,SAN
+416,Short-short skirt,MICRO,nan,2,MINI,SARI
+417,Accountant's software,SPREADSHEET,nan,2,VEE,CASH
+418,Where it's always zero degrees,EQUATOR,nan,2,REAR,NET
+419,Toast option,RYE,nan,2,OLEO,OAT
+420,Actress Hayworth,RITA,1,2,RITA,DORA
+421,Up,HIKE,nan,2,ODD,OLD
+422,Humana or Cigna competitor,AETNA,1,2,AETNA,STP
+423,Fish typically preserved in olive oil,SARDINE,nan,2,EEL,COD
+424,Preserve,CAN,nan,2,TAPE,DENT
+425,Pollution concern,SEWAGE,nan,2,ODOR,SMOG
+426,Vows locale,ALTAR,nan,2,MAINE,SPA
+427,"Shrink time, say",SESSION,nan,2,AWOL,DEF
+428,Take a chance on,RISK,nan,2,SUE,ACT
+429,Trinidad or Tobago,ISLE,nan,2,CELT,CHEF
+430,Muffs,ERRS,nan,2,ENDS,AREAS
+431,Market problem,CRASH,nan,2,SNAG,SMEAR
+432,Forecast,BODED,nan,2,DIN,ECLAT
+433,Canine cover,ENAMEL,nan,2,TAM,TARP
+434,"Sleuth, for short",TEC,nan,2,REP,DEM
+435,Weathered,STOOD,nan,2,WAN,ASHEN
+436,Draws forth,EDUCES,nan,2,ENDS,ADDS
+437,"Reward, as a dog",PAT,nan,2,EDIT,READ
+438,Hard-to-please sort,FUSSPOT,nan,2,SNOB,BOOR
+439,Au naturel,NUDE,nan,2,ASHEN,AWED
+440,Adm. Zumwalt,ELMO,1,2,ELMO,ERNIE
+441,Common Hebrew name,ELI,nan,2,IBN,OLAV
+442,More optimistic,ROSIER,nan,2,NEWER,ARTIER
+443,City on the Rhone,LYON,nan,2,SELMA,ARLES
+444,Baseball news,TRADE,nan,2,NINE,TASS
+445,Wanton look,LEER,1,2,LEER,STARE
+446,"End of Kurosawa's ""Rashomon""?",HARAKIRI,nan,2,CEE,ELL
+447,Wheat or corn,CROP,nan,2,URNS,OSIER
+448,How a peacock struts?,PROUDLY,nan,2,SLYLY,ICILY
+449,Zhivago portrayer,SHARIF,nan,2,LARA,MEL
+450,Brood,SIT,nan,2,TAR,SAP
+451,From what place,WHENCE,nan,2,RURAL,INNER
+452,Repeated musical phrase,OSTINATO,nan,2,WHO,RENT
+453,Expressionist Schiele,EGON,nan,2,UZIS,OCTOPI
+454,"""Our ___ ....""",FATHER,nan,2,OTELLO,TOSCA
+455,Take without credit,AUDIT,nan,2,ERASE,REDO
+456,Strange,ALIEN,nan,2,EASY,ODD
+457,Special ___,OPS,nan,2,CASE,FEE
+458,"Bugs in ""A Bug's Life""",ANTS,nan,2,ELMER,DEPP
+459,Kipling pack leader,AKELA,nan,2,CZAR,TSAR
+460,"Extremely large, old-style",ENORM,nan,2,ETERNE,ENOW
+461,OPEC member,NIGERIA,nan,2,IRAN,EMIR
+462,Frequent setting in a W.W. II movie,STALAG,nan,2,NAM,ETO
+463,Suffix with labyrinth,INE,nan,2,ITE,STER
+464,Hacienda brick,ADOBE,1,2,ADOBE,AERIE
+465,Unnecessary extra,FAT,nan,2,NERD,SNOB
+466,"Chaplin of ""Game of Thrones""",OONA,2,2,GRETA,OONA
+467,An hour before midnight,ELEVEN,nan,2,ONE,NINE
+468,Not be discreet,BLAB,nan,2,LIE,INTO
+469,Eskimo boats,UMIAKS,nan,2,ERNES,ERNS
+470,Clichéd prison contraband item,FILE,nan,2,SKEIN,CLIP
+471,Old PC standard,MSDOS,1,2,MSDOS,LAN
+472,Something that people wish you would take when you leave,CARE,nan,2,ECHO,SLOMO
+473,One tailed in the sewers,RAT,nan,2,ARK,OBI
+474,Political writer/blogger Klein,EZRA,nan,2,BARR,ERNEST
+475,"___ Coty, French president before de Gaulle",RENE,1,2,RENE,EVAN
+476,Kennel features,PENS,nan,2,NESTS,STIES
+477,Has trouble running,MISGOVERNS,nan,2,AILS,AWES
+478,Vex,CHAFE,nan,2,RILE,ROIL
+479,Do in,ERASE,nan,2,ACT,SUE
+480,Like the fox among all beasts,SLIEST,nan,2,TART,RAW
+481,Displace,UPROOT,nan,2,SOWED,RIGOR
+482,Vicinity,AREA,nan,2,WAN,ASHEN
+483,Angels' playing field,HEAVEN,nan,2,ERGS,REEL
+484,Rank,ECHELON,nan,2,EVIL,ANTI
+485,90's party,RAVE,nan,2,GALA,GIG
+486,Charged (with),TASKED,nan,2,TRIB,MET
+487,Cybermessage,EMAIL,nan,2,WAN,ASHEN
+488,Quartets,FOURS,nan,2,YENS,YEARNS
+489,Onetime Volvo competitor,SAAB,nan,2,AERO,AUDI
+490,Soporific substance,OPIUM,nan,2,EEL,ALOE
+491,Corn site,TOE,nan,2,EAVE,ETUI
+492,Listing in Hoyle's,RULE,nan,2,WAR,FRERE
+493,Weed whacker,SICKLE,nan,2,HOE,OAR
+494,"""Like ___!""",WOW,nan,2,EVER,EASY
+495,Biblical murder victim,ABEL,nan,2,NOAH,ALI
+496,Poker star Phil,IVEY,nan,2,OCHS,OPRAH
+497,Sheds,HUTS,nan,2,ENDS,OKS
+498,Conductor's wand,BATON,nan,2,EROS,ARES
+499,1978 Nobel Prize sharer,SADAT,1,2,SADAT,EBAN
+500,Like a well-maintained lawn,WEEDED,nan,2,RARE,LINED
+501,"Court plea, in brief",NOLO,1,2,NOLO,RSVP
+502,Promissory note,IOU,nan,2,SWALE,IES
+503,Around-the-world trip,ORBIT,nan,2,OMOO,TENOR
+504,Whoop,YELL,nan,2,ASK,EASY
+505,Arches,HUMPS,nan,2,EMIRS,SHAH
+506,Actress Cannon,DYAN,1,2,DYAN,AMOS
+507,Drink that's stirred,NOG,1,2,NOG,COCOA
+508,"Lionel train layout, often",OVAL,1,2,OVAL,ARC
+509,"Floors, briefly",KOS,1,2,KOS,EDS
+510,Pindaric,ODIC,nan,2,ODES,ODE
+511,Strange sightings,UFOS,1,2,UFOS,ANTS
+512,Shares,PIECES,nan,2,STIRS,OKS
+513,Singer Lopez,TRINI,nan,2,EVIE,ALBA
+514,Group of friends,CIRCLE,nan,2,BLOC,MENSA
+515,Lineage-based women's org.,DAR,nan,2,CSA,AFL
+516,Home-sch. liaisons,PTAS,1,2,PTAS,LSU
+517,Ruffled state,SNIT,1,2,SNIT,ITALIA
+518,Subject of Vogue,FASHION,nan,2,IDOL,TAROT
+519,Ferrara family name,ESTE,1,2,ESTE,AVON
+520,Italian tenor Schipa and others,TITOS,nan,2,TSARS,REBS
+521,Laugh uproariously,HOWL,nan,2,ECLAT,SPAT
+522,1/8 ounce,DRAM,nan,2,LITER,TASSEL
+523,Latin name of England,ANGLIA,nan,2,DIOR,ERIN
+524,Acts of bravery,HEROICS,nan,2,ASKS,APES
+525,Cheerleading maneuvers,SPLITS,nan,2,GAELS,SWALE
+526,15-21-13-1-18-6,RESPOND,nan,2,LOEB,BERRA
+527,Nitti's nemesis,NESS,nan,2,SMOG,UZI
+528,Brutish sort,ANIMAL,nan,2,OGRE,SNOB
+529,Soccer venues,ARENAS,nan,2,SPAS,MESAS
+530,Roll by a cashier,CERTS,nan,2,AORTA,TARP
+531,Dos Passos trilogy,USA,nan,2,TORI,ROE
+532,"Victorians, e.g.",AUSSIES,nan,2,ESTER,HUE
+533,Shrubs of the heath family,AZALEAS,nan,2,HULAS,BERETS
+534,"___ Aldridge, pioneering Shakespearean actor",IRA,nan,2,MARC,LEWIS
+535,Social workers' work,CASELOADS,nan,2,ANTS,ART
+536,___ Tamid (synagogue lamp),NER,nan,2,SAXE,LIA
+537,"""Sunflowers"" setting",ARLES,2,2,EST,ARLES
+538,Dole's 1996 running mate,KEMP,nan,2,NEY,BAHAI
+539,Linger in the hot sun,FRY,nan,2,OXO,TSO
+540,"1991 flick ""Bill and _____ Bogus Journey""",TEDS,nan,2,MAE,RENT
+541,Alaskan export,OIL,1,2,OIL,PEA
+542,Refreshing things,NAPS,nan,2,ORBS,ARKS
+543,Chemist's workplace,LAB,nan,2,SALON,TILDE
+544,Smooth-talking,GLIB,nan,2,ASHEN,TART
+545,Storage medium,CDROM,nan,2,TAPE,EGG
+546,Titleholder,OWNER,nan,2,AVER,TOADY
+547,Court concern,NET,nan,2,FEE,PLEA
+548,Open case,MYSTERY,nan,2,ETUI,TEES
+549,Perturb,FAZE,nan,2,RILE,TEASE
+550,___ Geometry (college course),ANALYTIC,nan,2,ECOLE,LAB
+551,Owner of Alice's restaurant,MEL,nan,2,MELS,MOES
+552,One of two in a Christmas song,TURTLEDOVE,nan,2,OLDIE,ODE
+553,"""On Airs, Waters and Places"" author",HIPPOCRATES,nan,2,AGEE,INGE
+554,"Sloth, for one",SIN,1,2,SIN,ODOR
+555,Woody Allen film subtext,ANGST,1,2,ANGST,ARLO
+556,Hebrides island,IONA,nan,2,CRETE,ARUBA
+557,1939 Humphrey Bogart role,DRX,nan,2,AMANDA,SILAS
+558,Port on the Sea of Japan,OTARU,nan,2,HILO,ADEN
+559,Something you can do with flies,SHAG,nan,2,AFRO,PACE
+560,Antiquity,YORE,2,2,ELD,YORE
+561,City near the Red Fork oil fields,TULSA,nan,2,AGRA,RENO
+562,Fooling (around),HORSING,nan,2,INTO,EASE
+563,Price paid,COST,nan,2,EVERS,OPS
+564,Harrow rival,ETON,nan,2,QUAD,MCI
+565,Sourpuss,CRAB,nan,2,ARID,RAW
+566,The Supremes and others,TRIOS,nan,2,ORBS,PETS
+567,"Six-footer, maybe",PUTT,nan,2,ELF,SPY
+568,"Polling results, e.g.",DATA,nan,2,NEED,RATE
+569,"Admitting just a little light, maybe",AJAR,1,2,AJAR,AWED
+570,Wriggling bait,WORM,nan,2,IMPS,ASSES
+571,Tiny scurriers,ANTS,2,2,IMPS,ANTS
+572,Comes down on,SCOLDS,nan,2,OKS,EBBS
+573,Flash,INSTANT,nan,2,MAD,DIRE
+574,"Voting ""no""",ANTI,1,2,ANTI,USER
+575,Vacation spot,ISLE,nan,2,SPA,INN
+576,Safe,STRONGBOX,nan,2,END,ALTER
+577,"Derby victory margin, maybe",LENGTH,nan,2,NOSE,EAR
+578,Broadway bigwig: Abbr.,DIR,nan,2,PRES,ADM
+579,Urdu is spoken here,KARACHI,nan,2,EDINA,AMIGO
+580,Stowe novel,DRED,nan,2,EVA,NELL
+581,Math finale,QED,1,2,QED,ELL
+582,Big name in the blogosphere,ARIANNA,nan,2,AMANA,ALCOA
+583,West Indies isle,TOBAGO,nan,2,ARUBA,BALI
+584,"""Big"" star",HANKS,nan,2,NOLTE,MRT
+585,Pal of Piglet,ROO,1,2,ROO,ELMO
+586,Area code 801,UTAH,nan,2,OLE,ELI
+587,Classic children's song,ALOUETTE,nan,2,RITA,ANDY
+588,Indoor game much seen on English TV,DARTS,nan,2,TETRIS,DEVO
+589,Now or never: Abbr.,ADV,nan,2,NSEC,SYN
+590,Medieval steel helmets with visors,BASINETS,nan,2,ESTE,PETE
+591,Clear the decks?,SWAB,nan,2,ERASE,LASE
+592,Put the kibosh on,NIXED,nan,2,SAD,SEEN
+593,"Anita of ""La Dolce Vita""",EKBERG,nan,2,LOEWE,CECE
+594,Indication that one is just teasing,WINK,nan,2,OOF,NOD
+595,Part of many a grid,STREET,nan,2,TRYST,AISLE
+596,"Adheres to, as a rule",OBEYS,nan,2,RAW,WAN
+597,Depression-era shantytown,HOOVERVILLE,nan,2,EVES,OKIE
+598,Gothic window ornamentation,TRACERY,nan,2,SWALE,FRAU
+599,Confederate general Jubal,EARLY,nan,2,LEE,KEN
+600,Bird holder,TALON,nan,2,URN,TUB
+601,Thickness measures,MILS,nan,2,EDNAS,ANNAS
+602,Pedigreed,BLOODED,nan,2,WAN,ASHEN
+603,Pet adoption org.,SPCA,1,2,SPCA,NEA
+604,Word before thou,WILT,nan,2,TIS,SYNE
+605,H.S.T. or D.D.E.,PRES,nan,2,ETO,HRE
+606,"Group with the 1963 #1 hit ""So Much in Love,"" with ""the""",TYMES,nan,2,NSYNC,DEVO
+607,Showiness,ECLAT,nan,2,WAN,ASHEN
+608,Feminine subject,SHE,nan,2,EGO,ACRE
+609,Soup crackers,SALTINES,nan,2,OKRA,BRIE
+610,Discarded,OFFCAST,nan,2,OPINE,GET
+611,Hustles,SCAMS,nan,2,EVADED,GUYS
+612,The Devil,BEELZEBUB,nan,2,OTTO,EWE
+613,Prisoner's tool for escape,RASP,nan,2,JAMB,RAIL
+614,"Nanki-___ of ""The Mikado""",POO,nan,2,SNEE,ERIC
+615,Silence,SQUELCH,nan,2,OKAY,BAD
+616,Last car,CABOOSE,nan,2,LIMO,TRAM
+617,Sauce for falafels,TAHINI,nan,2,PESTO,SARI
+618,Irish,DANDER,nan,2,PAL,SAD
+619,Moves like a whirlpool,EDDIES,nan,2,ADAPTS,EBBS
+620,Riordan's successor as Los Angeles mayor,HAHN,nan,2,ARNE,HUME
+621,Cousins of rhododendrons,AZALEAS,nan,2,OBOES,OWLS
+622,Copacetic,JAKE,nan,2,OKAY,ALAS
+623,Ill-gotten funds,PELF,nan,2,ASHEN,BLAH
+624,___ dixit,IPSE,nan,2,SUI,BLU
+625,Active ingredient in marijuana,THC,nan,2,PILAF,OSIER
+626,"Propels, in a way",PEDALS,nan,2,PATS,ICES
+627,Actor Davis,OSSIE,2,2,BETTE,OSSIE
+628,Trudges,TRAMPS,nan,2,SEDATES,NABS
+629,Sushi order,EEL,1,2,EEL,ROE
+630,Ruins,DEBRIS,nan,2,OKS,HAS
+631,"Immediately, to a surgeon",STAT,2,2,ASAP,STAT
+632,Problems in synchronization,LAGS,nan,2,ODORS,IMPS
+633,Go in the water just a little way,WADE,nan,2,SOAR,SAG
+634,Fountainhead,ORIGIN,nan,2,NEON,SEDER
+635,Wristbone-related,CARPAL,nan,2,TONAL,AVIAN
+636,"Traffic regs., e.g.",ORDS,nan,2,TSP,MPH
+637,Asian nannies,AMAHS,nan,2,BOERS,TRIREME
+638,"Cleveland cager, for short",CAV,nan,2,DEM,CELT
+639,Cry on the street,TAXI,nan,2,EEK,SCAT
+640,Side dish at KFC,COLESLAW,nan,2,SLAW,OKRA
+641,The people over there,THEM,nan,2,ART,ALL
+642,"""Are We There Yet?"" airer",TBS,nan,2,NPR,HBO
+643,Put in rollers,SET,nan,2,ELS,AGES
+644,"""Casey at the Bat"" poet Ernest",THAYER,nan,2,BIZET,CFL
+645,Hindu music,RAGA,1,2,RAGA,ALEUT
+646,Cause for an insurance claim,DENTS,nan,2,ARSON,ACNE
+647,Having lots of ups and downs,ROCKY,nan,2,ARTIER,PORNO
+648,Signs up,ENLISTS,nan,2,OKS,ENDS
+649,They're thick-skinned,RHINOS,nan,2,ERNS,SARIS
+650,Not waste,REUSE,nan,2,ASHEN,PALE
+651,"Minor, in law",PETIT,nan,2,NISI,RAD
+652,Rub out,ERASE,nan,2,ALLOT,END
+653,___ degree,NTH,1,2,NTH,PHD
+654,Disney head,EISNER,nan,2,AMOS,LOO
+655,Compound used in aviation fuel,XYLENE,nan,2,ESTER,TOFU
+656,Poet ___ Lee Masters,EDGAR,nan,2,OVID,STAN
+657,Obliterates,ERASES,nan,2,STIRS,AWES
+658,Application datum,SEX,nan,2,AGE,PLEA
+659,"""The Mikado"" baritone",KOKO,nan,2,ALI,ROY
+660,Comical lawman,KOP,nan,2,NATE,CARL
+661,In,ALAMODE,nan,2,OVER,AND
+662,Courtroom rituals,OATHS,1,2,OATHS,ADAGES
+663,Concentrate,DISTILL,nan,2,AGENT,NIE
+664,Surgeon's aid,SPONGE,nan,2,LASER,ELIXIR
+665,Host of the 1970 and 1986 World Cup: Abbr.,MEX,nan,2,HRE,CSA
+666,"Raw material, of sorts",DATA,nan,2,ALES,ECRU
+667,Costa ___,RICA,nan,2,SOL,SEL
+668,Major artery,AORTA,1,2,AORTA,STOA
+669,Close loudly,SLAM,nan,2,NEAT,SNAP
+670,Opposite of charge,RETREAT,nan,2,ERROR,TIE
+671,Olympic event since 1972,JUDO,nan,2,EPEE,OREO
+672,Mischief-maker,IMP,nan,2,ASTA,OGRE
+673,"""Miss ___ Regrets""",OTIS,2,2,ELSA,OTIS
+674,Writer Huffington,ARIANNA,nan,2,LENO,NESS
+675,Physics unit,ERG,nan,2,TON,ATOM
+676,Give an edge to,HONE,nan,2,END,ARISE
+677,Con artist,DUPER,nan,2,YAO,ARP
+678,"Slugger's stat, for short",HRS,nan,2,OTS,TDS
+679,"Harmonizes, as digital devices",SYNCS,nan,2,EXERTS,SIFTS
+680,One of TV's Huxtables,THEO,nan,2,RHODA,ALLIE
+681,Chaplin's chapeau,DERBY,nan,2,SENOR,TETE
+682,Appeared,AROSE,nan,2,RAN,SPED
+683,"Let float from the dollar, say",UNPEG,nan,2,ERASE,LASE
+684,St. ___ (malt liquor brand named after an Irish nun),IDES,nan,2,NERI,ANZIO
+685,Ill-fated lover,JULIET,nan,2,NANA,OGRE
+686,Some cats,ANGORAS,nan,2,NESTS,ESTATES
+687,Native African village,STAD,nan,2,SARI,CREE
+688,"City bond, for short",MUNI,nan,2,AAA,IPO
+689,Alternative to Beauvais,ORLY,nan,2,ROI,URAL
+690,Kangaroo babies,JOEYS,nan,2,AWS,NENES
+691,Admonishment,CAUTION,nan,2,NODE,OUTS
+692,Pittsburgh product,STEEL,nan,2,OIL,ORE
+693,Org. that bargains with G.M.,UAW,nan,2,NRA,SPCA
+694,Certain Summer Olympian,FENCER,nan,2,TATAR,ASP
+695,Engage in cabotinage,EMOTE,nan,2,OOZE,SAG
+696,Swings around,SLUES,nan,2,ADDS,ENDS
+697,Canaanite's deity,BAAL,nan,2,ERIS,NIOBE
+698,Driving aid,TEE,2,2,ALARM,TEE
+699,Actor Singer,MARC,nan,2,LORI,NOLTE
+700,Grouchy Muppet,OSCAR,nan,2,ELMO,ERNIE
+701,Labor,TOIL,nan,2,END,SAD
+702,Quadrennial White House administration,OATH,nan,2,NAFTA,XER
+703,Taj Mahal city,AGRA,1,2,AGRA,MIAMI
+704,Janis's comic-strip husband,ARLO,1,2,ARLO,ELLA
+705,Get a hand on the road?,ELOPE,1,2,ELOPE,TAXI
+706,Obscure,HIDE,nan,2,OAF,ROT
+707,Zeno of ___,ELEA,1,2,ELEA,IONIA
+708,Like controversial issues,DEBATED,nan,2,RARE,ARTY
+709,Like the Negev,ARID,nan,2,VAST,WEEDY
+710,TV inits.,RCA,nan,2,SNL,HBO
+711,Where les yeux are,TETE,nan,2,ETAT,LOIRE
+712,Correctional worker?,EDITOR,nan,2,VET,POL
+713,___-Ball,SKEE,2,2,ENTRE,SKEE
+714,Yard entrance,GATE,2,2,OARS,GATE
+715,Food processor,BELLY,nan,2,ENOL,CHEF
+716,Bullring cheer,OLE,1,2,OLE,RAH
+717,Donations for life?,OVA,nan,2,ACNE,ROTE
+718,Port from which Amelia Earhart left on her last flight,LAE,nan,2,BASRA,ADEN
+719,San ___ (Hearst castle),SIMEON,nan,2,DIEGO,JOSE
+720,Pristine,MINT,nan,2,STY,ETTA
+721,Sugar sources from a farm,BEETS,nan,2,EWES,HENS
+722,Literary inits.,RLS,nan,2,TSE,LIU
+723,___ Tin Tin,RIN,nan,2,SOO,LESE
+724,Aardvark snacks,ANTS,1,2,ANTS,EELS
+725,Money drawer,TILL,nan,2,AROMA,HALO
+726,Silver hair,MANE,1,2,MANE,MOP
+727,Watch chain,FOB,nan,2,DELTA,ARCO
+728,Gun in the garage?,REV,nan,2,EPEE,EWE
+729,Recent: Prefix,NEO,1,2,NEO,TRI
+730,What fans do,ROOT,nan,2,ADORE,DOTE
+731,Cartoonist Drake,STAN,1,2,STAN,LEE
+732,Sneak peek: Var.,PREVUE,nan,2,EERY,AMEER
+733,Track team member?,RAILCAR,nan,2,VET,STENO
+734,"Preakness, e.g.",HORSE,nan,2,LOAD,SPAR
+735,Gooey camp fare,SMORES,nan,2,YAMS,RICE
+736,"""___ Drives Me Crazy,"" #1 hit by the Fine Young Cannibals",SHE,1,2,SHE,IRENE
+737,"""Do _____ others...""",UNTO,1,2,UNTO,THESE
+738,Capital city about an hour by plane from Miami,NASSAU,nan,2,HANOI,OSLO
+739,High-heel shoes,PUMPS,nan,2,ICES,NIPS
+740,Bishop Museum setting,OAHU,nan,2,ROME,LHASA
+741,Well-oiled grp.,OPEC,nan,2,OAS,SDS
+742,Part of N.A.A.C.P.: Abbr.,ASSN,1,2,ASSN,AMER
+743,Was in knots,ACHED,nan,2,SAT,RAN
+744,Part of a countdown,SONG,nan,2,NINE,TEN
+745,Simplifies,EASES,nan,2,SEDATES,ROTS
+746,Neighbor of Ky.,IND,nan,2,OKLA,EUR
+747,Mother of Hera,RHEA,1,2,RHEA,EYRE
+748,Hotel waiter?,CAB,nan,2,ARF,TENT
+749,Uncooperative one,MULE,nan,2,ASS,LIAR
+750,"Transfers to another vessel, maybe",DECANTS,nan,2,WIPED,SWALE
+751,Staff symbol,CLEF,nan,2,ESS,STAR
+752,Frequently faked luxury brand,ROLEX,nan,2,ORION,AJAX
+753,"Mars, e.g.",DEUS,nan,2,ORB,GOD
+754,Woofer?,DOG,nan,2,MIST,AGUE
+755,Basic: Abbr.,ELEM,nan,2,ASSN,NSEC
+756,Bumper blemish,DING,nan,2,DENT,LIEN
+757,Little buddy,KIDDO,nan,2,BRO,MATE
+758,Typewriter's spot,DESK,nan,2,PATIO,ODA
+759,River to Leeds,AIRE,nan,2,YSER,ISERE
+760,Mill output,PAPER,nan,2,LYE,LAVA
+761,Futuristic genre,SCIFI,nan,2,ANIME,EMO
+762,"""Sempre libera"" e.g.",ARIA,nan,2,ESSAY,SKIT
+763,It makes a lot of scents,CHANEL,nan,2,AROMA,NOSE
+764,Agrees,JIBES,nan,2,ASSENTS,OKS
+765,French air hub,ORLY,1,2,ORLY,ARUBA
+766,"Cake feature, sometimes",TIER,nan,2,EGG,TARP
+767,Window part,PANE,nan,2,RAIL,HASP
+768,Frequent hoax subj.,UFO,nan,2,CPA,EEG
+769,Half an early comics duo,GASTON,nan,2,NELL,MONA
+770,"""The Paper Chase"" novelist",OSBORN,nan,2,STINE,STOWE
+771,"Clark of ""Gone With the Wind""",GABLE,nan,2,RHETT,OHARA
+772,Sumac from Peru,YMA,1,2,YMA,EDDAS
+773,Caesar's peepers,OCULI,nan,2,ESSE,HIS
+774,Hutches,COOPS,nan,2,WAN,ASHEN
+775,"""Do I have a volunteer?""",ANYONE,nan,2,LETS,NOPE
+776,"William Gladstone, politically: Abbr.",LIB,nan,2,STS,SEN
+777,"Fair share, maybe",HALF,nan,2,LANE,AISLE
+778,Handled baggage,TOTE,nan,2,ACED,HOED
+779,Set aside,ALLOCATE,nan,2,ALLOT,SPEW
+780,Act the mother hen,FUSS,nan,2,KNOW,HOVER
+781,"News conference, e.g.",EVENT,nan,2,STAT,UNIT
+782,H. Ross Perot's alma mater: Abbr.,USNA,2,2,MIT,USNA
+783,Je ne sais ___,QUOI,nan,2,ASH,AGAR
+784,Hickory ___,NUT,nan,2,EVIL,PET
+785,Mardi Gras follower,LENT,nan,2,SYNE,DOO
+786,Huck's raftmate,JIM,nan,2,ARIEL,OTIS
+787,Post-O.R. stop,ICU,1,2,ICU,EDU
+788,"""Alice"" diner",MELS,nan,2,MEL,RKO
+789,Asserts,SAYS,nan,2,WAN,ASHEN
+790,"""Ta-ta!""",CHEERIO,nan,2,BYE,YEP
+791,Healing plants,ALOES,nan,2,NEONS,EWES
+792,Window-___,SHOP,nan,2,ACID,KIT
+793,"New York landmark, with ""the""",MET,1,2,MET,ALAMO
+794,Monk's attire,COWL,nan,2,SKORT,ROBE
+795,Rightful,DUE,nan,2,SAD,ODD
+796,Like some pre-Columbian culture,AZTECAN,nan,2,LINED,AGED
+797,Transistor electrodes,EMITTERS,nan,2,RAG,LIEN
+798,Money holders,TILLS,nan,2,ATRIA,ALES
+799,Horse course,OVAL,nan,2,SALAD,TEA
+800,In pieces,APART,nan,2,HOT,NEAT
+801,Big goon,APE,nan,2,SLAG,SPAT
+802,Malodorous animal,POLECAT,nan,2,YIELDS,SUTRA
+803,Pantywaists,SISSIES,nan,2,WAN,ASHEN
+804,Advisory grp. that includes the drug czar,NSC,nan,2,NAT,CHE
+805,"Preacher, for short",REV,nan,2,EDS,MOS
+806,"One tablet, maybe",DOSE,nan,2,SCAB,AXEL
+807,Monitor stat,RES,nan,2,AGE,RBI
+808,Toothpaste tube abbr.,ADA,nan,2,OCT,ETAL
+809,What a salesperson may be assigned,AREA,nan,2,EAR,HAT
+810,Spell,TRANCE,nan,2,ASK,RATE
+811,"""She loves me, she loves me not ..."" flower part",PETAL,nan,2,ILSA,LORI
+812,Higher-ups?,SOPRANI,nan,2,ETS,EDS
+813,"Article of ""Ben-Hur"" attire",UNDERTUNIC,nan,2,OBI,SASH
+814,Facetious nickname for a giant,TINY,nan,2,IDA,DEL
+815,Puff on a joint,TOKE,nan,2,ULNA,PORE
+816,___-faced lie,BALD,nan,2,SHANE,CISCO
+817,Repeated message?,ECHO,2,2,SOS,ECHO
+818,"Have thirds, say",GORGE,nan,2,KNOW,GAPE
+819,More than enough,EXTRA,nan,2,ADORE,HATE
+820,... a mother with noisy kids,HUSH,nan,2,IDEE,IDES
+821,Potluck array,CASSEROLES,nan,2,SPAS,CACTI
+822,Breakfast meat,HAM,nan,2,EEL,EMU
+823,Number two of 43,CHENEY,nan,2,TWO,ANE
+824,Outstanding,DUE,nan,2,DIRE,SINCERE
+825,"37 bout results for Muhammad Ali, informally",KOS,nan,2,DECO,MERC
+826,Early adders,ABACI,1,2,ABACI,SNEERS
+827,Tool parts used for bending things,PEENS,nan,2,MEATS,STEMS
+828,To be overseas,ETRE,1,2,ETRE,ESSE
+829,Noted race loser,HARE,nan,2,ADAMS,TYSON
+830,"Mechanic's job, at times",OILING,nan,2,GRAPH,NAGEL
+831,Remote,ALOOF,nan,2,END,LOT
+832,Some keys have them,FLATS,nan,2,ORBS,ROADS
+833,One way to serve pie,ALAMODE,nan,2,LATE,RARE
+834,"Night temps, usually",LOWS,nan,2,TEENS,TEEN
+835,Decorative loop,PICOT,nan,2,TINE,EAVE
+836,Make sound,HEAL,nan,2,CLAP,WAIL
+837,They're mined in Virgin Valley,OPALS,nan,2,ALES,URNS
+838,Clothing fastener,SNAP,nan,2,HASP,STUD
+839,"Avoids, as capture",EVADES,nan,2,ENDS,STIRS
+840,Parisian possessive,TES,nan,2,THY,EINE
+841,_____ boy,MAMAS,nan,2,MRS,PAPA
+842,___ Gay (W.W. II plane),ENOLA,1,2,ENOLA,DEL
+843,Work in the media,EDIT,nan,2,ACT,ODE
+844,Conditioned,FIT,nan,2,RAW,DIRE
+845,Variety of sorghum,DURRA,nan,2,AYN,BAHAI
+846,"Many a Melville setting, with ""the""",SEA,2,2,OPERA,SEA
+847,Computer system,DOS,nan,2,LAN,MENU
+848,Unwanted plant in farmyards,HENBANE,nan,2,ALOE,ALGA
+849,Jokester,WAG,nan,2,PET,WIT
+850,Delineate,ETCH,nan,2,MESS,SPAR
+851,Secretary of labor who became a Supreme Court justice,GOLDBERG,nan,2,SADAT,BELA
+852,Bring to a boil,RILE,1,2,RILE,REEK
+853,March word,HUP,nan,2,SYNE,TIS
+854,Heeds,OBEYS,nan,2,YAPS,AWES
+855,Writer/critic Trilling,LIONEL,nan,2,DRACO,CICERO
+856,Flower that's most often white,SEGO,nan,2,IRIS,OBOE
+857,J,FISHHOOK,nan,2,HOT,EASY
+858,Giving a rah-rah talk,EXHORTING,nan,2,EBON,EROICA
+859,"A, in Aix",UNE,nan,2,LEA,INN
+860,Swarm (with),TEEM,nan,2,STEW,MESS
+861,"""___ Heartbeat"" (Amy Grant hit)",EVERY,nan,2,DES,AVEC
+862,War hero who killed himself with a onetime rival's sword,AJAX,nan,2,SULU,OZAWA
+863,Like bruises,BLUISH,nan,2,ASIAN,RED
+864,Tic-tac-toe row,OOO,2,2,OXO,OOO
+865,Man without parents,ADAM,nan,2,AUNTS,NIECES
+866,Circus stick,STILT,nan,2,CUE,NET
+867,"""Thanks in old age - thanks ___ I go"": Whitman",ERE,1,2,ERE,TIS
+868,"Oriental, e.g.",RUG,nan,2,HERB,ARAB
+869,Curved nail,TALON,nan,2,ESS,ARC
+870,Theme of this puzzle,BEES,nan,2,TILDE,WEST
+871,British F.B.I.,CID,nan,2,TSARS,DOE
+872,Dead follower,EYE,nan,2,SYNE,ERGO
+873,Popular carpet style,BERBER,nan,2,EXPOS,EXPO
+874,They come in a pack,CIGS,nan,2,ENDS,NODS
+875,Eskimo people,INUIT,1,2,INUIT,ERNS
+876,Material from which the ring of the Nibelung was made,RHINEGOLD,nan,2,CEDAR,ALB
+877,Old Mario Bros. console,NES,1,2,NES,ATARI
+878,Ancient Greek craft,TRIREME,nan,2,OILER,ERNE
+879,Symbol of might,OAK,nan,2,STAR,ORB
+880,"""___ Wood sawed wood"" (old tongue-twister)",ESAU,1,2,ESAU,ELSA
+881,Drill wielder: Abbr.,DDS,nan,2,SGT,SEN
+882,Word before field or shirt,POLO,nan,2,TOE,TEE
+883,"Prune, formerly",PLUM,nan,2,STEW,ALPO
+884,Id follower,EST,nan,2,ALAI,URL
+885,Look (into),PEER,nan,2,LEER,OGLE
+886,Bit,DAB,nan,2,ATOM,RAY
+887,Stone for many Libras,OPAL,1,2,OPAL,IRIS
+888,Part of Nasdaq: Abbr.,ASSOC,nan,2,ALG,APO
+889,"Correct, as text",EMEND,nan,2,EDIT,ETCH
+890,Adam's apple?,EVE,1,2,EVE,EDEN
+891,Stinging plant,NETTLE,nan,2,ALGA,ANT
+892,Recipient,SENDEE,nan,2,RAT,DEAR
+893,Power line?,EMPERORS,nan,2,VEE,ECHO
+894,"Certifies, in a way",NOTARIZES,nan,2,ACES,AWES
+895,Ruckus,DIN,nan,2,CGI,STR
+896,Like bars that are often near horses,UNEVEN,nan,2,AGED,USED
+897,Plant problem,ERGOT,nan,2,LYE,SMOG
+898,"Cal Ripken, for one",ORIOLE,nan,2,SON,SIS
+899,Arduous,BACKBREAKING,nan,2,DAFT,MEAN
+900,Someone ___,ELSES,nan,2,IDOL,ANT
+901,"""___ Nacht"" (German carol)",STILLE,nan,2,SHALT,CEST
+902,Residue,ASHES,nan,2,ICE,STIR
+903,Surfing area?,WEB,nan,2,CEE,SITE
+904,Property law topic,LIEN,nan,2,USAGE,ITEM
+905,Boutonniere part,BLOOM,nan,2,EAVE,TARP
+906,Successfully persuades,SELLS,nan,2,STUN,SAG
+907,Chin-___,UPS,nan,2,ACID,KIT
+908,Rough stuff,HORSEPLAY,nan,2,TAR,TALC
+909,Skedaddles,FLEES,nan,2,ENDS,NETS
+910,Files away?,DELETES,nan,2,EDITS,ACES
+911,"What ""O"" stands for in publishing",OPRAH,nan,2,LESE,ENTRE
+912,Roadside stops,MOTELS,nan,2,SPAS,DENS
+913,Follower of deuce,ADVANTAGE,nan,2,OVER,SOS
+914,Greek,HELLENE,nan,2,ATTIC,ARES
+915,Impress permanently,ETCH,1,2,ETCH,IDS
+916,They may be split,HAIRS,nan,2,ENDS,ODORS
+917,Union letters,CIO,nan,2,USAF,AFL
+918,Fare for Fido,ALPO,nan,2,PIE,YOYO
+919,Go to sea,SAIL,nan,2,STEER,SEE
+920,"Squishee seller on ""The Simpsons""",APU,nan,2,NED,OTIS
+921,Shakespearean haunter,BANQUO,nan,2,HUN,GREG
+922,Doughnut shapes,TORI,1,2,TORI,SEERS
+923,Caterpillar engager,ALICE,nan,2,SLAG,URNS
+924,Red Sea nation,YEMEN,nan,2,MAUI,SUDAN
+925,Captain's record,LOG,nan,2,ERA,USAGE
+926,Like some nasty winter weather,SLEETY,nan,2,NORSE,ARID
+927,Advertisers' output,SLOGANS,nan,2,PEAS,STEW
+928,Writer Hentoff,NAT,1,2,NAT,ENOS
+929,"Gift offered with an ""aloha""",LEI,2,2,ODE,LEI
+930,Yugoslav dictator,TITO,1,2,TITO,TSAR
+931,"""Oh no you didn't!"" sounds",GASPS,nan,2,EEK,BAH
+932,Oscar role for Vivien Leigh,OHARA,nan,2,CHER,RENEE
+933,Stout relatives,ALES,1,2,ALES,ELMS
+934,In the middle of,DURING,nan,2,ALONE,FOR
+935,He wed a White House widow,ARI,nan,2,OTTO,ORR
+936,Healthful retreats,SPAS,1,2,SPAS,INNS
+937,It's easy to swallow,CAPLET,nan,2,TANGO,SEA
+938,Fever cause,FLU,nan,2,ASTHMA,ULCER
+939,Kiddie education,ABCS,nan,2,ROTE,OBESE
+940,Cairo cobras,ASPS,1,2,ASPS,EDDAS
+941,"""Little"" comics fellow",NEMO,nan,2,ODIE,LOIS
+942,Ebb,FALL,nan,2,ADORE,RILE
+943,Makeup artist?,LIAR,nan,2,EEL,AGAR
+944,Ice cream additive,AGAR,nan,2,ALOE,MSG
+945,Drum kit component,HIHAT,nan,2,SNARE,AIM
+946,Place for a pavilion,EXPO,nan,2,EAVE,PIER
+947,Spider's web-producing organ,SPINNERET,nan,2,MAT,TILDE
+948,American representative to France during the Revolutionary War,DEANE,nan,2,SPIRO,MUIR
+949,Leaf sides,RECTOS,nan,2,SLAWS,SLAW
+950,Blood circulation problem,CLOT,nan,2,SMOG,ASTHMA
+951,Hit,STRUCK,nan,2,WOE,SLAM
+952,Diminutive ending,ETTE,nan,2,ISH,ITE
+953,Struck (out at),LASHED,nan,2,SMOTE,XED
+954,Author Hunter a k a Ed McBain,EVAN,1,2,EVAN,ERLE
+955,Ginger ___ (Canada Dry product),ALE,nan,2,RUSSE,CORER
+956,Little hopper?,ROO,1,2,ROO,HARE
+957,Compass heading,SSE,nan,2,ENE,NNE
+958,Gable part,BUTLER,nan,2,UNIT,ATOM
+959,Hard-to-hum,ATONAL,nan,2,EERIE,OBESE
+960,Make changes in,AMEND,nan,2,EDIT,ETCH
+961,Lugosi who played Dracula,BELA,1,2,BELA,ELIE
+962,Org. headquartered on Constitution Ave.,IRS,nan,2,RAF,AFL
+963,Sounds of woe,OYS,nan,2,AHS,EHS
+964,À la King?,EERIE,nan,2,AWOL,HEP
+965,Environmentalist's concern,ACIDRAIN,nan,2,ASTHMA,USURY
+966,Fall on _____ ears,DEAF,nan,2,TEA,AREA
+967,Irrationality,UNREASON,nan,2,WAN,ASHEN
+968,Equality grp.,NOW,nan,2,SLA,ILO
+969,Responds wistfully,SIGHS,nan,2,SWALE,HORAE
+970,Four Corners state,UTAH,1,2,UTAH,OMAHA
+971,Peter and Paul,TSARS,1,2,TSARS,ODES
+972,"""Understand?""",SEE,1,2,SEE,SCAT
+973,Brand of tools,SKIL,nan,2,ASPS,EMIRS
+974,Hair straightener,COMB,nan,2,GEL,SMEAR
+975,Even trade,SWAP,nan,2,AGE,DAY
+976,Gun lovers' org.,NRA,nan,2,NEA,SPCA
+977,Don't say yes,RESIST,nan,2,SCAT,SWEAR
+978,Much of a maze,WALLS,nan,2,NODS,REELS
+979,Food processor setting,PUREE,nan,2,AISLE,ETUI
+980,United workers,AVIATORS,nan,2,ANTS,ROE
+981,Homeric epic,ILIAD,nan,2,OTELLO,LIAM
+982,Not wide: Abbr.,NAR,nan,2,MSS,TSP
+983,Big name in auto parts,NAPA,nan,2,NEET,OXO
+984,Biol. branch,ECOL,nan,2,ATF,AFL
+985,"""Take your pick""",ANY,nan,2,AFRO,FRO
+986,Coup de ___ (gunshot: Fr.),FEU,nan,2,MME,ETAT
+987,Roller coaster unit,CAR,nan,2,UNIT,ATOM
+988,Major American Spanish-language newspaper,HOY,nan,2,UTE,THAI
+989,"Poker variation, informally",HILO,nan,2,DECO,REHAB
+990,Thick-___,SKULLED,nan,2,ACID,KIT
+991,Mark,PIGEON,nan,2,ANTE,EDIT
+992,"Plane or square, e.g.",TOOL,nan,2,UNIT,ICON
+993,Secretly run off together,ELOPE,1,2,ELOPE,ETCH
+994,Box ___,KITE,nan,2,NET,GATE
+995,Roget's entry: Abbr.,SYN,nan,2,ELEC,REL
+996,It's a wrap!,SARAN,nan,2,BAA,OINK
+997,"French ""to be""",ETRE,2,2,UNE,ETRE
+998,It makes a clicking noise,MOUSE,nan,2,OOF,QED
+999,Not erect,BOWED,nan,2,TERSE,DIM

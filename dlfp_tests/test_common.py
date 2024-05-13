@@ -4,8 +4,11 @@ import io
 import json
 import contextlib
 from json import JSONDecodeError
+from typing import NamedTuple
+from typing import Optional
 from unittest import TestCase
 
+import dlfp.common
 from dlfp.common import Table
 
 class TableTest(TestCase):
@@ -45,3 +48,21 @@ class TableTest(TestCase):
             table.write()
         text = buffer.getvalue()
         self._check_content(text)
+
+
+class ModuleMethodsTest(TestCase):
+
+    def test_namedtuple_diff(self):
+        class N(NamedTuple):
+
+            w: str = "foo"
+            x: int = 5
+            y: float = 0.001
+            z: Optional[str] = None
+
+        q = N(y=0.0005, z="bar")
+        d = dlfp.common.namedtuple_diff(N(), q)
+        self.assertDictEqual({
+            'y': q.y,
+            'z': q.z,
+        }, d)
