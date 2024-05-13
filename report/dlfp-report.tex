@@ -95,7 +95,7 @@
 % nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
 % articles, conjunctions, and prepositions are lower case unless they
 % directly follow a colon or long dash
-\title{Image Classification with Mini-ResNet}
+\title{Cruciformer: Exploration of Transformers for Crossword Clue Answers}
 \author {
     Mike Chaberski
 }
@@ -109,7 +109,7 @@
 \maketitle
 
 \begin{abstract}
-    This is my abstract.
+    The design, implementation, and evaluation of transformer neural network models for answering crossword puzzle clues is explored herein. Two models are developed: one that considers answers as sequences of words, and another that considers answers as sequences of letters. Hyperparameters are selected by comparing loss curve trends from training. Different methods of generating sequences for answers are devised and compared. Performance of the models is evaluated using a non-neural-network algorithm for answering clues as a baseline. [Comment on performance.] Avenues for further research are suggested in the conclusion.
     Model definition, training, and evaluation code is available at \url{https://github.com/mike10004/csgy6953-fp1}.
 \end{abstract}
 
@@ -118,17 +118,36 @@
 \section{Introduction}
 \label{sec:intro}
 
-TODO
+Determining the answers to crossword puzzle clues involves skills ranging from plundering a mental thesaurus (Recoil from~\textrightarrow~DETEST), to pop culture fluency (Shrek princess~\textrightarrow~FIONA) to clever, lateral reasoning (Swallow things~\textrightarrow~NESTS). Machines are conventionally thought to be good at the more rote skills and less successful at the more abstract ones.
+
+Solving crossword puzzles requires determining the answers to clues, subject to constraints. There are several possible answers to some clues (Historical span~\textrightarrow~AGE/ERA/PERIOD). Constraints such as prior known letters and the answer length reduce the field of possible answers. However, that field is not well-bounded: crossword constructors are free to use arbitrary phrases and neologisms (What's best on the block?~\textrightarrow~PRIME CUTS; Social media-induced anxiety~\textrightarrow~FOMO).
+
+The basis for a good crossword puzzle solving algorithm is a clue solver that can answer the thesaurus clues as well as the abstract ones, while utilizing the additional information from priors such as answer length and known letters.
 
 \section{Related Work}
 \label{sec:related}
 
-TODO
+The intuition behind the use of transformers for answering clues is the robust performance of transformer models at the machine translation task~\cite{vaswani2017}. Mapping crossword clues to answers is a sequence-to-sequence translation task, with the caveats that the source sequences (clues) are generally terse and often contain misdirection, and the target sequences (answers) are generally very short relative to the length of the source sequence.
+
+Crossword solving in general is addressed by~\citealp{kulshreshtha2022across} and~\citealp{wallace2022automated}, both of which efforts implement and evaluate end-to-end algorithms for solving an entire grid. [Describe Berkeley method and Benchmark method.]
+
+The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem tackled in \citealp{zhang2019multichannel}. [Describe MultiRD model/results/baseline.] A more fundamental approach to answering clues is implemented in~\citealp{baselinesolver}.
+That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to clues in a database, and selects answers based on best-matching clues.
+
+The concept of answering clues subject to constraints such as word length and known letters is also relevant to this study. Using positional encoding to control output sequence length is a topic addressed by~\citealp{takase2019positional}. The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others. Those advanced techniques are not explored herein, though the length constraint is addressed by a text generator algorithm and the performance gain given a known prefix is discussed in the results section.
+
 
 \section{Dataset}
 \label{sec:dataset}
 
-TODO
+The dataset used by Benchmark is employed in this study on the basis that it is reasonably clean (free of clues for cryptic crosswords, which have categorically different structure and purpose) and pre-segmented in an uncomplicated manner. Segmentation is the breaking up of answer strings into component words, e.g. GETOUT~\textrightarrow~GET~OUT. The segmentation is automated using a dictionary to suggest possible segmentations of a string, and then choosing a result based on likelihood and low word count.
+
+The original Benchmark dataset contains a training set of 433K clue-answer pairs as well as validation and test sets of about 72K pairs each. As discussed below, initial results pointed towards a better path of using a subset of the original set that contains only pairs where the answer is a single word, and removing cross-referential clues (e.g. ``See 46-Across''). This subset is referred to as Onemark and contains 320K pairs in the training set, 55K in the  validation set, and 59K in the test set.
+
+\section{Implementation}
+\label{sec:impl}
+
+The two primary parts of the Cruciformer codebase are the model implementation and the answer generation implementation. Model structure and training code was adapted from a transformer implementation for sequence to sequence translation~\cite{chegde2022}. The sequence generator included with that codebase performed only greedy generation, which is not sufficient for analysis of ranked results, so a new sequence generator was implemented with custom parameters to control output sequence length and number of candidate output sequences.
 
 \section{Model Selection}
 \label{sec:model}
@@ -142,6 +161,21 @@ TODO
 
 \subsection{Another Thing}
 \label{subsec:another}
+
+TODO
+
+\section{Generator Strategy}
+\label{sec:generator}
+
+Given a sequence-to-sequence transformer model, a sequence generator is the component that accepts as input a source sequence and an empty or partial output sequence and produces the next element of the output sequence. The generator is iteratively applied to produce a complete sequence. For both the word and letter models, the source sequence is a clue. The word model generator produces a sequence of words and the letter model generator produces a sequence of letters.
+
+For each input, the generator produces an array of values corresponding to possible next tokens. The values are relative measures of likelihood. Our generator implementation applies the softmax function to these values to map them to a probability distribution. (This is the default behavior of the implementation, but other mappings are supported.)
+
+To produce a list of candidate answers for a given clue, beam search is performed. In beam search, the tree of sequence possibilities is traversed and the resulting answers are ranked by their cumulative probability. The cumulative probability of an answer is the product of the probabilities of the constituent sequence elements (words or letters, depending on the model).
+
+At each node of the tree, the possible next tokens are considered in order of probability, descending, up to a limit parameter. We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3. For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. Next tokens are always considered in order of probability.
+
+Different strategies for generating answers are compared below by evaluating their performance in producing correct answers. Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set. The letter model was evaluated on a subset that contains only answers up to 5 letters in length. Performance is measured by calculating the percentage of correct answers at incremental ranks. For example, the accuracy at rank 10 is the percentage of clue-answer pairs for which the correct answer is among the top 10 candidate answers.
 
 \section{Results}
 \label{sec:results}
