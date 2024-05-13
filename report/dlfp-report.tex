@@ -136,22 +136,31 @@ sequences of letters in response to a clue.
 \section{Related Work}
 \label{sec:related}
 
-The intuition behind the use of transformers for answering clues is the robust performance of transformer models at the machine translation task~\cite{vaswani2017}. Mapping crossword clues to answers is a sequence-to-sequence translation task, with the caveats that the source sequences (clues) are generally terse and often contain misdirection, and the target sequences (answers) are generally very short relative to the length of the source sequence.
+The intuition behind the use of transformers for answering clues is the robust performance of transformer models at
+the machine translation task~\cite{vaswani2017}.
+Mapping crossword clues to answers is a sequence-to-sequence translation task, with the caveats that the source
+sequences (clues) are generally terse and often contain misdirection, and the target sequences (answers) are
+generally very short relative to the length of the source sequence.
 
-Crossword solving in general is addressed by~\citealp{kulshreshtha2022across} and~\citealp{wallace2022automated}, both of which efforts implement and evaluate end-to-end algorithms for solving an entire grid. [Describe Berkeley method and Benchmark method.]
+Crossword solving in general is addressed by~\citealp{kulshreshtha2022across} and~\citealp{wallace2022automated},
+both of which efforts implement and evaluate end-to-end algorithms for solving an entire grid.
+[TODO Describe Berkeley method and Benchmark method.]
 
-The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem tackled in~\citealp{zhang2019multichannel}. [Describe MultiRD model/results/baseline.] A more fundamental approach to answering clues is implemented in~\citealp{baselinesolver}.
-That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to clues in a database, and selects answers based on best-matching clues.
+The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem
+tackled in~\citealp{zhang2019multichannel}.
+[TODO Describe MultiRD model/results/baseline.]
 
-The concept of answering clues subject to constraints such as word length and known letters is also relevant to this study. Using positional encoding to control output sequence length is a topic addressed by~\citealp{takase2019positional}. The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others. Those advanced techniques are not explored herein, though the length constraint is addressed by a text generator algorithm and the performance gain given a known prefix is discussed in the results section.
-
+A statistical approach to answering clues is implemented in~\citealp{baselinesolver}.
+That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to
+clues in a database, and selects answers based on best-matching clues.
+This method is the baseline against which our model results are compared in the test phase.
 
 \section{Dataset}
 \label{sec:dataset}
 
-The dataset used by Benchmark is employed in this study on the basis that it is reasonably clean (free of clues for cryptic crosswords, which have categorically different structure and purpose) and pre-segmented in an uncomplicated manner. Segmentation is the breaking up of answer strings into component words, e.g. GETOUT~\textrightarrow~GET~OUT. The segmentation is automated using a dictionary to suggest possible segmentations of a string, and then choosing a result based on likelihood and low word count.
-
-The original Benchmark dataset contains a training set of 433K clue-answer pairs as well as validation and test sets of about 72K pairs each. As discussed below, initial results pointed towards a better path of using a subset of the original set that contains only pairs where the answer is a single word, and removing cross-referential clues (e.g. ``See 46-Across''). This subset is referred to as Onemark and contains 320K pairs in the training set, 55K in the  validation set, and 59K in the test set.
+A modified version of the dataset from~\citealp{kulshreshtha2022across} is used for training and evaluation.
+The modified dataset contains only single-word answers and does not contain cross-referential clues (e.g.~``See 46-Across'').
+The training set has 320K clue-answer pairs, and there are about 55K in the validation and test sets.
 
 \section{Implementation}
 \label{sec:impl}
@@ -321,8 +330,10 @@ The models achieve success in outperforming the baseline, but the baseline is a 
 Comparison to the MultiRD model or even a basic Word2Vec-based algorithm that contemplates semantic content would provide a better gauge of relative performance.
 (Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citealp{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
 
-The initial objectives from the project proposal included attempting to utilize priors such as  target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
+The initial objectives from the project proposal included attempting to utilize constraints such as target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
 Use of positional encoding to influence output sequence length, as~\citealp{takase2019positional} implemented, seems like a promising way to achieve better accuracy at lower ranks.
+The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked
+sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others.
 
 The fundamental model training task proved difficult.
 It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative to datasets for language translation on which transformers have shown robustness.
