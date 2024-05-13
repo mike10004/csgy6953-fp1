@@ -159,6 +159,7 @@ Adopted hyperparameters include:
 \item 8 attention heads;
 \item embedding size 512;
 \item 3 encoder layers and 3 decoder layers;
+\item sinusoidal positional encoding;
 \item feed-forward network dimension 512;
 \item Adam optimizer~\cite{kingma2017adam} with $\beta_1 = 0.9$, $\beta_2 = 0.98$, and $\epsilon = 10^{-9}$; and
 \item dropout rate 0.1.
@@ -262,7 +263,14 @@ For example, the accuracy at rank 10 is the percentage of clue-answer pairs for 
 \label{fig:charmark-acc-by-strat}
 \end{figure}
 
-Figure talk.
+Both models are outperformed by the baseline at rank less than 20.
+The word model shows a generally positive trend, and the fact that it is achieving near 40\% accuracy at rank 100, when the size of the answer set is about 50K, shows that the model is indeed learning effectively.
+
+With respect to the letter model, the lower-order strategies do not achieve significant accuracy, and their accuracy with respect to rank has a low upper bound because the search space is only $k^5$ (where $k$ is the number of letters).
+The higher-order strategies achieve some success,  outperforming the baseline at ranks above 30.
+Strategies that are broadly less greedy, meaning they consider more tokens at greater depths in the search tree, appear to outperform greedier strategies with greater initial degrees.
+In particular, strategy L5 performs quite well for its low-degree search space, and its efficiency recommends it as the optimal strategy for subsequent evaluation in the test phase.
+
 
 
 \section{Results}
@@ -300,34 +308,25 @@ Urna id volutpat lacus laoreet non curabitur gravida.
 \section{Conclusion}
 \label{sec:conclusion}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ullamcorper sit amet risus nullam eget felis.
-Adipiscing elit ut aliquam purus sit amet luctus venenatis.
-Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi.
-In mollis nunc sed id semper risus.
-Consectetur a erat nam at lectus urna duis.
-Tellus molestie nunc non blandit massa enim nec dui nunc.
-Neque egestas congue quisque egestas.
-Massa tempor nec feugiat nisl.
-Dui ut ornare lectus sit.
-Bibendum ut tristique et egestas quis.
+The models achieve success in outperforming the baseline, but the baseline is a low bar.
+Comparison to the MultiRD model or even a basic Word2Vec-based algorithm that contemplates semantic content would provide a better gauge of relative performance.
+(Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citealp{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
 
-Ac auctor augue mauris augue neque.
-Lobortis feugiat vivamus at augue eget.
-Sit amet tellus cras adipiscing enim eu turpis egestas.
-Nunc lobortis mattis aliquam faucibus purus in massa.
-Neque vitae tempus quam pellentesque nec nam aliquam.
-Donec enim diam vulputate ut.
-Sed viverra tellus in hac habitasse platea dictumst vestibulum rhoncus.
-Et malesuada fames ac turpis.
-Est pellentesque elit ullamcorper dignissim cras tincidunt.
-Lacinia quis vel eros donec ac odio.
-Dignissim convallis aenean et tortor at risus viverra.
-Imperdiet massa tincidunt nunc pulvinar sapien et ligula ullamcorper.
-Magna fringilla urna porttitor rhoncus dolor purus non.
-Quisque non tellus orci ac auctor augue.
-Hendrerit dolor magna eget est lorem ipsum dolor sit.
-Urna id volutpat lacus laoreet non curabitur gravida.
+The initial objectives from the project proposal included attempting to utilize priors such as  target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
+Use of positional encoding to influence output sequence length, as~\citealp{takase2019positional} implemented, seems like a promising way to achieve better accuracy at lower ranks.
+
+The fundamental model training task proved difficult.
+It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative to datasets for language translation on which transformers have shown robustness.
+Clue-answer pairs are inherently asymmetric in terms of sequence length, whereas language-to-language pairs are more balanced.
+This also points toward consideration of alternative positional encodings for the answer sequences; given their short length, perhaps a sinusoidal encoding is not appropriate.
+(Tests that removed the letter model's positional encoding from the target sequence were performed, but the results were poor.)
+
+While reducing model dimensionality and increasing dropout were attempted to introduce regularization, other techniques, such as data augmentation (perhaps by randomly masking some tokens in the clue sequences) are worth trying.
+Scheduling learning rate adjustments differently is also worthy of investigation; \citealp{vaswani2017} schedules the learning rate with a warmup period and gradual decrease.
+They train for many more epochs with a much larger dataset, but nevertheless, schedules more optimal than a constant learning rate are worthy of consideration.
+
+Overall, the results herein show that the models did learn effectively, though imperfectly.
+Though there is conclusive evidence that the transformer architecture is optimal for the clue-answering task, relative to other types of encoder-decoder models, several avenues of further research are promising.
 
 \bibliography{aaai24}
 
