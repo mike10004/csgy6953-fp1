@@ -152,28 +152,38 @@ The two primary parts of the Cruciformer codebase are the model implementation a
 \section{Model Selection}
 \label{sec:model}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ullamcorper sit amet risus nullam eget felis.
-Adipiscing elit ut aliquam purus sit amet luctus venenatis.
-Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi.
+Default hyperparameters for each model were either adopted from~\citealp{vaswani2017} or inherited from the upstream codebase.
+Adopted hyperparameters include:
+
+\begin{itemize}
+\item 8 attention heads;
+\item embedding size 512;
+\item 3 encoder layers and 3 decoder layers;
+\item feed-forward network dimension 512;
+\item Adam optimizer~\cite{kingma2017adam} with $\beta_1 = 0.9$, $\beta_2 = 0.98$, and $\epsilon = 10^{-9}$; and
+\item dropout rate 0.1.
+\end{itemize}
+
+The use of cross-entropy for the loss function and learning rate of $10^{-4}$ were inherited from the upstream codebase.
+Learning rates of greater magnitude were tested but in each case the loss did not trend toward convergence.
+The batch size of 128 was likewise taken from the upstream codebase.
+
+Models were trained for 10 epochs.
+Initial results of training both the word model and the letter model showed a propensity for overfit.
+As such, different methods of preventing overfit by varying hyperparameters were attempted.
+These included regularization by varying dropout rates and reducing model dimensionality by decreasing embedding size to 256.
+A dropout rate of zero was also tested to determine whether dropout was actually appropriate for the task.
 
 \subsection{Word Model}
 \label{subsec:word}
 
-As shown in~\ref{fig:onemark-loss-df}, the loss curves are TODO .
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ullamcorper sit amet risus nullam eget felis.
-Adipiscing elit ut aliquam purus sit amet luctus venenatis.
-Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi.
+Training and validation loss curves for the word model are shown in~\ref{fig:onemark-loss-df} and~\ref{fig:onemark-loss-dropout}.
+All of the curve pairs show undesirable characteristics.
+In the case of the default parameters and the reduced dimensionality, growing divergence between training and validation loss is evident.
+In the case of dropout, at a dropout rate of zero, the model achieves lower validation loss than under the default rate of 0.1. At greater dropout rates, the loss converges  early at a loss value greater than under the default rate.
 
-As shown in~\ref{fig:onemark-loss-dropout}, the loss curves are TODO .
-In mollis nunc sed id semper risus.
-Consectetur a erat nam at lectus urna duis.
-Tellus molestie nunc non blandit massa enim nec dui nunc.
-Neque egestas congue quisque egestas.
-Massa tempor nec feugiat nisl.
-Dui ut ornare lectus sit.
-Bibendum ut tristique et egestas quis.
+The model trained under default parameters and the model trained with zero dropout show similar overfit propensity, but the zero-dropout model achieves lower loss.
+Thus the zero-dropout model, with INSERT MODEL PARAMETER COUNT trainable parameters, was selected as the optimal word model for subsequent consideration.
 
 \begin{figure}
 \centering
@@ -192,22 +202,18 @@ Bibendum ut tristique et egestas quis.
 \subsection{Letter Model}
 \label{subsec:letter}
 
-As shown in~\ref{fig:charmark-loss-df}, the loss curves are TODO .
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ullamcorper sit amet risus nullam eget felis.
-Adipiscing elit ut aliquam purus sit amet luctus venenatis.
-Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi.
+Training and validation loss curves for the letter model are shown in~\ref{fig:charmark-loss-df} and~\ref{fig:charmark-loss-dropout}.
+As with the word model, all of the curve pairs show undesirable characteristics.
+Under the default parameters, the model shows substantial overfit, with the validation loss on an increasing trajectory at later epochs.
+Overfit is also evident in the loss curves of the model with reduced dimensionality, but that model shows a better overall trend, which aligns with the intuition that the small target token space of the letter model would be accommodated better by a lower-dimension model.
 
-As shown in~\ref{fig:charmark-loss-dropout}, the loss curves are TODO .
-In mollis nunc sed id semper risus.
-Consectetur a erat nam at lectus urna duis.
-Tellus molestie nunc non blandit massa enim nec dui nunc.
-Neque egestas congue quisque egestas.
-Massa tempor nec feugiat nisl.
-Dui ut ornare lectus sit.
-Bibendum ut tristique et egestas quis.
+Examination of the loss curves for models trained under varying dropout rates shows that a dropout rate of zero induces substantial overfit and an increasing validation loss trend, similar to the default model but magnified.
+At dropout rate 0.5 there is no evidence of overfit, but the loss appears to have converged early.
 
-\begin{figure}[t]
+The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the greater overfit and minimum validation loss of 0.0152.
+The reduced-dimensionality model, with INSERT PARAMETER COUNT trainable parameters, was selected as optimal for subsequent consideration.
+
+\begin{figure}
 \centering
 \includegraphics[width=0.9\columnwidth]{fig-charmark-loss-default-and-embsize}
 \caption{\textbf{Letter model} training and validation loss curves for default hyperparameters and reduced embedding size.}
@@ -232,9 +238,15 @@ For each input, the generator produces an array of values corresponding to possi
 
 To produce a list of candidate answers for a given clue, beam search is performed. In beam search, the tree of sequence possibilities is traversed and the resulting answers are ranked by their cumulative probability. The cumulative probability of an answer is the product of the probabilities of the constituent sequence elements (words or letters, depending on the model).
 
-At each node of the tree, the possible next tokens are considered in order of probability, descending, up to a limit parameter. We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3. For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. Next tokens are always considered in order of probability.
+At each node of the tree, the possible next tokens are considered in order of probability, descending, up to a limit parameter.
+We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3.
+For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. (Because the sequences the word model may generate are at most one token, only the L100 strategy is evaluated for the word model.)
 
-Different strategies for generating answers are compared in~\ref{fig:onemark-acc-by-strat} and~\ref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers. Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set. The letter model was evaluated on a subset that contains only answers up to 5 letters in length. Performance is measured by calculating the percentage of correct answers at incremental ranks. For example, the accuracy at rank 10 is the percentage of clue-answer pairs for which the correct answer is among the top 10 candidate answers.
+Performance under different strategies for generating answers is shown in~\ref{fig:onemark-acc-by-strat} and~\ref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers.
+Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set.
+The letter model was evaluated on a subset that contains only answers up to 5 letters in length.
+Performance is measured by calculating the percentage of correct answers at incremental ranks.
+For example, the accuracy at rank 10 is the percentage of clue-answer pairs for which the correct answer is among the top 10 candidate answers.
 
 \begin{figure}
 \centering
@@ -249,6 +261,8 @@ Different strategies for generating answers are compared in~\ref{fig:onemark-acc
 \caption{\textbf{Letter model} accuracy by generator strategy.}
 \label{fig:charmark-acc-by-strat}
 \end{figure}
+
+Figure talk.
 
 
 \section{Results}
