@@ -95,7 +95,7 @@
 % nouns, adverbs, adjectives should be capitalized, including both words in hyphenated terms, while
 % articles, conjunctions, and prepositions are lower case unless they
 % directly follow a colon or long dash
-\title{Cruciformer: Crossword Clue-to-Answer Transformers}
+\title{Exploring Transformers for Answering Crossword Clues}
 \author {
     Mike Chaberski
 }
@@ -162,14 +162,11 @@ A modified version of the dataset from~\citealp{kulshreshtha2022across} is used 
 The modified dataset contains only single-word answers and does not contain cross-referential clues (e.g.~``See 46-Across'').
 The training set has 320K clue-answer pairs, and there are about 55K in the validation and test sets.
 
-\section{Implementation}
-\label{sec:impl}
-
-The two primary parts of the Cruciformer codebase are the model implementation and the answer generation implementation. Model structure and training code was adapted from a transformer implementation for sequence to sequence translation~\cite{chegde2022}. The sequence generator included with that codebase performed only greedy generation, which is not sufficient for analysis of ranked results, so a new sequence generator was implemented with custom parameters to control output sequence length and number of candidate output sequences.
-
 \section{Model Selection}
 \label{sec:model}
 
+Model structure and training code was adapted from a transformer implementation for sequence to sequence translation~\cite{chegde2022}.
+A custom generator component was developed to support ranked answer suggestions.
 Default hyperparameters for each model were either adopted from~\citealp{vaswani2017} or inherited from the upstream codebase.
 Adopted hyperparameters include:
 
