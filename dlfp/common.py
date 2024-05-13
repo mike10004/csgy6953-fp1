@@ -74,7 +74,7 @@ class Table(NamedTuple):
             if self.headers:
                 csv_writer.writerow(self.headers)
             csv_writer.writerows(self.rows)
-        if fmt == "json":
+        elif fmt == "json":
             print("[", file=sink)
             for i, row in enumerate(self.rows):
                 if i > 0:

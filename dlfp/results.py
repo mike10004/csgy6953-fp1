@@ -309,17 +309,18 @@ class Evaluation(NamedTuple):
         splits = set(evaluation.split for evaluation in evaluations)
         if len(splits) != 1:
             raise ValueError(f"evaluations performed on {len(splits)} splits: {splits}")
-        headers = ["params"]
         rows = []
         ranks_superset = set()
         for evaluation in evaluations:
             ranks_superset.update(evaluation.accuracy_result.rank_acc_count.keys())
         ranks = sorted(ranks_superset)
+        headers = ["params/ranks"] + ranks
         for evaluation in evaluations:
             row = [evaluation.suggest_title()]
             for rank in ranks:
                 acc = evaluation.accuracy_result.rank_acc_count.get(rank, 0) / evaluation.accuracy_result.attempt_count
                 row.append(acc)
+            rows.append(row)
         return Table(rows, headers)
 
 
@@ -388,7 +389,7 @@ class Collated(NamedTuple):
         acc_filename = f"{index}-{stem}-accuracy.csv"
         if self.evaluations:
             eval_table = Evaluation.to_table(self.evaluations)
-            eval_table.write_file(output_dir / acc_filename)
+            eval_table.write_file(output_dir / acc_filename, fmt="csv")
 
     def epoch_count(self) -> int:
         return len(self.train_loss)
@@ -417,6 +418,8 @@ def collate_all(export_dir: Path, collated_dir: Optional[Path]) -> Table:
         raise UsageException("--export argument required in collate mode")
     collated_dir = collated_dir or (export_dir / "collated")
     info_files = sorted(map(Path, glob.glob(os.path.join(export_dir, "*-info.json"))))
+    if not info_files:
+        raise UsageException(f"no info files in {export_dir.absolute()}")
     collateds = [Collated.from_info_file(info_file) for info_file in info_files]
     by_stem = defaultdict(list)
     headers = ["idx", "identity", "epochs", "evals"]
