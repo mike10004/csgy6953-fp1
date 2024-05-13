@@ -299,6 +299,9 @@ class Language(NamedTuple):
             return txt_input
         return func
 
+    def vocab_size(self) -> int:
+        return len(self.vocab)
+
 
 def tokenize_characters(text: str) -> list[str]:
     return list(text)
