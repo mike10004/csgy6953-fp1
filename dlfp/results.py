@@ -222,7 +222,8 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
 def count_parameters(checkpoint: Restored, model_hp: ModelHyperparametry) -> str:
     from torchsummary import summary
     import dlfp.datasets
-    src_lang, tgt_lang = dlfp.datasets.get_languages(checkpoint.extra["metadata"]["dataset_name"])
+    dataset = dlfp.datasets.DatasetResolver().by_name(checkpoint.extra["metadata"]["dataset_name"], "train")
+    src_lang, tgt_lang = dlfp.datasets.get_languages(dataset)
     model = dlfp.models.create_model(src_lang.vocab_size(), tgt_lang.vocab_size(), model_hp)
     stats = summary(model, verbose=0)
     for count, suffix in [
