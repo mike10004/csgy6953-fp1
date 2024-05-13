@@ -92,7 +92,7 @@ def evaluate_valid():
 	from argparse import ArgumentParser
 	resolver = DatasetResolver()
 	parser = ArgumentParser()
-	parser.add_argument("-d", "--dataset", default="easymark")
+	parser.add_argument("-d", "--dataset", required=True)
 	parser.add_argument("--valid-split", default="valid")
 	args = parser.parse_args()
 	dataset, valid_split = args.dataset, args.valid_split

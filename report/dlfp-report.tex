@@ -161,14 +161,14 @@ As shown in~\ref{fig:onemark-loss-df}, the loss curves are TODO .
 
 As shown in~\ref{fig:onemark-loss-dropout}, the loss curves are TODO .
 
-\begin{figure}[t]
+\begin{figure}
 \centering
 \includegraphics[width=0.9\columnwidth]{fig-onemark-loss-default-and-embsize}
 \caption{\textbf{Word model} training and validation loss curves for default hyperparameters and reduced embedding size.}
 \label{fig:onemark-loss-df}
 \end{figure}
 
-\begin{figure*}[t]
+\begin{figure*}
 \centering
 \includegraphics[width=0.8\textwidth]{fig-onemark-loss-dropout}
 \caption{\textbf{Word model} training and validation loss curves under varying dropout rates.}
@@ -182,14 +182,14 @@ As shown in~\ref{fig:charmark-loss-df}, the loss curves are TODO .
 
 As shown in~\ref{fig:charmark-loss-dropout}, the loss curves are TODO .
 
-\begin{figure}[t]
+\begin{figure}
 \centering
 \includegraphics[width=0.9\columnwidth]{fig-charmark-loss-default-and-embsize}
 \caption{\textbf{Letter model} training and validation loss curves for default hyperparameters and reduced embedding size.}
 \label{fig:charmark-loss-df}
 \end{figure}
 
-\begin{figure*}[t]
+\begin{figure*}
 \centering
 \includegraphics[width=0.8\textwidth]{fig-charmark-loss-dropout}
 \caption{\textbf{Letter model} training and validation loss curves under varying dropout rates.}
@@ -209,7 +209,24 @@ To produce a list of candidate answers for a given clue, beam search is performe
 
 At each node of the tree, the possible next tokens are considered in order of probability, descending, up to a limit parameter. We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3. For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. Next tokens are always considered in order of probability.
 
-Different strategies for generating answers are compared below by evaluating their performance in producing correct answers. Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set. The letter model was evaluated on a subset that contains only answers up to 5 letters in length. Performance is measured by calculating the percentage of correct answers at incremental ranks. For example, the accuracy at rank 10 is the percentage of clue-answer pairs for which the correct answer is among the top 10 candidate answers.
+Different strategies for generating answers are compared in~\ref{fig:onemark-acc-by-strat} and~\ref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers. Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set. The letter model was evaluated on a subset that contains only answers up to 5 letters in length. Performance is measured by calculating the percentage of correct answers at incremental ranks. For example, the accuracy at rank 10 is the percentage of clue-answer pairs for which the correct answer is among the top 10 candidate answers.
+
+
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\columnwidth]{fig-onemark-acc-by-strat}
+\caption{\textbf{Word model} accuracy by generator strategy.}
+\label{fig:onemark-acc-by-strat}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics[width=0.95\columnwidth]{fig-charmark-accuracy-default-tmp}
+\caption{\textbf{Letter model} accuracy by generator strategy.}
+\label{fig:charmark-acc-by-strat}
+\end{figure}
+
 
 \section{Results}
 \label{sec:results}
