@@ -111,7 +111,7 @@
 \begin{abstract}
     The design and implementation of transformer neural network models for answering crossword puzzle clues is explored herein.
     A word-generating model and a letter-generating model are defined and tuned based on training results.
-    The models outperform a baseline non-neural-network algorithm.
+    The models are evaluated relative to a baseline non-neural-network algorithm.
     Model definition, training, and evaluation code is available at \url{https://github.com/mike10004/csgy6953-fp1}.
 \end{abstract}
 
@@ -290,39 +290,25 @@ The higher-order strategies achieve some success,  outperforming the baseline at
 Strategies that are broadly less greedy, meaning they consider more tokens at greater depths in the search tree, appear to outperform greedier strategies with greater initial degrees.
 In particular, strategy L5 performs quite well for its low-degree search space, and its efficiency recommends it as the optimal strategy for subsequent evaluation in the test phase.
 
-
-
 \section{Results}
 \label{sec:results}
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
-Ullamcorper sit amet risus nullam eget felis.
-Adipiscing elit ut aliquam purus sit amet luctus venenatis.
-Lectus vestibulum mattis ullamcorper velit sed ullamcorper morbi.
-In mollis nunc sed id semper risus.
-Consectetur a erat nam at lectus urna duis.
-Tellus molestie nunc non blandit massa enim nec dui nunc.
-Neque egestas congue quisque egestas.
-Massa tempor nec feugiat nisl.
-Dui ut ornare lectus sit.
-Bibendum ut tristique et egestas quis.
+For the test phase, subsets of the test set were constructed, with 10K pairs
+for the word model and 1K pairs for the letter model.
+The letter model set includes only pairs with answers of at most 5 letters.
+The results are shown in~\ref{fig:test-acc}.
 
-Ac auctor augue mauris augue neque.
-Lobortis feugiat vivamus at augue eget.
-Sit amet tellus cras adipiscing enim eu turpis egestas.
-Nunc lobortis mattis aliquam faucibus purus in massa.
-Neque vitae tempus quam pellentesque nec nam aliquam.
-Donec enim diam vulputate ut.
-Sed viverra tellus in hac habitasse platea dictumst vestibulum rhoncus.
-Et malesuada fames ac turpis.
-Est pellentesque elit ullamcorper dignissim cras tincidunt.
-Lacinia quis vel eros donec ac odio.
-Dignissim convallis aenean et tortor at risus viverra.
-Imperdiet massa tincidunt nunc pulvinar sapien et ligula ullamcorper.
-Magna fringilla urna porttitor rhoncus dolor purus non.
-Quisque non tellus orci ac auctor augue.
-Hendrerit dolor magna eget est lorem ipsum dolor sit.
-Urna id volutpat lacus laoreet non curabitur gravida.
+\begin{figure}
+\centering
+\includegraphics[width=0.75\columnwidth]{fig-test-acc}
+\caption{Accuracy of selected models and strategies on test subsets.}
+\label{fig:test-acc}
+\end{figure}
+
+The performance difference in the baselines is presumably because clues with
+shorter answers are more easily matched by the baseline algorithm.
+The word model outperforms the baseline at ranks above 20, and the letter model
+outperforms the baseline at ranks above 40.
 
 \section{Conclusion}
 \label{sec:conclusion}
