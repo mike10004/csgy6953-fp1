@@ -159,6 +159,20 @@ That work does not train a model on a clue-answer database, but instead uses wor
 clues in a database, and selects answers based on best-matching clues.
 That method is the baseline against which our model results are compared in the test phase.
 
+\begin{figure*}
+\centering
+\includegraphics[width=0.8\textwidth]{fig-onemark-loss-all}
+\caption{\textbf{Word model} training and validation loss curves under varying hyperparameters.}
+\label{fig:onemark-loss}
+\end{figure*}
+
+\begin{figure*}
+\centering
+\includegraphics[width=0.8\textwidth]{fig-charmark-loss-all}
+\caption{\textbf{Letter model} training and validation loss curves under varying hyperparameters.}
+\label{fig:charmark-loss}
+\end{figure*}
+
 \section{Dataset}
 \label{sec:dataset}
 
@@ -205,13 +219,6 @@ In the case of dropout, at a dropout rate of zero, the model achieves lower vali
 The model trained under default parameters and the model trained with zero dropout show similar overfit propensity, but the zero-dropout model achieves lower loss.
 Thus the zero-dropout model, with INSERT MODEL PARAMETER COUNT trainable parameters, was selected as the optimal word model for subsequent consideration.
 
-\begin{figure*}
-\centering
-\includegraphics[width=0.8\textwidth]{fig-onemark-loss-all}
-\caption{\textbf{Word model} training and validation loss curves under varying hyperparameters.}
-\label{fig:onemark-loss}
-\end{figure*}
-
 \subsection{Letter Model}
 \label{subsec:letter}
 
@@ -225,15 +232,6 @@ At dropout rate 0.5 there is no evidence of overfit, but the loss appears to hav
 
 The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the greater overfit and minimum validation loss of 0.0152.
 The reduced-dimensionality model, with INSERT PARAMETER COUNT trainable parameters, was selected as optimal for subsequent consideration.
-
-\begin{figure*}
-\centering
-\includegraphics[width=0.8\textwidth]{fig-charmark-loss-all}
-\caption{\textbf{Letter model} training and validation loss curves under varying hyperparameters.}
-\label{fig:charmark-loss}
-\end{figure*}
-
-
 
 \section{Generator Strategy}
 \label{sec:generator}
