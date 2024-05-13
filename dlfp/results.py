@@ -306,9 +306,17 @@ class Evaluation(NamedTuple):
 
     @staticmethod
     def to_table(evaluations: Iterable['Evaluation']) -> Table:
-        splits = set(evaluation.split for evaluation in evaluations)
-        if len(splits) != 1:
-            raise ValueError(f"evaluations performed on {len(splits)} splits: {splits}")
+        splits = defaultdict(int)
+        for evaluation in evaluations:
+            splits[evaluation.split] += 1
+        if len(splits) > 1:
+            counts = list(splits.values())
+            splits_list = list(splits.keys())
+            max_split = splits_list[np.argmax(counts)]
+            _log.info(f"using split {max_split} because it has the most evaluations out of {dict(splits)}")
+        else:
+            max_split = next(iter(splits.keys()))
+        evaluations = [evaluation for evaluation in evaluations if evaluation.split == max_split]
         rows = []
         ranks_superset = set()
         for evaluation in evaluations:
@@ -316,6 +324,9 @@ class Evaluation(NamedTuple):
         ranks = sorted(ranks_superset)
         headers = ["params/ranks"] + ranks
         for evaluation in evaluations:
+            if evaluation.accuracy_result.attempt_count < 100:
+                _log.info(f"skipping evaluation with {evaluation.accuracy_result.attempt_count} attempts")
+                continue
             row = [evaluation.suggest_title()]
             for rank in ranks:
                 acc = evaluation.accuracy_result.rank_acc_count.get(rank, 0) / evaluation.accuracy_result.attempt_count
