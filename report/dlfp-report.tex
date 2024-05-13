@@ -54,6 +54,7 @@
 % \usepackage{geometry} -- This package is specifically forbidden
 % \usepackage{grffile} -- This package is specifically forbidden
 \usepackage{hyperref} % -- This package is specifically forbidden
+\usepackage{cleveref}
 %\usepackage{navigator} % -- This package is specifically forbidden
 % (or any other package that embeds links such as navigator or hyperref)
 % \indentfirst} -- This package is specifically forbidden
@@ -211,7 +212,7 @@ A dropout rate of zero was also tested to determine whether dropout was actually
 \subsection{Word Model}
 \label{subsec:word}
 
-Training and validation loss curves for the word model are shown in~\ref{fig:onemark-loss}.
+Training and validation loss curves for the word model are shown in~\autoref{fig:onemark-loss}.
 All of the curve pairs show undesirable characteristics.
 In the case of the default parameters and the reduced dimensionality, growing divergence between training and validation loss is evident.
 In the case of dropout, at a dropout rate of zero, the model achieves lower validation loss than under the default rate of 0.1. At greater dropout rates, the loss converges  early at a loss value greater than under the default rate.
@@ -222,7 +223,7 @@ Thus the zero-dropout model, with INSERT MODEL PARAMETER COUNT trainable paramet
 \subsection{Letter Model}
 \label{subsec:letter}
 
-Training and validation loss curves for the letter model are shown in~\ref{fig:charmark-loss}.
+Training and validation loss curves for the letter model are shown in~\autoref{fig:charmark-loss}.
 As with the word model, all of the curve pairs show undesirable characteristics.
 Under the default parameters, the model shows substantial overfit, with the validation loss on an increasing trajectory at later epochs.
 Overfit is also evident in the loss curves of the model with reduced dimensionality, but that model shows a better overall trend, which aligns with the intuition that the small target token space of the letter model would be accommodated better by a lower-dimension model.
@@ -246,7 +247,7 @@ At each node of the tree, the possible next tokens are considered in order of pr
 We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3.
 For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. (Because the sequences the word model may generate are at most one token, only the L100 strategy is evaluated for the word model.)
 
-Performance under different strategies for generating answers is shown in~\ref{fig:onemark-acc-by-strat} and~\ref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers.
+Performance under different strategies for generating answers is shown in~\autoref{fig:onemark-acc-by-strat} and~\autoref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers.
 Because this generator strategy is exponential in runtime by nature, evaluation was performed on a random 1000-pair subset of the validation set.
 The letter model was evaluated on a subset that contains only answers up to 5 letters in length.
 Performance is measured by calculating the percentage of correct answers at incremental ranks.
@@ -280,7 +281,7 @@ In particular, strategy L5 performs quite well for its low-degree search space, 
 For the test phase, subsets of the test set were constructed, with 10K pairs
 for the word model and 1K pairs for the letter model.
 The letter model set includes only pairs with answers of at most 5 letters.
-The results are shown in~\ref{fig:test-acc}.
+The results are shown in~\autoref{fig:test-acc}.
 
 \begin{figure}
 \centering
