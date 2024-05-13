@@ -101,7 +101,7 @@ def get_languages(dataset: PhrasePairDataset) -> tuple[Language, Language]:
         source = cache.get(dataset, "clue", "spacy", "en_core_web_sm")
         target = cache.get(dataset, "answer", "dlfp", "character")
         return source, target
-    if dataset.name in {"benchmark", "easymark"}:
+    if dataset.name in {"benchmark", "easymark", "onemark"}:
         source = cache.get(dataset, "clue", "spacy", "en_core_web_sm")
         target = cache.get(dataset, "answer", "spacy", "en_core_web_sm")
         return source, target
