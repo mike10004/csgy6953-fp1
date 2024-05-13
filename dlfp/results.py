@@ -220,21 +220,18 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
 
 
 def count_parameters(checkpoint: Restored, model_hp: ModelHyperparametry) -> str:
-    try:
-        from torchsummary import summary
-        import dlfp.datasets
-        src_lang, tgt_lang = dlfp.datasets.get_languages(checkpoint.extra["metadata"]["dataset_name"])
-        model = dlfp.models.create_model(src_lang.vocab_size(), tgt_lang.vocab_size(), model_hp)
-        stats = summary(model, verbose=0)
-        for count, suffix in [
-            (1_000_000, "m"),
-            (1_000, "k"),
-        ]:
-            if stats.trainable_params > count:
-                return f"{stats.trainable_params/count}{suffix}"
-        return str(stats.trainable_params)
-    except Exception as e:
-        _log.info('could not count parameters %s %s', type(e), e)
+    from torchsummary import summary
+    import dlfp.datasets
+    src_lang, tgt_lang = dlfp.datasets.get_languages(checkpoint.extra["metadata"]["dataset_name"])
+    model = dlfp.models.create_model(src_lang.vocab_size(), tgt_lang.vocab_size(), model_hp)
+    stats = summary(model, verbose=0)
+    for count, suffix in [
+        (1_000_000, "m"),
+        (1_000, "k"),
+    ]:
+        if stats.trainable_params > count:
+            return f"{stats.trainable_params/count}{suffix}"
+    return str(stats.trainable_params)
 
 
 def create_params_table(checkpoints_dir: Path,
@@ -279,6 +276,8 @@ def create_params_table(checkpoints_dir: Path,
                 exporteds.append(export(checkpoint_file, checkpoint_index, restored, eval_info, export_dir))
         except Exception as e:
             _log.warning(f"failed to process {rel_file} due to {type(e).__name__}: {e}")
+            if os.getenv("DLFP_RESULTS_RAISE", None):
+                raise
     all_columns = ["file"] + list(columns)
     all_columns = [HYPERPARAMETER_ABBREVIATIONS.get(c, c) for c in all_columns]
     if export_dir and exporteds:
