@@ -385,7 +385,12 @@ class Collated(NamedTuple):
         stem = self.suggest_stem()
         output_dir.mkdir(parents=True, exist_ok=True)
         losses_filename = f"{index}-{stem}-losses.json"
-        (output_dir / losses_filename).write_text(json.dumps({'train': self.train_loss, 'valid': self.valid_loss}, indent=2))
+        (output_dir / losses_filename).write_text(json.dumps({
+            'title': stem,
+            'train': self.train_loss,
+            'valid': self.valid_loss,
+            'index': index,
+        }, indent=2))
         acc_filename = f"{index}-{stem}-accuracy.csv"
         if self.evaluations:
             eval_table = Evaluation.to_table(self.evaluations)
