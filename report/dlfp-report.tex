@@ -154,29 +154,49 @@ The two primary parts of the Cruciformer codebase are the model implementation a
 
 TODO
 
+\subsection{Word Model}
+\label{subsec:word}
+
+As shown in~\ref{fig:onemark-loss-df}, the loss curves are TODO .
+
+As shown in~\ref{fig:onemark-loss-dropout}, the loss curves are TODO .
+
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.9\columnwidth]{fig-onemark-loss-default-and-embsize}
 \caption{\textbf{Word model} training and validation loss curves for default hyperparameters and reduced embedding size.}
-\label{fig:fig1}
+\label{fig:onemark-loss-df}
 \end{figure}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.8\textwidth]{fig-onemark-loss-dropout}
 \caption{\textbf{Word model} training and validation loss curves under varying dropout rates.}
-\label{fig:fig2}
+\label{fig:onemark-loss-dropout}
 \end{figure*}
-
-\subsection{Word Model}
-\label{subsec:word}
-
-As shown in~\ref{fig:fig1}, the loss curves are TODO.
 
 \subsection{Letter Model}
 \label{subsec:letter}
 
-TODO
+As shown in~\ref{fig:charmark-loss-df}, the loss curves are TODO .
+
+As shown in~\ref{fig:charmark-loss-dropout}, the loss curves are TODO .
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{fig-charmark-loss-default-and-embsize}
+\caption{\textbf{Letter model} training and validation loss curves for default hyperparameters and reduced embedding size.}
+\label{fig:charmark-loss-df}
+\end{figure}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.8\textwidth]{fig-charmark-loss-dropout}
+\caption{\textbf{Letter model} training and validation loss curves under varying dropout rates.}
+\label{fig:charmark-loss-dropout}
+\end{figure*}
+
+
 
 \section{Generator Strategy}
 \label{sec:generator}
