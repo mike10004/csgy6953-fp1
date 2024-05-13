@@ -14,6 +14,7 @@ from pathlib import Path
 from argparse import ArgumentParser
 from typing import Collection
 from typing import Any
+from typing import Iterable
 from typing import Iterator
 from typing import NamedTuple
 from typing import Optional
@@ -31,6 +32,15 @@ from dlfp.utils import EvalConfig
 
 _log = logging.getLogger(__name__)
 DEFAULT_RANKS = (1, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100)
+HYPERPARAMETER_ABBREVIATIONS = {
+    "transformer_dropout_rate": "tdr",
+    "input_dropout_rate": "idr",
+    "dataset_name": "dataset",
+    "src_tok_emb.embedding.weight": "s_emb_sz",
+    "tgt_tok_emb.embedding.weight": "t_emb_sz",
+    "dim_feedforward": "ffnd",
+    "tgt_pos_enc_disabled": "tped",
+}
 
 
 class AccuracyResult(NamedTuple):
@@ -216,15 +226,6 @@ def create_params_table(checkpoints_dir: Path,
     if find_eval_info:
         columns = list(columns) + list(EvalInfo.headers())
     table_rows = []
-    short_names = {
-        "transformer_dropout_rate": "tdr",
-        "input_dropout_rate": "idr",
-        "dataset_name": "dataset",
-        "src_tok_emb.embedding.weight": "s_emb_sz",
-        "tgt_tok_emb.embedding.weight": "t_emb_sz",
-        "dim_feedforward": "ffnd",
-        "tgt_pos_enc_disabled": "tped",
-    }
     exporteds = []
     for checkpoint_index, checkpoint_file in enumerate(sorted(collect_checkpoint_files(checkpoints_dir, filename_pattern=filename_pattern))):
         rel_file = checkpoint_file.relative_to(checkpoints_dir).as_posix()
@@ -254,9 +255,9 @@ def create_params_table(checkpoints_dir: Path,
             if export_dir:
                 exporteds.append(export(checkpoint_file, checkpoint_index, restored, eval_info, export_dir))
         except Exception as e:
-            _log.warning(f"failed to process {rel_file} due to {type(e)}: {e}")
+            _log.warning(f"failed to process {rel_file} due to {type(e).__name__}: {e}")
     all_columns = ["file"] + list(columns)
-    all_columns = [short_names.get(c, c) for c in all_columns]
+    all_columns = [HYPERPARAMETER_ABBREVIATIONS.get(c, c) for c in all_columns]
     if export_dir and exporteds:
         Exported.summarize(exporteds, export_dir, checkpoints_dir)
     return Table(table_rows, headers=all_columns)
@@ -272,7 +273,7 @@ def create_loss_table(checkpoint_file: Path) -> Table:
 
 class Evaluation(NamedTuple):
 
-    dataset: str
+    split: str
     max_ranks: tuple[int, ...]
     accuracy_result: AccuracyResult
     probnorm: Optional[str] = None
@@ -291,11 +292,35 @@ class Evaluation(NamedTuple):
             raise ValueError(f"no max ranks identified in args file for {attempts_file}")
         probnorm = node_strat.get('probnorm', None)
         return Evaluation(
-            dataset=eval_config.split or _extract_dataset(attempts_file.name),
+            split=eval_config.split or _extract_dataset(attempts_file.name),
             max_ranks=tuple(max_ranks),
             accuracy_result=accuracy_result,
             probnorm=probnorm,
         )
+
+    def suggest_title(self) -> str:
+        title = "-".join(map(str, self.max_ranks))
+        if self.probnorm:
+            title = f"{title}_{self.probnorm}"
+        return title
+
+    @staticmethod
+    def to_table(evaluations: Iterable['Evaluation']) -> Table:
+        splits = set(evaluation.split for evaluation in evaluations)
+        if len(splits) != 1:
+            raise ValueError(f"evaluations performed on {len(splits)} splits: {splits}")
+        headers = ["params"]
+        rows = []
+        ranks_superset = set()
+        for evaluation in evaluations:
+            ranks_superset.update(evaluation.accuracy_result.rank_acc_count.keys())
+        ranks = sorted(ranks_superset)
+        for evaluation in evaluations:
+            row = [evaluation.suggest_title()]
+            for rank in ranks:
+                acc = evaluation.accuracy_result.rank_acc_count.get(rank, 0) / evaluation.accuracy_result.attempt_count
+                row.append(acc)
+        return Table(rows, headers)
 
 
 class Collated(NamedTuple):
@@ -317,7 +342,10 @@ class Collated(NamedTuple):
                 evaluation = Evaluation.from_attempts_file(attempts_file)
                 evaluations.append(evaluation)
             except Exception as e:
-                _log.warning(f"failed to read from {attempts_file} due to {type(e)}: {e}")
+                if isinstance(e, ValueError) and str(e).startswith("no args file"):
+                    pass
+                else:
+                    _log.warning(f"failed to read from {attempts_file} due to {type(e)}: {e}")
         info = json.loads(info_file.read_text())
         train_config = info['extra']['train_config']
         train_hp = TrainHyperparametry(**(train_config['train_hp']))
@@ -341,8 +369,29 @@ class Collated(NamedTuple):
         d.update(dlfp.common.namedtuple_diff(TrainHyperparametry(), self.train_hp))
         return d
 
-    def write(self, output_dir: Path):
-        raise NotImplementedError()
+    def suggest_stem(self) -> str:
+        nondefaults = self.nondefault_hyperparameters()
+        def _abbreviate(key: str) -> str:
+            abbr = HYPERPARAMETER_ABBREVIATIONS.get(key, key)
+            return abbr.replace("_", "")
+        if nondefaults:
+            hp_infix = "_".join(f"{_abbreviate(k)}{v}" for k, v in nondefaults.items())
+        else:
+            hp_infix = "default"
+        return f"{self.dataset}-{hp_infix}"
+
+    def write(self, output_dir: Path, index: int):
+        stem = self.suggest_stem()
+        output_dir.mkdir(parents=True, exist_ok=True)
+        losses_filename = f"{index}-{stem}-losses.json"
+        (output_dir / losses_filename).write_text(json.dumps({'train': self.train_loss, 'valid': self.valid_loss}, indent=2))
+        acc_filename = f"{index}-{stem}-accuracy.csv"
+        if self.evaluations:
+            eval_table = Evaluation.to_table(self.evaluations)
+            eval_table.write_file(output_dir / acc_filename)
+
+    def epoch_count(self) -> int:
+        return len(self.train_loss)
 
 
 def _extract_timestamp(info_filename: str) -> str:
@@ -359,23 +408,39 @@ def _extract_dataset(attempts_filename: str) -> str:
     return m.group(1)
 
 
-def collate_all(export_dir: Path, collated_dir: Path):
-    info_files = list(map(Path, glob.glob(os.path.join(export_dir, "*-info.json"))))
+class UsageException(Exception):
+    pass
+
+
+def collate_all(export_dir: Path, collated_dir: Optional[Path]) -> Table:
+    if not export_dir:
+        raise UsageException("--export argument required in collate mode")
+    collated_dir = collated_dir or (export_dir / "collated")
+    info_files = sorted(map(Path, glob.glob(os.path.join(export_dir, "*-info.json"))))
     collateds = [Collated.from_info_file(info_file) for info_file in info_files]
-    for collated in collateds:
-        collated.write(collated_dir)
+    by_stem = defaultdict(list)
+    headers = ["idx", "identity", "epochs", "evals"]
+    rows = []
+    for index, (collated, info_file) in enumerate(zip(collateds, info_files)):
+        by_stem[collated.suggest_stem()].append(info_file)
+        collated.write(collated_dir, index)
+        rows.append([index, collated.suggest_stem(), collated.epoch_count(), len(collated.evaluations)])
+    for stem, info_files in by_stem.items():
+        if len(info_files) > 1:
+            _log.warning(f"multiple files identified by {repr(stem)}: {[f.name for f in info_files]}")
+    return Table(rows, headers)
 
 
 def main() -> int:
     parser = ArgumentParser()
     parser.add_argument("-f", "--file", metavar="PATH", type=Path, help="file or directory pathname, depending on mode")
-    mode_choices = ("checkpoint", "accuracy", "params")
+    mode_choices = ("checkpoint", "accuracy", "params", "collate")
     parser.add_argument("-m", "--mode", metavar="MODE", choices=mode_choices, required=True, help=f"one of {mode_choices}")
     format_choices = ("csv", "json", "table")
     parser.add_argument("-t", "--format", metavar="FMT", choices=format_choices, help=f"one of {format_choices}")
-    parser.add_argument("-o", "--output", metavar="FILE", type=Path)
+    parser.add_argument("-o", "--output", metavar="PATH", type=Path)
     parser.add_argument("--eval", action='store_true', help="in params mode, find eval info")
-    parser.add_argument("--export", metavar="DIR", type=Path, help="export data to DIR")
+    parser.add_argument("--export", metavar="DIR", type=Path, help="in params mode, export data to DIR; in collate mode, read from DIR")
     parser.add_argument("-p", "--pattern", help="in params mode, filter checkpoint files with filename pattern")
     parser.add_argument("-d", "--dataset", metavar="NAME", help="in params mode, filter checkpoint files by dataset")
     args = parser.parse_args()
@@ -383,16 +448,22 @@ def main() -> int:
     output_format = {
         "table": "simple_grid",
     }.get(args.format, args.format)
-    if args.mode == "accuracy":
-        table = create_accuracy_table(args.file)
-    elif args.mode == "checkpoint":
-        table = create_loss_table(args.file)
-    elif args.mode == "params":
-        checkpoints_dir = args.file or (dlfp.common.get_repo_root() / "checkpoints")
-        table = create_params_table(checkpoints_dir, dataset=args.dataset, filename_pattern=args.pattern, find_eval_info=args.eval, export_dir=args.export)
-    else:
-        raise NotImplementedError(f"bug: unhandled mode {repr(args.mode)}")
-    table.write_file(args.output, fmt=output_format)
+    try:
+        if args.mode == "accuracy":
+            table = create_accuracy_table(args.file)
+        elif args.mode == "checkpoint":
+            table = create_loss_table(args.file)
+        elif args.mode == "params":
+            checkpoints_dir = args.file or (dlfp.common.get_repo_root() / "checkpoints")
+            table = create_params_table(checkpoints_dir, dataset=args.dataset, filename_pattern=args.pattern, find_eval_info=args.eval, export_dir=args.export)
+        elif args.mode == "collate":
+            table = collate_all(args.export, args.output)
+        else:
+            raise NotImplementedError(f"bug: unhandled mode {repr(args.mode)}")
+        table.write_file(args.output, fmt=output_format)
+    except UsageException as e:
+        _log.error("usage: %s", e)
+        return 1
     return 0
 
 

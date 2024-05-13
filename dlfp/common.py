@@ -60,11 +60,14 @@ class Table(NamedTuple):
     headers: Sequence[str] = None
 
     def write_file(self, pathname: Optional[Pathish], fmt: str = None):
+        if pathname:
+            pathname = Path(pathname)
+            fmt = fmt or {".csv": "csv", ".json": "json"}.get(pathname.suffix.lower(), None)
         with open_write(pathname) as ofile:
             self.write(ofile, fmt)
 
     def write(self, sink: Optional[TextIO] = None, fmt: str = None, **kwargs):
-        fmt = fmt or "github"
+        fmt = fmt or "simple_grid"
         sink = sink or sys.stdout
         if fmt == "csv":
             csv_writer = csv.writer(sink, **kwargs)
