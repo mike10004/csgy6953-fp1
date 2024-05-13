@@ -411,7 +411,6 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     seed = 0
     torch.manual_seed(seed)
     runner.dataset_name = args.dataset
-    timestamp = dlfp.common.timestamp()
     try:
         if args.mode == "demo":
             checkpoint_file = args.file
@@ -430,6 +429,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
             checkpoint_file = Path(checkpoint_file)
             restored = Restored.from_file(checkpoint_file, device=device)
             eval_config = EvalConfig.from_args(args.eval_config)
+            timestamp = dlfp.common.timestamp_secs()
             output_file = args.output or (checkpoint_file.parent / "evaluations" / f"{checkpoint_file.stem}_{eval_config.split}_{timestamp}.csv")
             metadata_output_file = Path(str(output_file) + ".args.txt")
             model_hp = get_model_hyperparametry(restored)
@@ -442,6 +442,7 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
                             eval_config=eval_config)
             return 0
         elif args.mode == "train":
+            timestamp = dlfp.common.timestamp()
             model_hp = ModelHyperparametry.from_args(args.model_param)
             checkpoints_dir = (args.output or Path.cwd()) / "checkpoints" / timestamp
             if not args.output and checkpoints_dir.exists():

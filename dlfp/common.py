@@ -38,6 +38,10 @@ def timestamp() -> str:
     return datetime.now().strftime("%Y%m%d-%H%M")
 
 
+def timestamp_secs() -> str:
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
 @contextlib.contextmanager
 def open_write(pathname: Optional[Pathish], **kwargs) -> ContextManager[TextIO]:
     if pathname:
