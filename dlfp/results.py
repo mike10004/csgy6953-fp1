@@ -98,6 +98,7 @@ DEFAULT_COLUMNS = (
     "dim_feedforward",
     "lr",
     "transformer_dropout_rate",
+    "tgt_pos_enc_disabled",
 )
 
 
@@ -213,6 +214,7 @@ def create_params_table(checkpoints_dir: Path,
         "src_tok_emb.embedding.weight": "s_emb_sz",
         "tgt_tok_emb.embedding.weight": "t_emb_sz",
         "dim_feedforward": "ffnd",
+        "tgt_pos_enc_disabled": "tped",
     }
     exporteds = []
     for checkpoint_index, checkpoint_file in enumerate(sorted(collect_checkpoint_files(checkpoints_dir, filename_pattern=filename_pattern))):
