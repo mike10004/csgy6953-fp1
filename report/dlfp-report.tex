@@ -197,7 +197,7 @@ A dropout rate of zero was also tested to determine whether dropout was actually
 \subsection{Word Model}
 \label{subsec:word}
 
-Training and validation loss curves for the word model are shown in~\ref{fig:onemark-loss-df} and~\ref{fig:onemark-loss-dropout}.
+Training and validation loss curves for the word model are shown in~\ref{fig:onemark-loss}.
 All of the curve pairs show undesirable characteristics.
 In the case of the default parameters and the reduced dimensionality, growing divergence between training and validation loss is evident.
 In the case of dropout, at a dropout rate of zero, the model achieves lower validation loss than under the default rate of 0.1. At greater dropout rates, the loss converges  early at a loss value greater than under the default rate.
@@ -205,24 +205,17 @@ In the case of dropout, at a dropout rate of zero, the model achieves lower vali
 The model trained under default parameters and the model trained with zero dropout show similar overfit propensity, but the zero-dropout model achieves lower loss.
 Thus the zero-dropout model, with INSERT MODEL PARAMETER COUNT trainable parameters, was selected as the optimal word model for subsequent consideration.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.9\columnwidth]{fig-onemark-loss-default-and-embsize}
-\caption{\textbf{Word model} training and validation loss curves for default hyperparameters and reduced embedding size.}
-\label{fig:onemark-loss-df}
-\end{figure}
-
 \begin{figure*}
 \centering
-\includegraphics[width=0.8\textwidth]{fig-onemark-loss-dropout}
-\caption{\textbf{Word model} training and validation loss curves under varying dropout rates.}
-\label{fig:onemark-loss-dropout}
+\includegraphics[width=0.8\textwidth]{fig-onemark-loss-all}
+\caption{\textbf{Word model} training and validation loss curves under varying hyperparameters.}
+\label{fig:onemark-loss}
 \end{figure*}
 
 \subsection{Letter Model}
 \label{subsec:letter}
 
-Training and validation loss curves for the letter model are shown in~\ref{fig:charmark-loss-df} and~\ref{fig:charmark-loss-dropout}.
+Training and validation loss curves for the letter model are shown in~\ref{fig:charmark-loss}.
 As with the word model, all of the curve pairs show undesirable characteristics.
 Under the default parameters, the model shows substantial overfit, with the validation loss on an increasing trajectory at later epochs.
 Overfit is also evident in the loss curves of the model with reduced dimensionality, but that model shows a better overall trend, which aligns with the intuition that the small target token space of the letter model would be accommodated better by a lower-dimension model.
@@ -233,18 +226,11 @@ At dropout rate 0.5 there is no evidence of overfit, but the loss appears to hav
 The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the greater overfit and minimum validation loss of 0.0152.
 The reduced-dimensionality model, with INSERT PARAMETER COUNT trainable parameters, was selected as optimal for subsequent consideration.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.9\columnwidth]{fig-charmark-loss-default-and-embsize}
-\caption{\textbf{Letter model} training and validation loss curves for default hyperparameters and reduced embedding size.}
-\label{fig:charmark-loss-df}
-\end{figure}
-
 \begin{figure*}
 \centering
-\includegraphics[width=0.8\textwidth]{fig-charmark-loss-dropout}
-\caption{\textbf{Letter model} training and validation loss curves under varying dropout rates.}
-\label{fig:charmark-loss-dropout}
+\includegraphics[width=0.8\textwidth]{fig-charmark-loss-all}
+\caption{\textbf{Letter model} training and validation loss curves under varying hyperparameters.}
+\label{fig:charmark-loss}
 \end{figure*}
 
 
