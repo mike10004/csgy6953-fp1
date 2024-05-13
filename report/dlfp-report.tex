@@ -131,7 +131,7 @@ The intuition behind the use of transformers for answering clues is the robust p
 
 Crossword solving in general is addressed by~\citealp{kulshreshtha2022across} and~\citealp{wallace2022automated}, both of which efforts implement and evaluate end-to-end algorithms for solving an entire grid. [Describe Berkeley method and Benchmark method.]
 
-The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem tackled in \citealp{zhang2019multichannel}. [Describe MultiRD model/results/baseline.] A more fundamental approach to answering clues is implemented in~\citealp{baselinesolver}.
+The task this study investigates is limited to answering clues, which is a type of reverse-dictionary problem tackled in~\citealp{zhang2019multichannel}. [Describe MultiRD model/results/baseline.] A more fundamental approach to answering clues is implemented in~\citealp{baselinesolver}.
 That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to clues in a database, and selects answers based on best-matching clues.
 
 The concept of answering clues subject to constraints such as word length and known letters is also relevant to this study. Using positional encoding to control output sequence length is a topic addressed by~\citealp{takase2019positional}. The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others. Those advanced techniques are not explored herein, though the length constraint is addressed by a text generator algorithm and the performance gain given a known prefix is discussed in the results section.
@@ -154,13 +154,27 @@ The two primary parts of the Cruciformer codebase are the model implementation a
 
 TODO
 
-\subsection{Something}
-\label{subsec:something}
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.9\columnwidth]{fig-onemark-loss-default-and-embsize}
+\caption{\textbf{Word model} training and validation loss curves for default hyperparameters and reduced embedding size.}
+\label{fig:fig1}
+\end{figure}
 
-TODO
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.8\textwidth]{fig-onemark-loss-dropout}
+\caption{\textbf{Word model} training and validation loss curves under varying dropout rates.}
+\label{fig:fig2}
+\end{figure*}
 
-\subsection{Another Thing}
-\label{subsec:another}
+\subsection{Word Model}
+\label{subsec:word}
+
+As shown in~\ref{fig:fig1}, the loss curves are TODO.
+
+\subsection{Letter Model}
+\label{subsec:letter}
 
 TODO
 
