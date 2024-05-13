@@ -3,6 +3,7 @@
 import csv
 import time
 import tempfile
+import unittest
 from pathlib import Path
 from random import Random
 from typing import Optional
@@ -25,6 +26,7 @@ from dlfp.translate import Node
 from dlfp.translate import NodeVisitor
 from dlfp.translate import CruciformerCharmarkNodeNavigator
 import dlfp_tests.tools
+from dlfp.utils import PhrasePair
 from dlfp.utils import Restored
 from dlfp.utils import Bilinguist
 from dlfp.common import get_repo_root
@@ -241,18 +243,29 @@ class TranslatorTest(TestCase):
                 self.assertGreater(index, 100)
 
     def test_charmark_suggest(self):
+        src_phrases  = [
+            ("Exactitude", "RIGOR"),
+            ("Swag", "LOOT"),
+        ]
+        self._test_charmark_suggest(src_phrases, (3, 2, 1))
+
+    @unittest.skip("for demo only")
+    def test_charmark_suggest_big(self):
+        src_phrases  = [
+            # ("Exactitude", "RIGOR"),
+            ("Swag", "LOOT"),
+        ]
+        self._test_charmark_suggest(src_phrases, (12, 6, 3, 2, 1))
+
+    def _test_charmark_suggest(self, src_phrases: list[PhrasePair], max_ranks: Sequence[int]):
         with torch.random.fork_rng():
             torch.random.manual_seed(0)
             with torch.no_grad():
                 rc = self._load_restored_cruciform_charmark()
                 translator = Translator(rc.model, rc.bilinguist, self.device)
-                src_phrases  = [
-                    ("Exactitude", "RIGOR"),
-                    ("Swag", "LOOT"),
-                ]
                 for src_phrase, tgt_phrase in src_phrases:
                     with self.subTest(src_phrase):
-                        navigator = VerboseCharmarkNavigator(required_len=len(tgt_phrase)+2, max_ranks=(3, 2, 1), quiet=True)
+                        navigator = VerboseCharmarkNavigator(required_len=len(tgt_phrase)+2, max_ranks=max_ranks, quiet=True)
                         nodes = list(translator.suggest_nodes(src_phrase, navigator=navigator))
                         print(len(nodes), "suggestions")
                         self.assertGreater(len(nodes), 0)
