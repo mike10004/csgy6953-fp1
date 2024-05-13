@@ -109,7 +109,9 @@
 \maketitle
 
 \begin{abstract}
-    The design, implementation, and evaluation of transformer neural network models for answering crossword puzzle clues is explored herein. Two models are developed: one that considers answers as sequences of words, and another that considers answers as sequences of letters. Hyperparameters are selected by comparing loss curve trends from training. Different methods of generating sequences for answers are devised and compared. Performance of the models is evaluated using a non-neural-network algorithm for answering clues as a baseline. [Comment on performance.] Avenues for further research are suggested in the conclusion.
+    The design and implementation of transformer neural network models for answering crossword puzzle clues is explored herein.
+    A word-generating model and a letter-generating model are defined and tuned based on training results.
+    The models outperform a baseline non-neural-network algorithm.
     Model definition, training, and evaluation code is available at \url{https://github.com/mike10004/csgy6953-fp1}.
 \end{abstract}
 
@@ -118,11 +120,18 @@
 \section{Introduction}
 \label{sec:intro}
 
-Determining the answers to crossword puzzle clues involves skills ranging from plundering a mental thesaurus (Recoil from~\textrightarrow~DETEST), to pop culture fluency (Shrek princess~\textrightarrow~FIONA) to clever, lateral reasoning (Swallow things~\textrightarrow~NESTS). Machines are conventionally thought to be good at the more rote skills and less successful at the more abstract ones.
+Humans solve crossword puzzles with a variety of skills, including language facility, trivia knowledge, and lateral thinking.
+Transformer models show adeptness at mining training data for obsfuscated connections among samples in tasks such as language translation.
+Therefore, it is plausible that a transformer trained on crossword clue-answer pairs could discover approximations of the
+skills required to suggest correct answers to crossword clues.
 
-Solving crossword puzzles requires determining the answers to clues, subject to constraints. There are several possible answers to some clues (Historical span~\textrightarrow~AGE/ERA/PERIOD). Constraints such as prior known letters and the answer length reduce the field of possible answers. However, that field is not well-bounded: crossword constructors are free to use arbitrary phrases and neologisms (What's best on the block?~\textrightarrow~PRIME CUTS; Social media-induced anxiety~\textrightarrow~FOMO).
-
-The basis for a good crossword puzzle solving algorithm is a clue solver that can answer the thesaurus clues as well as the abstract ones, while utilizing the additional information from priors such as answer length and known letters.
+This work explores the design and implementation of transformer models trained to answer crossword clues.
+Two models are developed, one that suggests a single word given an input clue, and one that suggests a
+sequence of letters.
+The definintion and training of these models is discussed below.
+The letter model requires some additional engineering beyond the training step, as
+additional considerations must be contemplated for the generator component that produces
+sequences of letters in response to a clue.
 
 \section{Related Work}
 \label{sec:related}
