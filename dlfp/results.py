@@ -40,7 +40,6 @@ HYPERPARAMETER_ABBREVIATIONS = {
     "tgt_tok_emb.embedding.weight": "t_emb_sz",
     "dim_feedforward": "ffnd",
     "tgt_pos_enc_disabled": "tped",
-    "parameter_count": "P",
 }
 
 
@@ -219,22 +218,6 @@ def export(checkpoint_file: Path, index: int, restored: Restored, eval_info: Opt
     return Exported(checkpoint_file, index, min_valid_loss, min_valid_loss_epoch, final_valid_loss)
 
 
-def count_parameters(checkpoint: Restored, model_hp: ModelHyperparametry) -> str:
-    from torchsummary import summary
-    import dlfp.datasets
-    dataset = dlfp.datasets.DatasetResolver().by_name(checkpoint.extra["metadata"]["dataset_name"], "train")
-    src_lang, tgt_lang = dlfp.datasets.get_languages(dataset)
-    model = dlfp.models.create_model(src_lang.vocab_size(), tgt_lang.vocab_size(), model_hp)
-    stats = summary(model, verbose=0)
-    for count, suffix in [
-        (1_000_000, "m"),
-        (1_000, "k"),
-    ]:
-        if stats.trainable_params > count:
-            return f"{stats.trainable_params/count}{suffix}"
-    return str(stats.trainable_params)
-
-
 def create_params_table(checkpoints_dir: Path,
                         *,
                         filename_pattern: Optional[str] = None,
@@ -265,7 +248,6 @@ def create_params_table(checkpoints_dir: Path,
             model_hp: ModelHyperparametry
             merged: dict[str, Any] = {}
             merged.update(param_sizes)
-            merged["parameter_count"] = count_parameters(restored, model_hp)
             merged.update(metadata)
             merged.update(train_hp._asdict())
             merged.update(model_hp._asdict())

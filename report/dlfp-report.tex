@@ -218,7 +218,7 @@ In the case of the default parameters and the reduced dimensionality, growing di
 In the case of dropout, at a dropout rate of zero, the model achieves lower validation loss than under the default rate of 0.1. At greater dropout rates, the loss converges  early at a loss value greater than under the default rate.
 
 The model trained under default parameters and the model trained with zero dropout show similar overfit propensity, but the zero-dropout model achieves lower loss.
-Thus the zero-dropout model, with INSERT MODEL PARAMETER COUNT trainable parameters, was selected as the optimal word model for subsequent consideration.
+Thus the zero-dropout model, with 110 million trainable parameters, was selected as the optimal word model for subsequent consideration.
 
 \subsection{Letter Model}
 \label{subsec:letter}
@@ -232,7 +232,7 @@ Examination of the loss curves for models trained under varying dropout rates sh
 At dropout rate 0.5 there is no evidence of overfit, but the loss appears to have converged early.
 
 The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the greater overfit and minimum validation loss of 0.0152.
-The reduced-dimensionality model, with INSERT PARAMETER COUNT trainable parameters, was selected as optimal for subsequent consideration.
+The reduced-dimensionality model, with 25 million trainable parameters, was selected as optimal for subsequent consideration.
 
 \section{Generator Strategy}
 \label{sec:generator}
