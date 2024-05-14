@@ -110,7 +110,7 @@
 \maketitle
 
 \begin{abstract}
-    The design and implementation of transformer neural network models for answering crossword puzzle clues is explored herein.
+    The design and implementation of transformer models for answering crossword puzzle clues is explored herein.
     A word-generating model and a letter-generating model are defined and tuned based on training results.
     The models are evaluated relative to a baseline non-neural-network algorithm.
     Model definition, training, and evaluation code is available at \url{https://github.com/mike10004/csgy6953-fp1}.
@@ -124,14 +124,14 @@
 Humans solve crossword puzzles with a variety of skills, including language facility, trivia knowledge, and lateral thinking.
 Transformer models show adeptness at mining training data for obsfuscated connections among samples in tasks such as language translation.
 Therefore, it is plausible that a transformer trained on crossword clue-answer pairs could discover approximations of the
-skills required to suggest correct answers to crossword clues.
+skills required to answers crossword clues correctly.
 
 This work explores the design and implementation of transformer models trained to answer crossword clues.
 Two models are developed, one that suggests a single word given an input clue, and one that suggests a
 sequence of letters.
-The definintion and training of these models is discussed below.
-The letter model requires some additional engineering beyond the training step, as
-additional considerations must be contemplated for the generator component that produces
+The definition and training of these models is detailed herein.
+The letter model requires engineering beyond the training step, as
+additional considerations must be made for the generator component that produces
 sequences of letters in response to a clue.
 
 \section{Related Work}
@@ -143,21 +143,21 @@ Mapping crossword clues to answers is a sequence-to-sequence translation task, w
 sequences (clues) are generally terse and often contain misdirection, and the target sequences (answers) are
 generally very short relative to the length of the source sequence.
 
-The end-to-end task of solving a complete crossword grid is notably tackled in~\citealp{wallace2022automated},
-which produced an algorithm that outperformed humans at the American Crossword Puzzle Tournament in 2021.
+The end-to-end task of solving a complete crossword grid is notably tackled by the Berkeley Crossword Solver,
+which produced an algorithm that outperformed humans at the American Crossword Puzzle Tournament in 2021~\cite{wallace2022automated}.
 The clue-answering component is a bi-encoder QA model designed to be used iteratively to solve harder clues
 given probable letters from easier crossing answers.
 Contemporaneous work from~\citealp{kulshreshtha2022across} suggests end-to-end crossword grid-solving
-as a benchmark Natural Language Processing algorithm capabilities.
+as a benchmark for Natural Language Processing algorithm capabilities.
 
 The task this study investigates is limited to answering clues (as opposed to populating a grid),
-which is a type of reverse-dictionary problem addressed in~\citealp{zhang2019multichannel}.
-The authors develop the \textit{MultiRD} model, a bidirectional LSTM model with a ``multi-channel'' approach that
+which is a type of reverse-dictionary problem addressed by the ``MultiRD'' model~\cite{zhang2019multichannel}.
+MultiRD is a bidirectional LSTM model with a ``multi-channel'' approach that
 integrates linguistic analysis (e.g.~morphemes, lexemes, and semantic units).
 
 A statistical approach to answering clues is implemented in~\citealp{baselinesolver}.
-That work does not train a model on a clue-answer database, but instead uses word embeddings to maximize similarity to
-clues in a database, and selects answers based on best-matching clues.
+For a given clue, a database of clue-answer pairs is searched using a character-level similarity metric,
+and the corresponding answer for the best-matching clue is returned.
 That method is the baseline against which results of the word and letter models described herein are compared in the test phase.
 
 \begin{figure*}
@@ -177,16 +177,16 @@ That method is the baseline against which results of the word and letter models 
 \section{Dataset}
 \label{sec:dataset}
 
-A modified version of the dataset from~\citealp{kulshreshtha2022across} is used for training and evaluation.
+A modified version of the dataset from~\citeauthor{kulshreshtha2022across} is used for training and evaluation.
 The modified dataset contains only single-word answers and does not contain cross-referential clues (e.g.~``See 46-Across'').
-The training set has 320K clue-answer pairs, and there are about 55K in the validation and test sets.
+The training set has 320K clue-answer pairs and 55K in the validation/test sets.
 
 \section{Model Selection}
 \label{sec:model}
 
 Model structure and training code was adapted from a transformer implementation for sequence to sequence translation~\cite{chegde2022}.
 A custom generator component was developed to support ranked answer suggestions.
-Default hyperparameters for each model were either adopted from~\citealp{vaswani2017} or inherited from the upstream codebase.
+Default hyperparameters for each model were either adopted from~\citeauthor{vaswani2017} or inherited from the upstream codebase.
 Adopted hyperparameters include:
 
 \begin{itemize}
@@ -207,7 +207,7 @@ Models were trained for 10 epochs.
 Initial results of training both the word model and the letter model showed a propensity for overfit.
 As such, different methods of preventing overfit by varying hyperparameters were attempted.
 These included regularization by varying dropout rates and reducing model dimensionality by decreasing embedding size to 256.
-A dropout rate of zero was also tested to determine whether dropout was actually appropriate for the task.
+A dropout rate of zero was also tested to determine whether dropout was beneficial for the task.
 
 \subsection{Word Model}
 \label{subsec:word}
@@ -225,14 +225,18 @@ Thus the zero-dropout model, with 110 million trainable parameters, was selected
 
 Training and validation loss curves for the letter model are shown in~\autoref{fig:charmark-loss}.
 As with the word model, all of the curve pairs show undesirable characteristics.
-Under the default parameters, the model shows substantial overfit, with the validation loss on an increasing trajectory at later epochs.
-Overfit is also evident in the loss curves of the model with reduced dimensionality, but that model shows a better overall trend, which aligns with the intuition that the small target token space of the letter model would be accommodated better by a lower-dimension model.
+Under the default parameters, the model shows substantial overfit and validation loss has increasing trajectory at later epochs.
+Overfit is also evident in the loss curves of the model with reduced dimensionality, but that model shows a better
+overall trend, which aligns with the intuition that the small target token space of the letter model would be
+accommodated better by a lower-dimension model.
 
-Examination of the loss curves for models trained under varying dropout rates shows that a dropout rate of zero induces substantial overfit and an increasing validation loss trend, similar to the default model but magnified.
+Examination of the loss curves for models trained under varying dropout rates shows that a dropout rate of zero
+induces substantial overfit and an increasing validation loss trend, similar to the default model but magnified.
 At dropout rate 0.5 there is no evidence of overfit, but the loss appears to have converged early.
 
-The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the greater overfit and minimum validation loss of 0.0152.
-The reduced-dimensionality model, with 25 million trainable parameters, was selected as optimal for subsequent consideration.
+The reduced overfit but greater minimum validation loss (0.0173) of the 0.5-dropout model was weighed against the
+greater overfit and minimum validation loss of 0.0152 for the reduced-dimensionality model.
+The latter model, with 25 million trainable parameters, was selected as optimal for subsequent consideration.
 
 \section{Generator Strategy}
 \label{sec:generator}
