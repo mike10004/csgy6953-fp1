@@ -255,15 +255,15 @@ For example, the accuracy at rank 10 is the percentage of clue-answer pairs for 
 
 \begin{figure}
 \centering
-\includegraphics[width=0.95\columnwidth]{fig-onemark-acc-by-strat}
-\caption{\textbf{Word model} accuracy by generator strategy.}
+\includegraphics[width=0.91\columnwidth]{fig-onemark-acc-by-strat}
+\caption{\textbf{Word model} accuracy using the L100 generator strategy.}
 \label{fig:onemark-acc-by-strat}
 \end{figure}
 
 \begin{figure}
 \centering
-\includegraphics[width=0.95\columnwidth]{fig-charmark-accuracy-default-tmp}
-\caption{\textbf{Letter model} accuracy by generator strategy.}
+\includegraphics[width=0.95\columnwidth]{fig-charmark-accuracy-embsize256}
+\caption{\textbf{Letter model} accuracy for multiple generator strategies.}
 \label{fig:charmark-acc-by-strat}
 \end{figure}
 
@@ -274,6 +274,8 @@ With respect to the letter model, the lower-order strategies do not achieve sign
 The higher-order strategies achieve some success,  outperforming the baseline at ranks above 30.
 Strategies that are broadly less greedy, meaning they consider more tokens at greater depths in the search tree, appear to outperform greedier strategies with greater initial degrees.
 In particular, strategy L5 performs quite well for its low-degree search space, and its efficiency recommends it as the optimal strategy for subsequent evaluation in the test phase.
+While it is not the best performer in this assessment, its broader consideration of tokens at high depths means
+greater generalizability, which is desirable for the test phase.
 
 \section{Results}
 \label{sec:results}
