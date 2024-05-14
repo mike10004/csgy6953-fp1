@@ -9,6 +9,8 @@ This codebase includes implementations of transformers for answering crossword c
 Two models may be created and used: a word model that generates a word in response 
 to a clue, and a letter model that generates a sequence of letters in response to a clue.
 
+The transformer implementation is adapted from https://github.com/chinmayhegde/dl-demos/blob/main/demo07-transformers.ipynb.
+
 ## Prerequisites
 
 * Download the dataset using the instructions here: https://github.com/text-machine-lab/xword_benchmark
