@@ -89,7 +89,7 @@ The modules are as follows:
   + **datasets**: classes and methods relating to dataset loading and manipulation
   + **models**: model and hyperparameter code; this is where the *Cruciformer* model is defined
   + **train**: training code
-  + **translate**: sequence generator code
+  + **translate**: sequence generator code (including beam search)
   + **running**, **main**: command line interface implementation
   + **results**: code for analyzing results, e.g. generating accuracy tables from sequence generation CSV files
   + **baseline**

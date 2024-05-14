@@ -94,7 +94,10 @@ def _mean_estimator(p: Iterator[float]) -> float:
 
 class NodeNavigator:
 
-    """Service class that provides navigation hints for the search tree traversal."""
+    """Service class that provides navigation hints for the search tree traversal.
+
+    This class, in combination with `NodeVisitor`, implements a variant of beam search.
+    """
 
     def get_max_len(self, input_len: int) -> int:
         return input_len + 5
@@ -372,7 +375,10 @@ class Translator:
 
 class NodeVisitor:
 
-    """Service class that performs sequence generation search tree traversal."""
+    """Service class that performs sequence generation search tree traversal.
+
+    This class, in combination with `NodeNavigator`, implements a variant of beam search.
+    """
 
     def __init__(self, parent: Translator, max_len: int, memory: Tensor, navigator: NodeNavigator):
         self.parent = parent
