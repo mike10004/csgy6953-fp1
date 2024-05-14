@@ -5,9 +5,12 @@ This is the codebase for my final project for CS-GY 6953 Deep Learning
 
 ## Introduction
 
-This codebase includes implementations of transformers for answering crossword clues.
+This codebase implements a transformer model for answering crossword clues.
 Two models may be created and used: a word model that generates a word in response 
 to a clue, and a letter model that generates a sequence of letters in response to a clue.
+
+A report describing the models, their development, and evaluation is contained in the 
+`report/output` directory.
 
 The transformer implementation is adapted from https://github.com/chinmayhegde/dl-demos/blob/main/demo07-transformers.ipynb.
 
@@ -41,7 +44,11 @@ Execute the following commands to train the database.
 Use the `--train-param` and `--model-param` options to set hyperparameters. 
 For example, `--train-param lr=0.001` sets the learning rate to 0.001.
 See the `TrainHyperparametry` and `ModelHyperparametry` classes for details 
-on meaning of the hyperparameters.
+on meaning of the hyperparameters. As an example, the final models selected 
+for evaluation in the report may be trained with these commands:
+
+    $ python -m dlfp -m train -d onemark -p transformer_dropout_rate=0.0
+    $ python -m dlfp -m train -d charmark -p emb_size=256
 
 When training is finished, a checkpoint file is written to a directory 
 beneath `$PWD/checkpoints`. The pathname of this file is necessary for 
