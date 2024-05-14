@@ -6,18 +6,20 @@ import tempfile
 import unittest
 from pathlib import Path
 from random import Random
+from typing import Collection
 from typing import Optional
 from typing import Sequence
 from unittest import TestCase
 
 import torch
 from torch import Tensor
+from torchtext.vocab import Vocab
 
 import dlfp.translate
 import dlfp.models
 from dlfp.models import create_model
 from dlfp.translate import CruciformerNodeNavigator
-from dlfp.translate import GermanToEnglishNodeNavigator
+from dlfp.translate import MultiRankNodeNavigator
 from dlfp.translate import NodeNavigator
 from dlfp.translate import Suggestion
 from dlfp.translate import Translator
@@ -33,6 +35,29 @@ from dlfp.common import get_repo_root
 from dlfp.utils import SpecialIndexes
 
 dlfp_tests.tools.suppress_cuda_warning()
+
+
+class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
+
+    def __init__(self, max_rank: int = 1, unrepeatables: Collection[int] = None):
+        super().__init__(max_rank=max_rank)
+        self.no_skip = False
+        self.unrepeatables = frozenset(unrepeatables or ())
+
+    @staticmethod
+    def default_unrepeatables(target_vocab: Vocab) -> set[int]:
+        index_period = target_vocab(['.'])[0]
+        return {index_period}
+
+    def include(self, node: Node) -> bool:
+        # node.current_word == self.index_period and child.current_word == self.index_period
+        if self.no_skip:
+            return True
+        if node.parent is None:
+            return True
+        if node.current_word in self.unrepeatables and node.current_word == node.parent.current_word:
+            return False
+        return True
 
 
 class TranslatorTest(TestCase):

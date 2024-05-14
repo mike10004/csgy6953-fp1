@@ -30,6 +30,8 @@ ProbEstimator = Callable[[Iterator[float]], float]
 
 class PhraseEncoding(NamedTuple):
 
+    """Value class that represents a source phrase encoding."""
+
     indexes: Tensor
     mask: Tensor
 
@@ -38,6 +40,8 @@ class PhraseEncoding(NamedTuple):
 
 
 class Node:
+
+    """Value class that represents a node in the search tree for sequence generation."""
 
     def __init__(self, y: Tensor, prob: float, complete: bool = False):
         self.y = y.detach()
@@ -90,6 +94,8 @@ def _mean_estimator(p: Iterator[float]) -> float:
 
 class NodeNavigator:
 
+    """Service class that provides navigation hints for the search tree traversal."""
+
     def get_max_len(self, input_len: int) -> int:
         return input_len + 5
 
@@ -125,29 +131,6 @@ class MultiRankNodeNavigator(NodeNavigator):
 
     def get_max_rank(self, tgt_sequence_len: int) -> int:
         return self.max_rank
-
-
-class GermanToEnglishNodeNavigator(MultiRankNodeNavigator):
-
-    def __init__(self, max_rank: int = 1, unrepeatables: Collection[int] = None):
-        super().__init__(max_rank=max_rank)
-        self.no_skip = False
-        self.unrepeatables = frozenset(unrepeatables or ())
-
-    @staticmethod
-    def default_unrepeatables(target_vocab: Vocab) -> set[int]:
-        index_period = target_vocab(['.'])[0]
-        return {index_period}
-
-    def include(self, node: Node) -> bool:
-        # node.current_word == self.index_period and child.current_word == self.index_period
-        if self.no_skip:
-            return True
-        if node.parent is None:
-            return True
-        if node.current_word in self.unrepeatables and node.current_word == node.parent.current_word:
-            return False
-        return True
 
 
 class CruciformerNodeNavigator(NodeNavigator):
@@ -253,6 +236,8 @@ def parse_estimator(estimator: Optional[str]) -> ProbEstimator:
 
 class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
+    """Service class that provides navigation hints for the letter model search tree."""
+
     def __init__(self, required_len: int, *, max_ranks: Sequence[int] = None, probnorm: Optional[str] = None):
         max_ranks = max_ranks or DEFAULT_CHARMARK_MAX_RANKS
         super().__init__(required_len, max_ranks=max_ranks, probnorm=probnorm)
@@ -293,6 +278,8 @@ class CruciformerCharmarkNodeNavigator(CruciformerNodeNavigator):
 
 class Suggestion(NamedTuple):
 
+    """Value class that represents an answer suggestion."""
+
     phrase: str
     probability: float
 
@@ -309,6 +296,8 @@ def indexes_to_phrase(indexes: Tensor, vocab: Vocab, strip_indexes: Collection[i
 
 
 class Translator:
+
+    """Service class that performs sequence-to-sequence translation by generating output sequences."""
 
     def __init__(self, model: Cruciformer, bilinguist: Bilinguist, device: str):
         self.device = device
@@ -383,6 +372,8 @@ class Translator:
 
 class NodeVisitor:
 
+    """Service class that performs sequence generation search tree traversal."""
+
     def __init__(self, parent: Translator, max_len: int, memory: Tensor, navigator: NodeNavigator):
         self.parent = parent
         self.max_len = max_len
@@ -438,6 +429,8 @@ class NodeVisitor:
 
 
 class Attempt(NamedTuple):
+
+    """Value class that represents an attempt at a sequence translation."""
 
     attempt_index: int
     source: str

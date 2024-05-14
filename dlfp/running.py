@@ -387,10 +387,11 @@ Allowed --model-param keys are: {ModelHyperparametry._fields}.\
     parser.add_argument("--retain", action='store_true', help="train mode: retain all model checkpoints (instead of deleting obsolete)")
     parser.add_argument("--optimizer", action='store_true', help="train mode: save optimizer state in checkpoint")
     parser.add_argument("-e", "--eval-config", metavar="K=V", action='append', help=f"set eval mode option; keys are {EvalConfig._fields}")
+    parser.add_argument("--seed", type=int, help="set random seed (defaults to 0)")
     args = parser.parse_args(argv1)
     device = "cuda:0" if torch.cuda.is_available() else "cpu"
     print("device:", device)
-    seed = 0
+    seed = args.seed or 0
     torch.manual_seed(seed)
     runner.dataset_name = args.dataset
     try:

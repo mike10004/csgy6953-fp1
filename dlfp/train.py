@@ -33,6 +33,8 @@ def _print_result(checkpointable: Checkpointable):
 
 class TrainLoaders(NamedTuple):
 
+    """Container class that holds dataloaders."""
+
     train: DataLoader
     valid: DataLoader
 
@@ -51,6 +53,8 @@ class TrainLoaders(NamedTuple):
 
 
 class Trainer:
+
+    """Service class that implements model training."""
 
     def __init__(self, model: Cruciformer, pad_idx: int, device: str, loss_fn: LossFunction = None):
         self.model = model

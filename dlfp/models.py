@@ -35,7 +35,9 @@ class TokenEmbedding(nn.Module):
 
 class PositionalEncoding(nn.Module):
 
-    """Positional encoding
+    """Positional encoding.
+
+    Text below is adapted from https://github.com/chinmayhegde/dl-demos/blob/main/demo07-transformers.ipynb.
 
     Unlike recurrent networks, self-attention does not automatically capture
     the order that words appear. We need to fix this with a special positional
@@ -73,9 +75,9 @@ class PositionalEncoding(nn.Module):
 
 class Cruciformer(nn.Module):
 
-    """Transformer model.
+    """Transformer model implementation for crossword clue-answering.
 
-    Source:
+    Source: https://github.com/chinmayhegde/dl-demos/blob/main/demo07-transformers.ipynb
     """
 
     def __init__(self,
@@ -134,16 +136,22 @@ class Cruciformer(nn.Module):
 
 class ModelHyperparametry(NamedTuple):
 
+    """Value class that defines model hyperparameters.
+
+    Most of these parameters have good explanations in the PyTorch documentation
+    of the `Transformer` class.
+    """
+
     nhead: int = 8
     emb_size: int = 512
     num_encoder_layers: int = 3
     num_decoder_layers: int = 3
     dim_feedforward: int = 512
     transformer_dropout_rate: float = 0.1
-    pe_dropout_rate: float = 0.1
-    input_dropout_rate: float = 0.0  # not actually supported
-    tgt_pos_enc_disabled: bool = False
-    batch_first: bool = False
+    pe_dropout_rate: float = 0.1         # positional encoding dropout rate
+    input_dropout_rate: float = 0.0      # not actually supported
+    tgt_pos_enc_disabled: bool = False   # set True to disable positional encoding on the target token embedding
+    batch_first: bool = False            # set True to restructure data as batch-first; effect on performance is unknown
 
     @staticmethod
     def from_args(arguments: Optional[list[str]]) -> 'ModelHyperparametry':
@@ -184,12 +192,14 @@ def create_model(src_vocab_size: int, tgt_vocab_size: int, h: ModelHyperparametr
 
 class TrainHyperparametry(NamedTuple):
 
-    epoch_count: int = 10
-    batch_size: int = 128
-    lr: float = 0.0001
-    betas: tuple[float, float] = (0.9, 0.98)
-    eps: float = 1e-9
-    train_data_shuffle_disabled: bool = False
+    """Value class that defines training hyperparameters."""
+
+    epoch_count: int = 10                       # number of epochs to train for
+    batch_size: int = 128                       # batch size
+    lr: float = 0.0001                          # learning rate
+    betas: tuple[float, float] = (0.9, 0.98)    # betas for Adam optimizer
+    eps: float = 1e-9                           # epsilon for Adam optimizer
+    train_data_shuffle_disabled: bool = False   # set True to disable training data shuffle
 
     def create_optimizer(self, model: Module) -> Optimizer:
         return torch.optim.Adam(model.parameters(), lr=self.lr, betas=self.betas, eps=self.eps)
