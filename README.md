@@ -76,14 +76,18 @@ the suggestions.
 
 The modules are as follows:
 
-* **common**: methods for general use (e.g. file I/O, timestamps)
-* **utils**: classes and methods relating to language concepts, e.g. tokenization and vocabularies
-* **datasets**: classes and methods relating to dataset loading and manipulation
-* **models**: model and hyperparameter code; this is where the *Cruciformer* model is defined
-* **train**: training code
-* **translate**: sequence generator code
-* **running**, **main**: command line interface implementation
-* **results**: code for analyzing results, e.g. generating accuracy tables from sequence generation CSV files
+* **dlfp**
+  + **common**: methods for general use (e.g. file I/O, timestamps)
+  + **utils**: classes and methods relating to language concepts, e.g. tokenization and vocabularies
+  + **datasets**: classes and methods relating to dataset loading and manipulation
+  + **models**: model and hyperparameter code; this is where the *Cruciformer* model is defined
+  + **train**: training code
+  + **translate**: sequence generator code
+  + **running**, **main**: command line interface implementation
+  + **results**: code for analyzing results, e.g. generating accuracy tables from sequence generation CSV files
+  + **baseline**
+    - **cs** [Crossword-Solver](https://github.com/pncnmnp/Crossword-Solver) baseline implementation
+* **dlfp_tests**: unit tests; probably not interesting unless you're really tinkering
 
 ## Results Visualization
 

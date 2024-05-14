@@ -1,3 +1,8 @@
+"""Baseline crossword clue answering implementation.
+
+Adapted from https://github.com/pncnmnp/Crossword-Solver.
+"""
+
 import csv
 import json
 import math
