@@ -298,13 +298,6 @@ for the word model and 1K pairs for the letter model.
 The letter model set includes only pairs with answers of at most 5 letters.
 The results are shown in~\autoref{fig:test-acc}.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.75\columnwidth]{fig-test-acc}
-\caption{Accuracy of selected models and strategies on test subsets.}
-\label{fig:test-acc}
-\end{figure}
-
 The performance difference in the baselines is presumably because clues with
 shorter answers are more easily matched by the baseline algorithm.
 The word model outperforms the baseline at ranks above 20, and the letter model
@@ -324,6 +317,13 @@ methods that were explored herein.
 Use of positional encoding to influence output sequence length~\cite{takase2019positional} seems like a promising way to achieve better accuracy at lower ranks.
 The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked
 sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others.
+
+\begin{figure}
+\centering
+\includegraphics[width=0.75\columnwidth]{fig-test-acc}
+\caption{Accuracy of selected models and strategies on test subsets.}
+\label{fig:test-acc}
+\end{figure}
 
 The fundamental model training task proved difficult.
 It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative
