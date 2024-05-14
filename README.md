@@ -1,6 +1,7 @@
-# Exploring Transformers for Answering Crossword Clues.
+# Transformers for Answering Crossword Clues
 
-This is the codebase for my final project for CS-GY 6953 Deep Learning, Spring 2024 at NYU Tandon School of Engineering.
+This is the codebase for my final project for CS-GY 6953 Deep Learning 
+(Spring 2024 at NYU Tandon School of Engineering).
 
 ## Introduction
 
