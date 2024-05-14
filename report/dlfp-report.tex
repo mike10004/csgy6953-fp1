@@ -241,19 +241,21 @@ The latter model, with 25 million trainable parameters, was selected as optimal 
 \section{Generator Strategy}
 \label{sec:generator}
 
-Given a sequence-to-sequence transformer model, a sequence generator is the component that accepts as input a source sequence and an empty or partial output sequence and produces the next element of the output sequence. The generator is iteratively applied to produce a complete sequence. For both the word and letter models, the source sequence is a clue. The word model generator produces a sequence of words and the letter model generator produces a sequence of letters.
+Given a sequence-to-sequence transformer model, a sequence generator is the component that accepts as input a source
+sequence and an empty or partial output sequence and produces the next element of the output sequence.
+The generator is iteratively applied to produce a complete sequence.
+A custom generator needed to be developed for the letter model to decide what action to take at
+each iteration, whereas the word model always stops after generating a single word.
 
 For each input, the generator produces an array of values corresponding to possible next tokens.
-The values are relative measures of likelihood.
+The values indicate relative likelihood.
 The generator implementation applies the softmax function to these values to map them to a probability distribution.
-(This is the default behavior of the implementation, but other mappings are supported.)
 
 To produce a list of candidate answers for a given clue, a variation on beam search is performed~\cite{wu2016googles}.
-In beam search, the tree of sequence possibilities is traversed and the resulting answers are ranked by their cumulative probability.
-The cumulative probability of an answer is the product of the probabilities of the constituent sequence elements (words or letters, depending on the model).
+In beam search, the tree of sequence possibilities is traversed and the resulting answers are ranked by their aggregate probability.
 
 At each node of the tree, the possible next tokens are considered in order of probability, descending, up to a limit parameter (number of ``beams'').
-We identify a given tree search strategy by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3.
+A given tree search strategy may be identified by the sequence of these limit parameters, so a strategy that looks at the top 10 tokens, then top 5, then top 3, would be identified by the string L10-5-3.
 For brevity, the last number in the identifying sequence is assumed for all subsequent decision nodes, so a strategy that considers 2 tokens at every node is identified by the string L2. (Because the sequences the word model may generate are at most one token, only the L100 strategy is evaluated for the word model.)
 
 Performance under different strategies for generating answers is shown in~\autoref{fig:onemark-acc-by-strat} and~\autoref{fig:charmark-acc-by-strat} by evaluating their performance in producing correct answers.
@@ -279,10 +281,12 @@ For example, the accuracy at rank 10 is the percentage of clue-answer pairs for 
 Both models are outperformed by the baseline at rank less than 20.
 The word model shows a generally positive trend, and the fact that it is achieving near 40\% accuracy at rank 100, when the size of the answer set is about 50K, shows that the model is indeed learning effectively.
 
-With respect to the letter model, the lower-order strategies do not achieve significant accuracy, and their accuracy with respect to rank has a low upper bound because the search space is only $k^5$ (where $k$ is the number of letters).
-The higher-order strategies achieve some success,  outperforming the baseline at ranks above 30.
+With respect to the letter model, the lower-order strategies do not achieve significant accuracy,
+and their accuracy with respect to rank has is bounded by their limited search space.
+(Thus the accuracy curves level off at a certain point.)
+The higher-order strategies achieve some success, outperforming the baseline at ranks above 30.
 Strategies that are broadly less greedy, meaning they consider more tokens at greater depths in the search tree, appear to outperform greedier strategies with greater initial degrees.
-In particular, strategy L5 performs quite well for its low-degree search space, and its efficiency recommends it as the optimal strategy for subsequent evaluation in the test phase.
+In particular, strategy L5 performs well considering its low-degree search space, and its efficiency recommends it as the optimal strategy for subsequent evaluation in the test phase.
 While it is not the best performer in this assessment, its broader consideration of tokens at high depths means
 greater generalizability, which is desirable for the test phase.
 
@@ -313,7 +317,10 @@ The models achieve success in outperforming the baseline, but the baseline is a 
 Comparison to the MultiRD model or a Word2Vec-based algorithm~\cite{mikolov2013efficient} with a more robust word similarity metric would provide a better gauge of relative performance.
 (Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citeauthor{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
 
-The initial objectives from the project proposal included attempting to utilize constraints such as target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
+The initial objectives from the project proposal included attempting to utilize constraints such as target sequence
+length and known letters, but given the complexity of the initial tasks of model training and generator implementation,
+pursuing those objectives adequately would have resulted in more cursory investigation of the core
+methods that were explored herein.
 Use of positional encoding to influence output sequence length~\cite{takase2019positional} seems like a promising way to achieve better accuracy at lower ranks.
 The known-letters constraint can be seen as a specific instance of the general problem of unmasking partially-masked
 sequences given an input context, which is tackled by~\citealp{raffel2023exploring}, among others.
@@ -322,13 +329,13 @@ The fundamental model training task proved difficult.
 It is possible that propensity toward overfit is an inherent characteristic of crossword clue/answer datasets, relative
 to datasets for language translation on which transformers have shown robustness.
 Clue-answer pairs are inherently asymmetric in terms of sequence length, whereas language-to-language pairs are more balanced.
-This also points toward consideration of alternative positional encodings for the answer sequences in the letter model;
+This suggests consideration of alternative positional encodings for the answer sequences in the letter model;
 given their short length, perhaps a sinusoidal encoding is not appropriate.
 (Tests that completely removed the letter model's positional encoding from the target sequence were performed, but the results were poor.)
 \citeauthor{kulshreshtha2022across} claim that no major transformer architecture supports character-level outputs, so
 this was likely a more complex task than initially assumed.
 
-While reducing model dimensionality and increasing dropout were attempted to introduce regularization, other
+While regularization was attempted through reduction of model dimensionality and increasing dropout, other
 techniques, such as data augmentation (perhaps by randomly masking some tokens in the clue sequences) are worth trying.
 Scheduling learning rate adjustments differently is also worthy of investigation; \citeauthor{vaswani2017} schedule the
 learning rate with a warmup period and gradual decrease.
@@ -336,7 +343,7 @@ They train for many more epochs with a much larger dataset, but even for this da
 schedules are worthy of consideration.
 
 Overall, the results herein show that the models did learn effectively, though imperfectly.
-Though there is conclusive evidence that the transformer architecture is optimal for the clue-answering task,
+Though there is no conclusive evidence that the transformer architecture is optimal for the clue-answering task,
 relative to other types of encoder-decoder models, several avenues of further research are promising.
 
 \bibliography{aaai24}
