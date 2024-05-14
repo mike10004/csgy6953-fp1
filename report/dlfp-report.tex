@@ -301,7 +301,7 @@ outperforms the baseline at ranks above 40.
 \label{sec:conclusion}
 
 The models achieve success in outperforming the baseline, but the baseline is a low bar.
-Comparison to the MultiRD model or even a basic Word2Vec-based algorithm that contemplates semantic content would provide a better gauge of relative performance.
+Comparison to the MultiRD model or a Word2Vec-based algorithm~\cite{mikolov2013efficient} with a more robust word similarity metric would provide a better gauge of relative performance.
 (Performance of the MultiRD model could not be reproduced at the accuracy level reported by~\citeauthor{zhang2019multichannel}, so it was deemed unfair to include as a baseline herein.)
 
 The initial objectives from the project proposal included attempting to utilize constraints such as target sequence length and known letters, but given the complexity of the initial tasks of model training and generator implementation, adding those objectives would have broadened the scope greatly, resulting in more cursory investigation of the core methods that were explored herein.
