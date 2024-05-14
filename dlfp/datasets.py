@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+
+"""Module for classes and methods relating to datasets."""
+
 import hashlib
 import re
 import sys

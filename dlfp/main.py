@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Main entry point for command line interface."""
+
 import sys
 from typing import Any
 from typing import Optional
@@ -19,7 +21,6 @@ from dlfp.translate import NodeNavigator
 from dlfp.utils import Bilinguist
 from dlfp.utils import EvalConfig
 from dlfp.utils import LanguageCache
-
 
 SUPPORTED_DATASETS = ("easymark", "onemark", "charmark")
 

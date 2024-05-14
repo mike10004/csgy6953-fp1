@@ -64,6 +64,10 @@ Execute evaluation with the following command:
 Replace `$CHECKPOINT_FILE` with the pathname of the checkpoint file created by the 
 training command.
 
+Other evaluation configuration parameters may be set with the `-e` or `--eval-config`
+option. For example, to define an alternative beam search strategy, use 
+`--eval-config max_ranks=5,4,3,2,1`.
+
 ## Results Visualization
 
 The notebook `dlfp/nb/figures.ipynb` may be used to generate plots of loss curves 

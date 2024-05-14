@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Language-related classes and methods.
+"""
+
 import os
 import math
 import logging
@@ -59,6 +62,8 @@ def generate_square_subsequent_mask(sz, device):
 
 class SpecialIndexes(NamedTuple):
 
+    """Value class that defines constants for indexes of special tokens."""
+
     unk: int = 0
     pad: int = 1
     bos: int = 2
@@ -66,6 +71,8 @@ class SpecialIndexes(NamedTuple):
 
 
 class SpecialSymbols(NamedTuple):
+
+    """Value class that defines constants for human-readable interpretations of special tokens."""
 
     unk: str = '<unk>'
     pad: str = '<pad>'
@@ -78,6 +85,8 @@ class SpecialSymbols(NamedTuple):
 
 
 class Specials(NamedTuple):
+
+    """Value class that contains special indexes and tokens."""
 
     indexes: SpecialIndexes
     tokens: SpecialSymbols
@@ -93,6 +102,8 @@ class Specials(NamedTuple):
                           torch.tensor([self.indexes.eos])))
 
 class PhrasePairDataset(Dataset[PhrasePair], Iterable[PhrasePair]):
+
+    """Dataset implementation for phrase pairs."""
 
     def __init__(self,
                  name: str,
@@ -157,6 +168,8 @@ class PhrasePairDataset(Dataset[PhrasePair], Iterable[PhrasePair]):
 
 class EpochResult(NamedTuple):
 
+    """Value class that contains data relating to an epoch of training."""
+
     epoch_index: int
     train_loss: float
     valid_loss: float
@@ -171,6 +184,8 @@ class EpochResult(NamedTuple):
 
 
 class Restored(NamedTuple):
+
+    """Value class that represents a checkpoint."""
 
     epoch_results: list[EpochResult]
     model_state_dict: dict[str, Any]
@@ -202,12 +217,16 @@ class Restored(NamedTuple):
 
 class Checkpointable(NamedTuple):
 
+    """Value class that represents the argument for the checkpointer callback."""
+
     epoch_result: EpochResult
     model: nn.Module
     optimizer: Optimizer
 
 
 class Checkpointer:
+
+    """Service class that saves model checkpoints."""
 
     def __init__(self,
                  checkpoints_dir: Path):
@@ -276,6 +295,12 @@ class Checkpointer:
 
 class Language(NamedTuple):
 
+    """Class that represents an abstract language.
+
+    An abstract language does not need to be a language like English, but whatever the
+    source or target of a phrase pair dataset comprises.
+    """
+
     name: str
     tokenizer: Tokenizer
     vocab: Vocab
@@ -308,6 +333,11 @@ def tokenize_characters(text: str) -> list[str]:
 
 
 class LanguageCache:
+
+    """Cache utility for languages.
+
+    Building vocabularies can take a while, so this facilitates using a cached version where possible.
+    """
 
     def __init__(self, cache_dir: Optional[Path] = None):
         self.cache_dir = cache_dir or (dlfp.common.get_repo_root() / "data" / "cache" / "vocab")
@@ -363,6 +393,8 @@ class LanguageCache:
 
 class Bilinguist(NamedTuple):
 
+    """Container class that holds two languages."""
+
     source: Language
     target: Language
 
@@ -398,6 +430,8 @@ def normalize_answer_upper(answer: str) -> str:
 
 
 class EvalConfig(NamedTuple):
+
+    """Value class that represents a configuration of an evaluation."""
 
     split: Split = "valid"
     concurrency: Optional[int] = None

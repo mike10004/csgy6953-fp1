@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 
+"""Common utility methods.
+"""
+
 import sys
 import csv
 import json

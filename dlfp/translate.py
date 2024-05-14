@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Module for classes and methods relating to sequence-to-sequence translation."""
+
 import csv
 from pathlib import Path
 from typing import Any

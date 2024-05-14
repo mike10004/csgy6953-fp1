@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Module for classes and methods relating to models."""
+
 import math
 from typing import NamedTuple
 from typing import Optional

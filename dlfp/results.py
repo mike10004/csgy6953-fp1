@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Module for classes and methods relating to results."""
+
 import os
 import re
 import sys

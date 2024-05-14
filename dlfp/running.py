@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 
+"""Module for classes and methods related to running training and evaluation."""
+
 import csv
 import json
 import sys
